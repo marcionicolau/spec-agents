@@ -1,0 +1,52 @@
+# LiteLLM proxy — single OpenAI-compatible gateway (port 4000) in front of Ollama.
+# Start:  LITELLM_MASTER_KEY=sk-local-dev litellm --config config/litellm_config.yaml --port 4000
+# Code only knows the ALIASES below (local-planner, local-writer, local-fast); swap models here, never in code.
+
+model_list:
+  # Planner: needs the best instruction following + JSON discipline you can afford locally.
+  - model_name: local-planner
+    litellm_params:
+      model: ollama_chat/qwen2.5:14b-instruct
+      api_base: os.environ/OLLAMA_API_BASE        # e.g. http://localhost:11434
+      temperature: 0.1
+    model_info: {mode: chat, supports_response_schema: false}
+
+  # Fallback for the planner when the 14B is unavailable / times out.
+  - model_name: local-planner-fallback
+    litellm_params:
+      model: ollama_chat/llama3.1:8b-instruct-q5_K_M
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.1
+
+  # Interpreter: writing quality matters more than strict JSON (grounding validator catches hallucinated numbers).
+  - model_name: local-writer
+    litellm_params:
+      model: ollama_chat/llama3.1:8b-instruct-q5_K_M
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.2
+
+  # Repairer / CrewAI tool-operator: small and fast.
+  - model_name: local-fast
+    litellm_params:
+      model: ollama_chat/qwen2.5:7b-instruct
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.0
+
+  # Optional: general-purpose remote model, only used if an agent spec points to it explicitly.
+  # - model_name: remote-general
+  #   litellm_params: {model: anthropic/claude-sonnet-4-5, api_key: os.environ/ANTHROPIC_API_KEY}
+
+router_settings:
+  num_retries: 2
+  timeout: 180
+  fallbacks:
+    - local-planner: [local-planner-fallback]
+    - local-writer: [local-fast]
+
+litellm_settings:
+  drop_params: true          # Ollama rejects some OpenAI params; drop instead of failing
+  request_timeout: 180
+  # response_format={"type":"json_object"} is translated to Ollama's format=json
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

@@ -1,0 +1,20 @@
+# Planner regression cases for the lakehouse domain (live mode only; needs the LiteLLM proxy).
+#   python examples/run_evals.py --domain lakehouse --mode live
+cases:
+  - name: csv_ingest
+    objective: >-
+      Ingest the CSV file /data/landing/orders.csv into Trino catalog lake, table orders, keyed by order_id,
+      as an Airflow DAG named ingest_orders.
+    inputs: none
+    expected_components: [source_inspect, medallion_plan, airflow_dag_render, dag_check]
+  - name: api_ingest
+    objective: >-
+      Load the JSON API https://api.example.com/v1/items (records under data.items, auth via Airflow connection
+      items_api) into lake.items keyed by id with a DAG named ingest_items.
+    inputs: records
+    expected_components: [source_inspect, medallion_plan, airflow_dag_render, dag_check]
+  - name: design_only
+    objective: Propose bronze, silver and gold tables for the CSV /data/landing/orders.csv in catalog lake, table orders. Do not generate code.
+    inputs: none
+    expected_components: [source_inspect, medallion_plan]
+    forbidden_components: [airflow_dag_render]

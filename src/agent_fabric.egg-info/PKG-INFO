@@ -1,0 +1,33 @@
+Metadata-Version: 2.4
+Name: agent-fabric
+Version: 0.2.0
+Summary: Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy; statistics, lakehouse and coworker domain packs included
+Requires-Python: >=3.12
+Requires-Dist: pydantic>=2.7
+Requires-Dist: pyyaml>=6
+Requires-Dist: numpy>=1.26
+Provides-Extra: tabular
+Requires-Dist: pandas>=2.1; extra == "tabular"
+Provides-Extra: lakehouse
+Requires-Dist: openpyxl>=3.1; extra == "lakehouse"
+Requires-Dist: requests>=2.31; extra == "lakehouse"
+Provides-Extra: stats
+Requires-Dist: pandas>=2.1; extra == "stats"
+Requires-Dist: scipy>=1.11; extra == "stats"
+Requires-Dist: statsmodels>=0.14; extra == "stats"
+Requires-Dist: scikit-learn>=1.4; extra == "stats"
+Provides-Extra: pydantic-ai
+Requires-Dist: pydantic-ai-slim[openai]>=1.0; extra == "pydantic-ai"
+Provides-Extra: dspy
+Requires-Dist: dspy>=3.0; extra == "dspy"
+Provides-Extra: crewai
+Requires-Dist: crewai>=0.100; extra == "crewai"
+Provides-Extra: langchain
+Requires-Dist: langchain-core>=0.3; extra == "langchain"
+Provides-Extra: proxy
+Requires-Dist: litellm[proxy]>=1.60; extra == "proxy"
+Provides-Extra: all
+Requires-Dist: agent-fabric[crewai,dspy,langchain,pydantic-ai,stats]; extra == "all"
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"
+Requires-Dist: ruff>=0.5; extra == "dev"

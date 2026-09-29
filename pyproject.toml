@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-fabric"
+version = "0.2.0"
+description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy; statistics, lakehouse and coworker domain packs included"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7", "pyyaml>=6", "numpy>=1.26"]
+
+[project.optional-dependencies]
+tabular = ["pandas>=2.1"]
+lakehouse = ["openpyxl>=3.1", "requests>=2.31"]
+stats = ["pandas>=2.1", "scipy>=1.11", "statsmodels>=0.14", "scikit-learn>=1.4"]
+pydantic-ai = ["pydantic-ai-slim[openai]>=1.0"]
+dspy = ["dspy>=3.0"]
+crewai = ["crewai>=0.100"]
+langchain = ["langchain-core>=0.3"]
+proxy = ["litellm[proxy]>=1.60"]
+all = ["agent-fabric[stats,pydantic-ai,dspy,crewai,langchain]"]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.entry-points."agent_fabric.domains"]
+statistics = "stat_fabric.domain:register"
+lakehouse = "lake_fabric.domain:register"
+coworker = "coworker_fabric.domain:register"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+stat_fabric = ["skills/**/*.md"]
+lake_fabric = ["skills/**/*.md"]
+coworker_fabric = ["skills/**/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["F"]

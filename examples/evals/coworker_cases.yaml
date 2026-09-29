@@ -1,0 +1,14 @@
+# Planner regression cases for the coworker domain (live mode only). {root} is replaced by the repository path.
+#   python examples/run_evals.py --domain coworker --mode live
+cases:
+  - name: review_executor
+    objective: In the repository at {root}, choose the context for improving src/agent_fabric/executor.py and review it.
+    inputs: none
+    expected_components: [repo_index, context_select, code_review]
+    forbidden_components: [patch_propose]
+  - name: small_patch
+    objective: >-
+      In the repository at {root}, propose a patch for src/agent_fabric/lint.py that renames the local variable
+      "errors" to "error_count" in run(). Only propose it, do not apply it.
+    inputs: none
+    expected_components: [repo_index, context_select, patch_propose]

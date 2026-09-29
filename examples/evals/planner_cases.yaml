@@ -1,0 +1,21 @@
+# Planner regression cases. Run against the live proxy before merging changes to SKILL.md / AGENT.md
+# bodies or to model aliases:  python examples/run_evals.py --mode live
+cases:
+  - name: treatment_effect
+    objective: Do nitrogen treatments change wheat yield?
+    inputs: trial
+    expected_components: [summary, anova]
+    forbidden_components: [time_series]
+  - name: yield_drivers
+    objective: How much do nitrogen dose and rainfall explain yield, adjusting for treatment?
+    inputs: trial
+    expected_components: [summary, linear_model]
+  - name: plot_types
+    objective: Are there distinct types of plots according to soil nutrients?
+    inputs: trial
+    expected_components: [pca, clustering]
+  - name: seasonal_trend
+    objective: Is there a seasonal pattern in monthly yield, and what is the 6-month outlook?
+    inputs: trial
+    expected_components: [time_series]
+    min_score: 0.7

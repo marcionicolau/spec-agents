@@ -1,0 +1,1515 @@
+{
+  "session_id": "demo",
+  "instruction": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?",
+  "result": {
+    "agent": "research_lead",
+    "path": "research_lead",
+    "kind": "supervisor",
+    "status": "partial",
+    "summary": "120 rows: 6 numeric and 1 categorical variables described. | Model explains R² = 0.642 of the variance; 4 significant term(s). | treatment: F=48.9, p=3.65e-16 | 120 periods (MS); series is stationary (ADF p=1.27e-07). | 120 rows: 6 numeric and 1 categorical variables described. | 4 component(s) reta",
+    "output": {
+      "strategy": "sequential",
+      "rationale": "sequential",
+      "delegations": {
+        "research_lead/stats_team": "partial",
+        "research_lead/profile_runner": "ok",
+        "research_lead/notes_digest": "ok"
+      }
+    },
+    "artifacts": [
+      "research_lead"
+    ],
+    "error": {
+      "category": "dependency",
+      "message": "1 sub-agent(s) partially succeeded",
+      "component": null,
+      "step_id": null,
+      "recoverable": false,
+      "details": [
+        {
+          "loc": [
+            "sub_agents",
+            "stats_team"
+          ],
+          "type": "partial",
+          "msg": "120 rows: 6 numeric and 1 categorical variables described. | Model explains R² = 0.642 of the variance; 4 significant term(s). | treatment: F=48.9, p=3.65e-16 | 120 periods (MS); series is stationary ",
+          "input": null,
+          "hint": null
+        }
+      ]
+    },
+    "notes": [
+      "fell back to backend 'rules' after dependency error: LiteLLM proxy is unreachable"
+    ],
+    "children": [
+      {
+        "agent": "stats_team",
+        "path": "research_lead/stats_team",
+        "kind": "supervisor",
+        "status": "partial",
+        "summary": "120 rows: 6 numeric and 1 categorical variables described. | Model explains R² = 0.642 of the variance; 4 significant term(s). | treatment: F=48.9, p=3.65e-16 | 120 periods (MS); series is stationary (ADF p=1.27e-07).",
+        "output": {
+          "strategy": "sequential",
+          "rationale": "sequential",
+          "delegations": {
+            "research_lead/stats_team/statistician": "ok",
+            "research_lead/stats_team/methods_reviewer": "failed"
+          }
+        },
+        "artifacts": [
+          "research_lead/stats_team"
+        ],
+        "error": {
+          "category": "dependency",
+          "message": "1 sub-agent(s) did not succeed",
+          "component": null,
+          "step_id": null,
+          "recoverable": false,
+          "details": [
+            {
+              "loc": [
+                "sub_agents",
+                "methods_reviewer"
+              ],
+              "type": "failed",
+              "msg": "LiteLLM proxy is unreachable",
+              "input": null,
+              "hint": null
+            }
+          ]
+        },
+        "notes": [],
+        "children": [
+          {
+            "agent": "statistician",
+            "path": "research_lead/stats_team/statistician",
+            "kind": "planner",
+            "status": "ok",
+            "summary": "120 rows: 6 numeric and 1 categorical variables described. | Model explains R² = 0.642 of the variance; 4 significant term(s). | treatment: F=48.9, p=3.65e-16 | 120 periods (MS); series is stationary (ADF p=1.27e-07).",
+            "output": {
+              "planner": "stats_rules",
+              "plan": {
+                "objective": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?",
+                "steps": [
+                  {
+                    "id": "summary",
+                    "component": "summary",
+                    "params": {},
+                    "inputs": {
+                      "data": "$inputs.data"
+                    },
+                    "depends_on": [],
+                    "rationale": "baseline description"
+                  },
+                  {
+                    "id": "regression",
+                    "component": "linear_model",
+                    "params": {
+                      "response": "yield_t_ha",
+                      "predictors": [
+                        "nitrogen",
+                        "phosphorus",
+                        "potassium",
+                        "ph",
+                        "rainfall",
+                        "treatment"
+                      ]
+                    },
+                    "inputs": {
+                      "data": "$inputs.data"
+                    },
+                    "depends_on": [],
+                    "rationale": ""
+                  },
+                  {
+                    "id": "anova",
+                    "component": "anova",
+                    "params": {
+                      "response": "yield_t_ha",
+                      "factors": [
+                        "treatment"
+                      ]
+                    },
+                    "inputs": {
+                      "data": "$inputs.data"
+                    },
+                    "depends_on": [],
+                    "rationale": ""
+                  },
+                  {
+                    "id": "time_series",
+                    "component": "time_series",
+                    "params": {
+                      "time_col": "date",
+                      "value_col": "yield_t_ha"
+                    },
+                    "inputs": {
+                      "data": "$inputs.data"
+                    },
+                    "depends_on": [],
+                    "rationale": ""
+                  },
+                  {
+                    "id": "pca",
+                    "component": "pca",
+                    "params": {
+                      "features": [
+                        "nitrogen",
+                        "phosphorus",
+                        "potassium",
+                        "ph",
+                        "rainfall"
+                      ]
+                    },
+                    "inputs": {
+                      "data": "$inputs.data"
+                    },
+                    "depends_on": [],
+                    "rationale": ""
+                  },
+                  {
+                    "id": "clusters",
+                    "component": "clustering",
+                    "params": {},
+                    "inputs": {
+                      "matrix": "pca.scores"
+                    },
+                    "depends_on": [],
+                    "rationale": ""
+                  }
+                ],
+                "outputs": {
+                  "cluster_labels": "clusters.labels"
+                }
+              },
+              "rejected_plans": [],
+              "steps": {
+                "summary": "ok",
+                "regression": "ok",
+                "anova": "ok",
+                "time_series": "ok",
+                "pca": "ok",
+                "clusters": "ok"
+              },
+              "results": {
+                "summary": {
+                  "warnings": [
+                    "'rainfall' departs from normality (Shapiro p=1.42e-06)"
+                  ],
+                  "n_used": 120,
+                  "n_rows": 120,
+                  "numeric": {
+                    "nitrogen": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 38.67147136339801,
+                      "std": 7.0166798070274075,
+                      "min": 22.971463665422842,
+                      "q1": 34.32895588889146,
+                      "median": 38.50959184515898,
+                      "q3": 42.8412140020891,
+                      "max": 57.958053011888396,
+                      "skewness": 0.0829316102896057,
+                      "kurtosis": -0.15838472607353005,
+                      "shapiro_p": 0.8043177377500126
+                    },
+                    "phosphorus": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 31.34142806560971,
+                      "std": 4.5432757898696705,
+                      "min": 16.96505345910347,
+                      "q1": 28.405495662952724,
+                      "median": 30.968401064043388,
+                      "q3": 34.72708974717389,
+                      "max": 41.71636249175366,
+                      "skewness": -0.2020238984023734,
+                      "kurtosis": 0.16743962156892556,
+                      "shapiro_p": 0.4811632550452107
+                    },
+                    "potassium": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 60.11734933593669,
+                      "std": 9.503984993565858,
+                      "min": 40.53321588232792,
+                      "q1": 53.90068189054485,
+                      "median": 59.42722796736433,
+                      "q3": 65.8077813166823,
+                      "max": 85.36929570131888,
+                      "skewness": 0.23108168050724823,
+                      "kurtosis": -0.24908125155239924,
+                      "shapiro_p": 0.5352738101876942
+                    },
+                    "ph": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 5.707522832298951,
+                      "std": 0.26652897264134107,
+                      "min": 4.954129174660505,
+                      "q1": 5.506847937857337,
+                      "median": 5.706272989803128,
+                      "q3": 5.854406868265666,
+                      "max": 6.3724651117608095,
+                      "skewness": 0.2759823986944528,
+                      "kurtosis": 0.020852499385508594,
+                      "shapiro_p": 0.21983010062577057
+                    },
+                    "rainfall": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 158.02555962050025,
+                      "std": 84.18455483744187,
+                      "min": 20.559861408710415,
+                      "q1": 100.99815684097544,
+                      "median": 140.6507298989976,
+                      "q3": 188.98305585224864,
+                      "max": 438.6909494957706,
+                      "skewness": 1.1196233780458198,
+                      "kurtosis": 1.0800228520371054,
+                      "shapiro_p": 1.4247106636950686e-6
+                    },
+                    "yield_t_ha": {
+                      "count": 120,
+                      "missing": 0,
+                      "mean": 3.484205834605672,
+                      "std": 0.53199225668868,
+                      "min": 2.214956743556077,
+                      "q1": 3.175725810377269,
+                      "median": 3.4822419145052286,
+                      "q3": 3.902656027513834,
+                      "max": 5.029989106056761,
+                      "skewness": -0.08359061676881673,
+                      "kurtosis": -0.1258457068253631,
+                      "shapiro_p": 0.615097006084738
+                    }
+                  },
+                  "categorical": {
+                    "treatment": {
+                      "count": 120,
+                      "missing": 0,
+                      "n_levels": 3,
+                      "top_levels": {
+                        "N60": 46,
+                        "N120": 40,
+                        "control": 34
+                      }
+                    }
+                  },
+                  "correlations": {
+                    "nitrogen": {
+                      "phosphorus": 0.49391028025574757,
+                      "potassium": 0.10027472586316322,
+                      "ph": -0.05383281706734998,
+                      "rainfall": 0.006101432819605364,
+                      "yield_t_ha": 0.2932043948957591
+                    },
+                    "phosphorus": {
+                      "nitrogen": 0.49391028025574757,
+                      "potassium": -0.07295719715656364,
+                      "ph": 0.012686835749779116,
+                      "rainfall": 0.04334127409071248,
+                      "yield_t_ha": 0.1516633594688806
+                    },
+                    "potassium": {
+                      "nitrogen": 0.10027472586316322,
+                      "phosphorus": -0.07295719715656364,
+                      "ph": -0.025372090361794115,
+                      "rainfall": 0.05287153482718089,
+                      "yield_t_ha": 0.06565569780252195
+                    },
+                    "ph": {
+                      "nitrogen": -0.05383281706734998,
+                      "phosphorus": 0.012686835749779116,
+                      "potassium": -0.025372090361794115,
+                      "rainfall": -0.0982888227441994,
+                      "yield_t_ha": -0.18572263923250673
+                    },
+                    "rainfall": {
+                      "nitrogen": 0.006101432819605364,
+                      "phosphorus": 0.04334127409071248,
+                      "potassium": 0.05287153482718089,
+                      "ph": -0.0982888227441994,
+                      "yield_t_ha": 0.24489353256121651
+                    },
+                    "yield_t_ha": {
+                      "nitrogen": 0.2932043948957591,
+                      "phosphorus": 0.1516633594688806,
+                      "potassium": 0.06565569780252195,
+                      "ph": -0.18572263923250673,
+                      "rainfall": 0.24489353256121651
+                    }
+                  }
+                },
+                "regression": {
+                  "warnings": [
+                    "possible residual autocorrelation (Durbin-Watson=1.00)"
+                  ],
+                  "n_used": 120,
+                  "formula": "Q(\"yield_t_ha\") ~ Q(\"nitrogen\") + Q(\"phosphorus\") + Q(\"potassium\") + Q(\"ph\") + Q(\"rainfall\") + C(Q(\"treatment\"))",
+                  "coefficients": [
+                    {
+                      "term": "Intercept",
+                      "estimate": 3.568043267289024,
+                      "std_error": 0.7234043160007347,
+                      "statistic": 4.932294691044393,
+                      "p_value": 2.8448865589041846e-6,
+                      "ci_low": 2.134710344805296,
+                      "ci_high": 5.001376189772753,
+                      "significant": true
+                    },
+                    {
+                      "term": "treatment[N60]",
+                      "estimate": -0.44297111961536084,
+                      "std_error": 0.07218439915656238,
+                      "statistic": -6.136660064934401,
+                      "p_value": 1.3056091713904857e-8,
+                      "ci_low": -0.5859952535779545,
+                      "ci_high": -0.29994698565276723,
+                      "significant": true
+                    },
+                    {
+                      "term": "treatment[control]",
+                      "estimate": -0.9588202168381353,
+                      "std_error": 0.07861623588696663,
+                      "statistic": -12.196211202692458,
+                      "p_value": 2.775222244795389e-22,
+                      "ci_low": -1.1145882108162382,
+                      "ci_high": -0.8030522228600325,
+                      "significant": true
+                    },
+                    {
+                      "term": "nitrogen",
+                      "estimate": 0.020671897976125526,
+                      "std_error": 0.0050082998914206065,
+                      "statistic": 4.127527988397262,
+                      "p_value": 0.00007081354296025234,
+                      "ci_low": 0.010748593730816675,
+                      "ci_high": 0.030595202221434376,
+                      "significant": true
+                    },
+                    {
+                      "term": "phosphorus",
+                      "estimate": -0.004374194716360242,
+                      "std_error": 0.007724464886880903,
+                      "statistic": -0.5662780244867573,
+                      "p_value": 0.5723377444685956,
+                      "ci_low": -0.01967923172822775,
+                      "ci_high": 0.010930842295507268,
+                      "significant": false
+                    },
+                    {
+                      "term": "potassium",
+                      "estimate": -0.00217502848818402,
+                      "std_error": 0.003265207465726424,
+                      "statistic": -0.6661226004823348,
+                      "p_value": 0.5067024651457606,
+                      "ci_low": -0.008644618530498046,
+                      "ci_high": 0.004294561554130006,
+                      "significant": false
+                    },
+                    {
+                      "term": "ph",
+                      "estimate": -0.09064571016887069,
+                      "std_error": 0.11495736143281404,
+                      "statistic": -0.7885159248531282,
+                      "p_value": 0.43206083617502883,
+                      "ci_low": -0.31841898602439683,
+                      "ci_high": 0.13712756568665546,
+                      "significant": false
+                    },
+                    {
+                      "term": "rainfall",
+                      "estimate": 0.002173281957764203,
+                      "std_error": 0.0003651071785782311,
+                      "statistic": 5.952449267711499,
+                      "p_value": 3.088685190775338e-8,
+                      "ci_low": 0.0014498688847202862,
+                      "ci_high": 0.00289669503080812,
+                      "significant": true
+                    }
+                  ],
+                  "r_squared": 0.642287716601304,
+                  "adj_r_squared": 0.6199306988888855,
+                  "f_statistic": 28.72868487484074,
+                  "f_p_value": 2.5708883190601767e-22,
+                  "aic": 80.70758004307888,
+                  "bic": 103.00751398533524,
+                  "breusch_pagan_p": 0.4493987645231393,
+                  "jarque_bera_p": 0.3075631476371625,
+                  "durbin_watson": 1.0043948983118536,
+                  "vif": {
+                    "treatment[N60]": 1.374110261260019,
+                    "treatment[control]": 1.4000617803317754,
+                    "nitrogen": 1.366210178779759,
+                    "phosphorus": 1.3625377853096758,
+                    "potassium": 1.0653850358013572,
+                    "ph": 1.038570474066484,
+                    "rainfall": 1.0451512163886645
+                  }
+                },
+                "anova": {
+                  "warnings": [
+                    "residuals are not normal (Shapiro p=0.0499); consider Kruskal-Wallis"
+                  ],
+                  "n_used": 120,
+                  "formula": "Q(\"yield_t_ha\") ~ C(Q(\"treatment\"))",
+                  "table": [
+                    {
+                      "source": "treatment",
+                      "sum_sq": 15.33614036412568,
+                      "df": 2.0,
+                      "f_value": 48.911146606069096,
+                      "p_value": 3.6494803920393423e-16,
+                      "eta_sq_partial": 0.4553637881313283
+                    },
+                    {
+                      "source": "Residual",
+                      "sum_sq": 18.34273521590329,
+                      "df": 117.0,
+                      "f_value": null,
+                      "p_value": null,
+                      "eta_sq_partial": null
+                    }
+                  ],
+                  "group_means": {
+                    "treatment": {
+                      "N120": 3.909024642529934,
+                      "N60": 3.4758770123314546,
+                      "control": 2.995687408359893
+                    }
+                  },
+                  "levene_p": 0.0826908265999844,
+                  "shapiro_resid_p": 0.049903581508807325,
+                  "tukey": [
+                    {
+                      "group_a": "N120",
+                      "group_b": "N60",
+                      "mean_diff": -0.4331,
+                      "p_adj": 0.0,
+                      "ci_low": -0.6364,
+                      "ci_high": -0.2299,
+                      "reject": true
+                    },
+                    {
+                      "group_a": "N120",
+                      "group_b": "control",
+                      "mean_diff": -0.9133,
+                      "p_adj": 0.0,
+                      "ci_low": -1.1326,
+                      "ci_high": -0.6941,
+                      "reject": true
+                    },
+                    {
+                      "group_a": "N60",
+                      "group_b": "control",
+                      "mean_diff": -0.4802,
+                      "p_adj": 0.0,
+                      "ci_low": -0.6928,
+                      "ci_high": -0.2676,
+                      "reject": true
+                    }
+                  ]
+                },
+                "time_series": {
+                  "warnings": [],
+                  "n_used": 120,
+                  "start": "2016-01-01 00:00:00",
+                  "end": "2025-12-01 00:00:00",
+                  "freq": "MS",
+                  "n_periods": 120,
+                  "adf_statistic": -6.052579593275907,
+                  "adf_p_value": 1.2671947484641105e-7,
+                  "stationary": true,
+                  "trend_strength": 0.01790706701118494,
+                  "seasonal_strength": 0.31034191095757846,
+                  "arima_order": [
+                    1,
+                    1,
+                    1
+                  ],
+                  "arima_aic": 195.7654517471653,
+                  "forecast": [
+                    {
+                      "time": "2026-01-01",
+                      "mean": 3.4483797980066995,
+                      "lower": 2.411151274644621,
+                      "upper": 4.485608321368778
+                    },
+                    {
+                      "time": "2026-02-01",
+                      "mean": 3.4792182752604868,
+                      "lower": 2.4298440530626397,
+                      "upper": 4.528592497458334
+                    },
+                    {
+                      "time": "2026-03-01",
+                      "mean": 3.483704086959781,
+                      "lower": 2.433895672911924,
+                      "upper": 4.533512501007638
+                    },
+                    {
+                      "time": "2026-04-01",
+                      "mean": 3.4843565999368624,
+                      "lower": 2.434513006253556,
+                      "upper": 4.534200193620169
+                    },
+                    {
+                      "time": "2026-05-01",
+                      "mean": 3.484451515464709,
+                      "lower": 2.434603395729405,
+                      "upper": 4.534299635200013
+                    },
+                    {
+                      "time": "2026-06-01",
+                      "mean": 3.4844653220214257,
+                      "lower": 2.434616555873441,
+                      "upper": 4.53431408816941
+                    },
+                    {
+                      "time": "2026-07-01",
+                      "mean": 3.4844673303441174,
+                      "lower": 2.4346184698651685,
+                      "upper": 4.534316190823066
+                    },
+                    {
+                      "time": "2026-08-01",
+                      "mean": 3.484467622477784,
+                      "lower": 2.43461874771518,
+                      "upper": 4.534316497240388
+                    },
+                    {
+                      "time": "2026-09-01",
+                      "mean": 3.4844676649719903,
+                      "lower": 2.4346187875640473,
+                      "upper": 4.534316542379933
+                    },
+                    {
+                      "time": "2026-10-01",
+                      "mean": 3.4844676711532623,
+                      "lower": 2.434618792792791,
+                      "upper": 4.534316549513734
+                    },
+                    {
+                      "time": "2026-11-01",
+                      "mean": 3.4844676720523995,
+                      "lower": 2.434618792985636,
+                      "upper": 4.534316551119163
+                    },
+                    {
+                      "time": "2026-12-01",
+                      "mean": 3.4844676721831895,
+                      "lower": 2.434618792445952,
+                      "upper": 4.534316551920427
+                    }
+                  ]
+                },
+                "pca": {
+                  "warnings": [
+                    "KMO=0.46 < 0.5: sampling adequacy is poor"
+                  ],
+                  "n_used": 120,
+                  "n_components": 4,
+                  "selection": "variance_threshold",
+                  "cumulative_variance": [
+                    0.3000884821373588,
+                    0.5249062456798823,
+                    0.7242902692842096,
+                    0.9059282762322857
+                  ],
+                  "kaiser_n": 3,
+                  "bartlett_p": 0.00003041495289118839,
+                  "kmo": 0.4582787848055205,
+                  "components": {
+                    "PC1": {
+                      "explained_variance_ratio": 0.3000884821373588,
+                      "eigenvalue": 1.513051170440465,
+                      "loadings": {
+                        "nitrogen": 0.8691734260940741,
+                        "phosphorus": 0.8553256087210523,
+                        "potassium": 0.06607096920954057,
+                        "ph": -0.0969026706877821,
+                        "rainfall": 0.11068571867952608
+                      },
+                      "top_features": [
+                        "nitrogen",
+                        "phosphorus",
+                        "rainfall"
+                      ]
+                    },
+                    "PC2": {
+                      "explained_variance_ratio": 0.2248177635425235,
+                      "eigenvalue": 1.1335349422312113,
+                      "loadings": {
+                        "nitrogen": -0.012392064720688295,
+                        "phosphorus": -0.1841854115878342,
+                        "potassium": 0.509073442256148,
+                        "ph": -0.6385157517518567,
+                        "rainfall": 0.6577225693828876
+                      },
+                      "top_features": [
+                        "rainfall",
+                        "ph",
+                        "potassium"
+                      ]
+                    },
+                    "PC3": {
+                      "explained_variance_ratio": 0.19938402360432725,
+                      "eigenvalue": 1.0052975980050116,
+                      "loadings": {
+                        "nitrogen": 0.14211841520331445,
+                        "phosphorus": -0.12571577019685723,
+                        "potassium": 0.8479253826784818,
+                        "ph": 0.40008956414431035,
+                        "rainfall": -0.3004103614412912
+                      },
+                      "top_features": [
+                        "potassium",
+                        "ph",
+                        "rainfall"
+                      ]
+                    },
+                    "PC4": {
+                      "explained_variance_ratio": 0.18163800694807605,
+                      "eigenvalue": 0.9158218837718124,
+                      "loadings": {
+                        "nitrogen": -0.09868085619612363,
+                        "phosphorus": 0.08842692469380221,
+                        "potassium": -0.03597655628859038,
+                        "ph": 0.6536729811867373,
+                        "rainfall": 0.6853334753574111
+                      },
+                      "top_features": [
+                        "rainfall",
+                        "ph",
+                        "nitrogen"
+                      ]
+                    }
+                  }
+                },
+                "clusters": {
+                  "warnings": [
+                    "weak cluster structure (silhouette=0.22); clusters may be arbitrary"
+                  ],
+                  "n_used": 120,
+                  "k": 5,
+                  "selection": "silhouette",
+                  "space": "matrix",
+                  "silhouette": 0.21578019980649393,
+                  "silhouette_by_k": {
+                    "2": 0.19634226479347322,
+                    "3": 0.19430892625789184,
+                    "4": 0.20593685578617454,
+                    "5": 0.21578019980649393,
+                    "6": 0.19622268386526345,
+                    "7": 0.21386575980915634,
+                    "8": 0.2012065088907861
+                  },
+                  "sizes": {
+                    "0": 8,
+                    "1": 37,
+                    "2": 36,
+                    "3": 24,
+                    "4": 15
+                  },
+                  "centers": {
+                    "0": {
+                      "PC1": 1.1180166862402117,
+                      "PC2": 1.9209831654883518,
+                      "PC3": 1.140973242748464,
+                      "PC4": 0.315323465498976
+                    },
+                    "1": {
+                      "PC1": -1.1395228917712867,
+                      "PC2": -0.0032586613699291164,
+                      "PC3": -0.084326565719162,
+                      "PC4": -0.5944532371871643
+                    },
+                    "2": {
+                      "PC1": 1.0795909905685828,
+                      "PC2": -0.2588562375227822,
+                      "PC3": -0.32312548032850835,
+                      "PC4": -0.4587212781161009
+                    },
+                    "3": {
+                      "PC1": -0.13625883024092558,
+                      "PC2": -0.8887549892854701,
+                      "PC3": 0.8341813481577441,
+                      "PC4": 0.6410202160334906
+                    },
+                    "4": {
+                      "PC1": -0.15845668193805718,
+                      "PC2": 1.0267766293634668,
+                      "PC3": -0.9597025382892187,
+                      "PC4": 1.3734441919539415
+                    }
+                  }
+                }
+              },
+              "interpretations": [
+                {
+                  "step_id": "summary",
+                  "headline": "120 rows: 6 numeric and 1 categorical variables described.",
+                  "findings": [
+                    "nitrogen: mean 38.67, sd 7.017",
+                    "phosphorus: mean 31.34, sd 4.543",
+                    "potassium: mean 60.12, sd 9.504",
+                    "ph: mean 5.708, sd 0.2665",
+                    "rainfall: mean 158, sd 84.18"
+                  ],
+                  "caveats": [
+                    "'rainfall' departs from normality (Shapiro p=1.42e-06)"
+                  ],
+                  "confidence": "medium",
+                  "source": "rules"
+                },
+                {
+                  "step_id": "regression",
+                  "headline": "Model explains R² = 0.642 of the variance; 4 significant term(s).",
+                  "findings": [
+                    "treatment[N60]: estimate -0.443 (p=1.31e-08)",
+                    "treatment[control]: estimate -0.9588 (p=2.78e-22)",
+                    "nitrogen: estimate 0.02067 (p=7.08e-05)",
+                    "rainfall: estimate 0.002173 (p=3.09e-08)"
+                  ],
+                  "caveats": [
+                    "possible residual autocorrelation (Durbin-Watson=1.00)"
+                  ],
+                  "confidence": "medium",
+                  "source": "rules"
+                },
+                {
+                  "step_id": "anova",
+                  "headline": "treatment: F=48.9, p=3.65e-16",
+                  "findings": [
+                    "N120 vs N60: diff -0.433 (p adj=0)",
+                    "N120 vs control: diff -0.913 (p adj=0)",
+                    "N60 vs control: diff -0.48 (p adj=0)"
+                  ],
+                  "caveats": [
+                    "residuals are not normal (Shapiro p=0.0499); consider Kruskal-Wallis"
+                  ],
+                  "confidence": "medium",
+                  "source": "rules"
+                },
+                {
+                  "step_id": "time_series",
+                  "headline": "120 periods (MS); series is stationary (ADF p=1.27e-07).",
+                  "findings": [
+                    "trend strength 0.02, seasonal strength 0.31",
+                    "forecast for 2026-12-01: 3.484 [2.435, 4.534]"
+                  ],
+                  "caveats": [],
+                  "confidence": "high",
+                  "source": "rules"
+                },
+                {
+                  "step_id": "pca",
+                  "headline": "4 component(s) retain 90.6% of the variance.",
+                  "findings": [
+                    "PC1: 30.0%, driven by nitrogen, phosphorus, rainfall",
+                    "PC2: 22.5%, driven by rainfall, ph, potassium",
+                    "PC3: 19.9%, driven by potassium, ph, rainfall",
+                    "PC4: 18.2%, driven by rainfall, ph, nitrogen"
+                  ],
+                  "caveats": [
+                    "KMO=0.46 < 0.5: sampling adequacy is poor"
+                  ],
+                  "confidence": "medium",
+                  "source": "rules"
+                },
+                {
+                  "step_id": "clusters",
+                  "headline": "5 clusters (silhouette 0.22, space: matrix).",
+                  "findings": [
+                    "cluster 0: 8 observations",
+                    "cluster 1: 37 observations",
+                    "cluster 2: 36 observations",
+                    "cluster 3: 24 observations",
+                    "cluster 4: 15 observations"
+                  ],
+                  "caveats": [
+                    "weak cluster structure (silhouette=0.22); clusters may be arbitrary"
+                  ],
+                  "confidence": "medium",
+                  "source": "rules"
+                }
+              ],
+              "failures": {}
+            },
+            "artifacts": [
+              "research_lead/stats_team/statistician",
+              "research_lead/stats_team/statistician.cluster_labels"
+            ],
+            "error": null,
+            "notes": [
+              "fell back to backend 'stats_rules' after dependency error: LiteLLM proxy is unreachable"
+            ],
+            "children": [],
+            "llm_calls": 1,
+            "duration_s": 0.8402
+          },
+          {
+            "agent": "methods_reviewer",
+            "path": "research_lead/stats_team/methods_reviewer",
+            "kind": "llm",
+            "status": "failed",
+            "summary": "LiteLLM proxy is unreachable",
+            "output": null,
+            "artifacts": [],
+            "error": {
+              "category": "dependency",
+              "message": "LiteLLM proxy is unreachable",
+              "component": null,
+              "step_id": null,
+              "recoverable": false,
+              "details": [
+                {
+                  "loc": [],
+                  "type": "connection_error",
+                  "msg": "refused",
+                  "input": null,
+                  "hint": null
+                }
+              ]
+            },
+            "notes": [],
+            "children": [],
+            "llm_calls": 1,
+            "duration_s": 0.0112
+          }
+        ],
+        "llm_calls": 0,
+        "duration_s": 0.8517
+      },
+      {
+        "agent": "profile_runner",
+        "path": "research_lead/profile_runner",
+        "kind": "pipeline",
+        "status": "ok",
+        "summary": "120 rows: 6 numeric and 1 categorical variables described. | 4 component(s) retain 90.6% of the variance. | 5 clusters (silhouette 0.22, space: matrix).",
+        "output": {
+          "pipeline": "exploratory_analysis",
+          "steps": {
+            "summary": "ok",
+            "pca": "ok",
+            "clusters": "ok"
+          },
+          "results": {
+            "summary": {
+              "warnings": [
+                "'rainfall' departs from normality (Shapiro p=1.42e-06)"
+              ],
+              "n_used": 120,
+              "n_rows": 120,
+              "numeric": {
+                "nitrogen": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 38.67147136339801,
+                  "std": 7.0166798070274075,
+                  "min": 22.971463665422842,
+                  "q1": 34.32895588889146,
+                  "median": 38.50959184515898,
+                  "q3": 42.8412140020891,
+                  "max": 57.958053011888396,
+                  "skewness": 0.0829316102896057,
+                  "kurtosis": -0.15838472607353005,
+                  "shapiro_p": 0.8043177377500126
+                },
+                "phosphorus": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 31.34142806560971,
+                  "std": 4.5432757898696705,
+                  "min": 16.96505345910347,
+                  "q1": 28.405495662952724,
+                  "median": 30.968401064043388,
+                  "q3": 34.72708974717389,
+                  "max": 41.71636249175366,
+                  "skewness": -0.2020238984023734,
+                  "kurtosis": 0.16743962156892556,
+                  "shapiro_p": 0.4811632550452107
+                },
+                "potassium": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 60.11734933593669,
+                  "std": 9.503984993565858,
+                  "min": 40.53321588232792,
+                  "q1": 53.90068189054485,
+                  "median": 59.42722796736433,
+                  "q3": 65.8077813166823,
+                  "max": 85.36929570131888,
+                  "skewness": 0.23108168050724823,
+                  "kurtosis": -0.24908125155239924,
+                  "shapiro_p": 0.5352738101876942
+                },
+                "ph": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 5.707522832298951,
+                  "std": 0.26652897264134107,
+                  "min": 4.954129174660505,
+                  "q1": 5.506847937857337,
+                  "median": 5.706272989803128,
+                  "q3": 5.854406868265666,
+                  "max": 6.3724651117608095,
+                  "skewness": 0.2759823986944528,
+                  "kurtosis": 0.020852499385508594,
+                  "shapiro_p": 0.21983010062577057
+                },
+                "rainfall": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 158.02555962050025,
+                  "std": 84.18455483744187,
+                  "min": 20.559861408710415,
+                  "q1": 100.99815684097544,
+                  "median": 140.6507298989976,
+                  "q3": 188.98305585224864,
+                  "max": 438.6909494957706,
+                  "skewness": 1.1196233780458198,
+                  "kurtosis": 1.0800228520371054,
+                  "shapiro_p": 1.4247106636950686e-6
+                },
+                "yield_t_ha": {
+                  "count": 120,
+                  "missing": 0,
+                  "mean": 3.484205834605672,
+                  "std": 0.53199225668868,
+                  "min": 2.214956743556077,
+                  "q1": 3.175725810377269,
+                  "median": 3.4822419145052286,
+                  "q3": 3.902656027513834,
+                  "max": 5.029989106056761,
+                  "skewness": -0.08359061676881673,
+                  "kurtosis": -0.1258457068253631,
+                  "shapiro_p": 0.615097006084738
+                }
+              },
+              "categorical": {
+                "treatment": {
+                  "count": 120,
+                  "missing": 0,
+                  "n_levels": 3,
+                  "top_levels": {
+                    "N60": 46,
+                    "N120": 40,
+                    "control": 34
+                  }
+                }
+              },
+              "correlations": {
+                "nitrogen": {
+                  "phosphorus": 0.49391028025574757,
+                  "potassium": 0.10027472586316322,
+                  "ph": -0.05383281706734998,
+                  "rainfall": 0.006101432819605364,
+                  "yield_t_ha": 0.2932043948957591
+                },
+                "phosphorus": {
+                  "nitrogen": 0.49391028025574757,
+                  "potassium": -0.07295719715656364,
+                  "ph": 0.012686835749779116,
+                  "rainfall": 0.04334127409071248,
+                  "yield_t_ha": 0.1516633594688806
+                },
+                "potassium": {
+                  "nitrogen": 0.10027472586316322,
+                  "phosphorus": -0.07295719715656364,
+                  "ph": -0.025372090361794115,
+                  "rainfall": 0.05287153482718089,
+                  "yield_t_ha": 0.06565569780252195
+                },
+                "ph": {
+                  "nitrogen": -0.05383281706734998,
+                  "phosphorus": 0.012686835749779116,
+                  "potassium": -0.025372090361794115,
+                  "rainfall": -0.0982888227441994,
+                  "yield_t_ha": -0.18572263923250673
+                },
+                "rainfall": {
+                  "nitrogen": 0.006101432819605364,
+                  "phosphorus": 0.04334127409071248,
+                  "potassium": 0.05287153482718089,
+                  "ph": -0.0982888227441994,
+                  "yield_t_ha": 0.24489353256121651
+                },
+                "yield_t_ha": {
+                  "nitrogen": 0.2932043948957591,
+                  "phosphorus": 0.1516633594688806,
+                  "potassium": 0.06565569780252195,
+                  "ph": -0.18572263923250673,
+                  "rainfall": 0.24489353256121651
+                }
+              }
+            },
+            "pca": {
+              "warnings": [
+                "KMO=0.46 < 0.5: sampling adequacy is poor"
+              ],
+              "n_used": 120,
+              "n_components": 4,
+              "selection": "variance_threshold",
+              "cumulative_variance": [
+                0.3000884821373588,
+                0.5249062456798823,
+                0.7242902692842096,
+                0.9059282762322857
+              ],
+              "kaiser_n": 3,
+              "bartlett_p": 0.00003041495289118839,
+              "kmo": 0.4582787848055205,
+              "components": {
+                "PC1": {
+                  "explained_variance_ratio": 0.3000884821373588,
+                  "eigenvalue": 1.513051170440465,
+                  "loadings": {
+                    "nitrogen": 0.8691734260940741,
+                    "phosphorus": 0.8553256087210523,
+                    "potassium": 0.06607096920954057,
+                    "ph": -0.0969026706877821,
+                    "rainfall": 0.11068571867952608
+                  },
+                  "top_features": [
+                    "nitrogen",
+                    "phosphorus",
+                    "rainfall"
+                  ]
+                },
+                "PC2": {
+                  "explained_variance_ratio": 0.2248177635425235,
+                  "eigenvalue": 1.1335349422312113,
+                  "loadings": {
+                    "nitrogen": -0.012392064720688295,
+                    "phosphorus": -0.1841854115878342,
+                    "potassium": 0.509073442256148,
+                    "ph": -0.6385157517518567,
+                    "rainfall": 0.6577225693828876
+                  },
+                  "top_features": [
+                    "rainfall",
+                    "ph",
+                    "potassium"
+                  ]
+                },
+                "PC3": {
+                  "explained_variance_ratio": 0.19938402360432725,
+                  "eigenvalue": 1.0052975980050116,
+                  "loadings": {
+                    "nitrogen": 0.14211841520331445,
+                    "phosphorus": -0.12571577019685723,
+                    "potassium": 0.8479253826784818,
+                    "ph": 0.40008956414431035,
+                    "rainfall": -0.3004103614412912
+                  },
+                  "top_features": [
+                    "potassium",
+                    "ph",
+                    "rainfall"
+                  ]
+                },
+                "PC4": {
+                  "explained_variance_ratio": 0.18163800694807605,
+                  "eigenvalue": 0.9158218837718124,
+                  "loadings": {
+                    "nitrogen": -0.09868085619612363,
+                    "phosphorus": 0.08842692469380221,
+                    "potassium": -0.03597655628859038,
+                    "ph": 0.6536729811867373,
+                    "rainfall": 0.6853334753574111
+                  },
+                  "top_features": [
+                    "rainfall",
+                    "ph",
+                    "nitrogen"
+                  ]
+                }
+              }
+            },
+            "clusters": {
+              "warnings": [
+                "weak cluster structure (silhouette=0.22); clusters may be arbitrary"
+              ],
+              "n_used": 120,
+              "k": 5,
+              "selection": "silhouette",
+              "space": "matrix",
+              "silhouette": 0.21578019980649393,
+              "silhouette_by_k": {
+                "2": 0.19634226479347322,
+                "3": 0.19430892625789184,
+                "4": 0.20593685578617454,
+                "5": 0.21578019980649393,
+                "6": 0.19622268386526345,
+                "7": 0.21386575980915634,
+                "8": 0.2012065088907861
+              },
+              "sizes": {
+                "0": 8,
+                "1": 37,
+                "2": 36,
+                "3": 24,
+                "4": 15
+              },
+              "centers": {
+                "0": {
+                  "PC1": 1.1180166862402117,
+                  "PC2": 1.9209831654883518,
+                  "PC3": 1.140973242748464,
+                  "PC4": 0.315323465498976
+                },
+                "1": {
+                  "PC1": -1.1395228917712867,
+                  "PC2": -0.0032586613699291164,
+                  "PC3": -0.084326565719162,
+                  "PC4": -0.5944532371871643
+                },
+                "2": {
+                  "PC1": 1.0795909905685828,
+                  "PC2": -0.2588562375227822,
+                  "PC3": -0.32312548032850835,
+                  "PC4": -0.4587212781161009
+                },
+                "3": {
+                  "PC1": -0.13625883024092558,
+                  "PC2": -0.8887549892854701,
+                  "PC3": 0.8341813481577441,
+                  "PC4": 0.6410202160334906
+                },
+                "4": {
+                  "PC1": -0.15845668193805718,
+                  "PC2": 1.0267766293634668,
+                  "PC3": -0.9597025382892187,
+                  "PC4": 1.3734441919539415
+                }
+              }
+            }
+          },
+          "interpretations": [
+            {
+              "step_id": "summary",
+              "headline": "120 rows: 6 numeric and 1 categorical variables described.",
+              "findings": [
+                "nitrogen: mean 38.67, sd 7.017",
+                "phosphorus: mean 31.34, sd 4.543",
+                "potassium: mean 60.12, sd 9.504",
+                "ph: mean 5.708, sd 0.2665",
+                "rainfall: mean 158, sd 84.18"
+              ],
+              "caveats": [
+                "'rainfall' departs from normality (Shapiro p=1.42e-06)"
+              ],
+              "confidence": "medium",
+              "source": "rules"
+            },
+            {
+              "step_id": "pca",
+              "headline": "4 component(s) retain 90.6% of the variance.",
+              "findings": [
+                "PC1: 30.0%, driven by nitrogen, phosphorus, rainfall",
+                "PC2: 22.5%, driven by rainfall, ph, potassium",
+                "PC3: 19.9%, driven by potassium, ph, rainfall",
+                "PC4: 18.2%, driven by rainfall, ph, nitrogen"
+              ],
+              "caveats": [
+                "KMO=0.46 < 0.5: sampling adequacy is poor"
+              ],
+              "confidence": "medium",
+              "source": "rules"
+            },
+            {
+              "step_id": "clusters",
+              "headline": "5 clusters (silhouette 0.22, space: matrix).",
+              "findings": [
+                "cluster 0: 8 observations",
+                "cluster 1: 37 observations",
+                "cluster 2: 36 observations",
+                "cluster 3: 24 observations",
+                "cluster 4: 15 observations"
+              ],
+              "caveats": [
+                "weak cluster structure (silhouette=0.22); clusters may be arbitrary"
+              ],
+              "confidence": "medium",
+              "source": "rules"
+            }
+          ],
+          "failures": {}
+        },
+        "artifacts": [
+          "research_lead/profile_runner",
+          "research_lead/profile_runner.scores",
+          "research_lead/profile_runner.labels"
+        ],
+        "error": null,
+        "notes": [],
+        "children": [],
+        "llm_calls": 0,
+        "duration_s": 0.2068
+      },
+      {
+        "agent": "notes_digest",
+        "path": "research_lead/notes_digest",
+        "kind": "pipeline",
+        "status": "ok",
+        "summary": "29 words in 4 sentences. | Top terms: plots, field, notes, under, nitrogen.",
+        "output": {
+          "pipeline": "document_digest",
+          "steps": {
+            "stats": "ok",
+            "kw": "ok"
+          },
+          "results": {
+            "stats": {
+              "warnings": [
+                "very short text; statistics are unstable"
+              ],
+              "n_words": 29,
+              "n_sentences": 4,
+              "avg_word_length": 5.896551724137931,
+              "lexical_diversity": 0.9655172413793104
+            },
+            "kw": {
+              "warnings": [],
+              "keywords": [
+                {
+                  "term": "plots",
+                  "count": 2
+                },
+                {
+                  "term": "field",
+                  "count": 1
+                },
+                {
+                  "term": "notes",
+                  "count": 1
+                },
+                {
+                  "term": "under",
+                  "count": 1
+                },
+                {
+                  "term": "nitrogen",
+                  "count": 1
+                },
+                {
+                  "term": "treatment",
+                  "count": 1
+                },
+                {
+                  "term": "tillered",
+                  "count": 1
+                },
+                {
+                  "term": "earlier",
+                  "count": 1
+                }
+              ]
+            }
+          },
+          "interpretations": [
+            {
+              "step_id": "stats",
+              "headline": "29 words in 4 sentences.",
+              "findings": [
+                "lexical diversity 0.97",
+                "average word length 5.90"
+              ],
+              "caveats": [
+                "very short text; statistics are unstable"
+              ],
+              "confidence": "medium",
+              "source": "rules"
+            },
+            {
+              "step_id": "kw",
+              "headline": "Top terms: plots, field, notes, under, nitrogen.",
+              "findings": [
+                "plots: 2",
+                "field: 1",
+                "notes: 1",
+                "under: 1",
+                "nitrogen: 1",
+                "treatment: 1"
+              ],
+              "caveats": [],
+              "confidence": "high",
+              "source": "rules"
+            }
+          ],
+          "failures": {}
+        },
+        "artifacts": [
+          "research_lead/notes_digest",
+          "research_lead/notes_digest.terms"
+        ],
+        "error": null,
+        "notes": [],
+        "children": [],
+        "llm_calls": 0,
+        "duration_s": 0.0083
+      }
+    ],
+    "llm_calls": 1,
+    "duration_s": 1.0677
+  },
+  "trace": [
+    {
+      "at": 0.0,
+      "path": "research_lead",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 0.0004,
+      "path": "research_lead",
+      "event": "llm_call",
+      "detail": "local-planner"
+    },
+    {
+      "at": 0.0005,
+      "path": "research_lead",
+      "event": "error",
+      "detail": "dependency: LiteLLM proxy is unreachable"
+    },
+    {
+      "at": 0.0005,
+      "path": "research_lead",
+      "event": "fallback",
+      "detail": "rules"
+    },
+    {
+      "at": 0.0005,
+      "path": "research_lead",
+      "event": "delegate",
+      "detail": "stats_team"
+    },
+    {
+      "at": 0.0006,
+      "path": "research_lead/stats_team",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 0.0006,
+      "path": "research_lead/stats_team",
+      "event": "delegate",
+      "detail": "statistician"
+    },
+    {
+      "at": 0.0006,
+      "path": "research_lead/stats_team/statistician",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 0.0436,
+      "path": "research_lead/stats_team/statistician",
+      "event": "llm_call",
+      "detail": "local-planner"
+    },
+    {
+      "at": 0.0437,
+      "path": "research_lead/stats_team/statistician",
+      "event": "error",
+      "detail": "dependency: LiteLLM proxy is unreachable"
+    },
+    {
+      "at": 0.0437,
+      "path": "research_lead/stats_team/statistician",
+      "event": "fallback",
+      "detail": "stats_rules"
+    },
+    {
+      "at": 0.8409,
+      "path": "research_lead/stats_team/statistician",
+      "event": "end",
+      "detail": "ok"
+    },
+    {
+      "at": 0.8409,
+      "path": "research_lead/stats_team",
+      "event": "delegate",
+      "detail": "methods_reviewer"
+    },
+    {
+      "at": 0.841,
+      "path": "research_lead/stats_team/methods_reviewer",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 0.8521,
+      "path": "research_lead/stats_team/methods_reviewer",
+      "event": "llm_call",
+      "detail": "local-writer"
+    },
+    {
+      "at": 0.8521,
+      "path": "research_lead/stats_team/methods_reviewer",
+      "event": "error",
+      "detail": "dependency: LiteLLM proxy is unreachable"
+    },
+    {
+      "at": 0.8522,
+      "path": "research_lead/stats_team/methods_reviewer",
+      "event": "end",
+      "detail": "failed"
+    },
+    {
+      "at": 0.8523,
+      "path": "research_lead/stats_team",
+      "event": "end",
+      "detail": "partial"
+    },
+    {
+      "at": 0.8523,
+      "path": "research_lead",
+      "event": "delegate",
+      "detail": "profile_runner"
+    },
+    {
+      "at": 0.8524,
+      "path": "research_lead/profile_runner",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 1.0591,
+      "path": "research_lead/profile_runner",
+      "event": "end",
+      "detail": "ok"
+    },
+    {
+      "at": 1.0592,
+      "path": "research_lead",
+      "event": "delegate",
+      "detail": "notes_digest"
+    },
+    {
+      "at": 1.0593,
+      "path": "research_lead/notes_digest",
+      "event": "start",
+      "detail": "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
+    },
+    {
+      "at": 1.0676,
+      "path": "research_lead/notes_digest",
+      "event": "end",
+      "detail": "ok"
+    },
+    {
+      "at": 1.0677,
+      "path": "research_lead",
+      "event": "end",
+      "detail": "partial"
+    }
+  ],
+  "usage": {
+    "agent_runs": 6,
+    "delegations": 5,
+    "llm_calls": 3
+  }
+}

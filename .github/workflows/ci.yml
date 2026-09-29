@@ -1,0 +1,56 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src:.
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      - run: uv sync --locked --extra stats --extra lakehouse --extra dev
+      - name: Tests
+        run: uv run pytest -q
+      - name: Ruff
+        run: uv run ruff check src tests examples
+      - name: Lint specs (statistics and text)
+        run: >-
+          uv run python -m agent_fabric.lint --strict
+          --domains stat_fabric.domain:register examples.domains.text_pack:register
+          --agents config --schemas stat_fabric.schemas:SCHEMAS
+      - name: Lint specs (lakehouse)
+        run: >-
+          uv run python -m agent_fabric.lint --strict
+          --domains lake_fabric.domain:register
+          --agents config/lakehouse --schemas lake_fabric.schemas:SCHEMAS
+      - name: Lint specs (coworker)
+        run: >-
+          uv run python -m agent_fabric.lint --strict
+          --domains coworker_fabric.domain:register
+          --agents config/coworker --schemas coworker_fabric.schemas:SCHEMAS
+      - name: Planner baseline (informational)
+        # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
+        run: uv run python examples/run_evals.py --mode rules
+        continue-on-error: true
