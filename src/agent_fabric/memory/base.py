@@ -13,7 +13,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
-Role = Literal["user", "assistant", "system"]
+type Role = Literal["user", "assistant", "system"]
 
 
 class RunSummary(BaseModel):

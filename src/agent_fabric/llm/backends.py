@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 
 from ..errors import DependencyError, ErrorDetail
 
-Message = dict[str, str]
+type Message = dict[str, str]
 
 
 class LLMSettings(BaseModel):

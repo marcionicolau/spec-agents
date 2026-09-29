@@ -25,7 +25,7 @@ from .base import BaseAgent
 from .runtime import AgentRunReport, AgentTask, Budget, RunContext
 from .spec import AgentsConfig, AgentSpec
 
-Factory = Callable[["AgentFabric", str, AgentSpec, dict[str, BaseAgent]], BaseAgent]
+type Factory = Callable[["AgentFabric", str, AgentSpec, dict[str, BaseAgent]], BaseAgent]
 
 
 @dataclass(frozen=True)
