@@ -1,0 +1,38 @@
+[project]
+name = "statistics"
+version = "0.2.0"
+description = "Statistics domain pack for agent-fabric: summary, linear_model, anova, time_series, pca, clustering"
+requires-python = ">=3.12"
+dependencies = [
+  "agent-fabric",
+  "pandas>=2.1",
+  "scipy>=1.11",
+  "statsmodels>=0.14",
+  "scikit-learn>=1.4",
+]
+
+[project.entry-points."agent_fabric.domains"]
+statistics = "stat_fabric.domain:register"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+stat_fabric = ["skills/**/*.md"]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+agent-fabric = { workspace = true }
+
+[tool.semantic_release]
+version_toml = ["packages/statistics/pyproject.toml:project.version"]
+tag_format = "statistics-v{version}"
+commit_scope = "statistics"
+changelog_file = "packages/statistics/CHANGELOG.md"
+build_command = ""
