@@ -1,0 +1,40 @@
+[project]
+name = "agent-fabric"
+version = "0.2.0"
+description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy"
+requires-python = ">=3.12"
+dependencies = [
+  "numpy>=1.26",
+  "pydantic>=2.7",
+  "pyyaml>=6",
+  "rich>=13.7.1",
+]
+
+[project.scripts]
+agent-fabric = "agent_fabric.cli:main"
+
+[project.optional-dependencies]
+all = ["agent-fabric[tabular,pydantic-ai,dspy,crewai,langchain]"]
+crewai = ["crewai>=0.100"]
+dspy = ["dspy>=3.0"]
+langchain = ["langchain-core>=0.3"]
+proxy = ["litellm[proxy]>=1.60"]
+pydantic-ai = ["pydantic-ai-slim[openai]>=1.0"]
+tabular = ["pandas>=2.1"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.semantic_release]
+version_toml = ["packages/agent-fabric/pyproject.toml:project.version"]
+tag_format = "agent-fabric-v{version}"
+commit_scope = "agent-fabric"
+changelog_file = "packages/agent-fabric/CHANGELOG.md"
+build_command = ""
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv]
+package = true
