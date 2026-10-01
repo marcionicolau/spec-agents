@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.2.0...agent-fabric-v0.3.0) (2026-10-01)
+
+
+### Features
+
+* **agent-fabric:** gate deterministic eval suites on stored baselines ([#52](https://github.com/marcionicolau/spec-agents/issues/52)) ([378b2fd](https://github.com/marcionicolau/spec-agents/commit/378b2fdbed74a0213dc142720ae05c0a17525b6f)), closes [#24](https://github.com/marcionicolau/spec-agents/issues/24)
+
 ## [0.2.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.1.0...agent-fabric-v0.2.0) (2026-10-01)
 
 
