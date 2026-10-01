@@ -55,6 +55,10 @@ markdown_extensions:
 
 nav:
   - Home: README.md
+  - Start here:
+      - Quickstart: quickstart.md
+      - Concepts: concepts.md
+      - Domain packs: packs.md
   - Guides:
       - Architecture: architecture.md
       - Extending: extending.md
@@ -69,3 +73,4 @@ nav:
       - lakehouse: reference/lakehouse.md
       - coworker: reference/coworker.md
       - text-pack: reference/text-pack.md
+      - CLI: reference/cli.md

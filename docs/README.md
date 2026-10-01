@@ -8,6 +8,9 @@ private repo on the free plan).
 
 | Document                                  | Contents                                                                                           |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [quickstart.md](quickstart.md)            | Install, run a pipeline, run an agent tree (all offline), use a real model, check specs             |
+| [concepts.md](concepts.md)                | The mental model on one page                                                                       |
+| [packs.md](packs.md)                      | The domain packs and what each provides                                                            |
 | [architecture.md](architecture.md)        | Stack, run flow, patterns, full directory map                                                      |
 | [extending.md](extending.md)              | Adding a component (code or `runtime: prompt`), a pipeline, an artifact type                       |
 | [agents.md](agents.md)                    | Agent trees: `fabric.md`, `AGENT.md`, kinds/backends, router plan, budget, fallbacks               |
