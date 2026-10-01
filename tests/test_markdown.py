@@ -159,7 +159,7 @@ def test_repair_and_planner_feedback_include_common_mistakes(registry, pin, good
 
 
 def test_agent_dir_loads_and_bodies_become_system_prompts(registry, df, note):
-    cfg = AgentsConfig.load(ROOT / "config")
+    cfg = AgentsConfig.load(ROOT / "examples" / "research_team")
     assert cfg.root == "research_lead" and len(cfg.agents) == 6
     lead = cfg.agents["research_lead"]
     assert lead.source.endswith("research_lead/AGENT.md") and "Break the question down" in lead.instructions
@@ -225,7 +225,7 @@ def test_lint_skill_drift(tmp_path):
 
 
 def test_lint_agents_and_cli(registry, tmp_path, capsys):
-    cfg = AgentsConfig.load(ROOT / "config")
+    cfg = AgentsConfig.load(ROOT / "examples" / "research_team")
     cfg.agents["research_lead"].instructions = "Delegate to `stats_team` and `notes_digest` only."
     fabric = AgentFabric(registry, cfg)
     fabric.register_schema("Review", Review)
@@ -233,14 +233,16 @@ def test_lint_agents_and_cli(registry, tmp_path, capsys):
     assert "undocumented_sub_agent" in codes  # profile_runner never mentioned by the router
     assert (
         run(
-            ["stat_fabric.domain:register", "examples.domains.text_pack:register"],
-            str(ROOT / "config"),
+            ["stat_fabric.domain:register", "text_pack:register"],
+            str(ROOT / "examples" / "research_team"),
             strict=True,
             schemas=["stat_fabric.schemas:SCHEMAS"],
         )
         == 0
     )
-    assert run(["stat_fabric.domain:register"], str(ROOT / "config")) == 1  # document_digest missing -> error
+    assert (
+        run(["stat_fabric.domain:register"], str(ROOT / "examples" / "research_team")) == 1
+    )  # document_digest missing -> error
     assert "unknown_pipeline" in capsys.readouterr().out
 
 

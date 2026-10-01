@@ -15,8 +15,6 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-24.04
-    env:
-      PYTHONPATH: .
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -38,27 +36,27 @@ jobs:
       - name: Lint specs (statistics and text)
         run: >-
           uv run python -m agent_fabric.lint --strict
-          --domains stat_fabric.domain:register examples.domains.text_pack:register
-          --agents config --schemas stat_fabric.schemas:SCHEMAS
+          --domains stat_fabric.domain:register text_pack:register
+          --agents examples/research_team --schemas stat_fabric.schemas:SCHEMAS
       - name: Lint specs (lakehouse)
         run: >-
           uv run python -m agent_fabric.lint --strict
           --domains lake_fabric.domain:register
-          --agents config/lakehouse --schemas lake_fabric.schemas:SCHEMAS
+          --agents packages/lakehouse/config --schemas lake_fabric.schemas:SCHEMAS
       - name: Lint specs (coworker)
         run: >-
           uv run python -m agent_fabric.lint --strict
           --domains coworker_fabric.domain:register
-          --agents config/coworker --schemas coworker_fabric.schemas:SCHEMAS
+          --agents packages/coworker/config --schemas coworker_fabric.schemas:SCHEMAS
       - name: Lint specs (notes, code-free domain)
         run: >-
           uv run python -m agent_fabric.lint --strict
-          --domains config/notes/skills --agents config/notes
+          --domains examples/notes/skills --agents examples/notes
       - name: CLI smoke (agent-fabric)
         run: >-
-          uv run agent-fabric catalog --skills config/notes/skills &&
-          uv run agent-fabric agents config/notes &&
-          uv run agent-fabric lint --agents config/notes --strict
+          uv run agent-fabric catalog --skills examples/notes/skills &&
+          uv run agent-fabric agents examples/notes &&
+          uv run agent-fabric lint --agents examples/notes --strict
       - name: Planner baseline (informational)
         # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
         run: uv run python examples/run_evals.py --mode rules

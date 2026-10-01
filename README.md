@@ -2,7 +2,7 @@
 
 Núcleo **genérico** para pipelines definidos por spec e **árvores de agentes com sub-agentes**, sobre LLMs
 locais (Ollama via **LiteLLM proxy**), integrando **Pydantic/PydanticAI**, **DSPy**, **CrewAI** e **LangChain**.
-A estatística virou um _domain pack_ (`stat_fabric`); `examples/domains/text_pack` prova que o núcleo
+A estatística virou um _domain pack_ (`stat_fabric`); `packages/text-pack` prova que o núcleo
 serve para qualquer domínio.
 
 > LLM planeja, delega, repara e interpreta; **quem calcula é sempre código determinístico**.
@@ -63,7 +63,7 @@ Escreva um resumo {params.tone} deste transcript.
 - `prompt: {model, temperature, grounding}` no frontmatter sobrepõe os defaults do agente; `grounding`
   (ligado por padrão) rejeita números inventados na saída.
 - `config/fabric.md` aceita `skill_dirs: [./skills]` para carregar specs relativos ao diretório do config —
-  é assim que `config/notes/` roda 100% em Markdown.
+  é assim que `examples/notes/` roda 100% em Markdown.
 - Scaffold: `python -m agent_fabric.scaffold prompt <nome> --dir <pack>/skills --domain <domínio>`.
 
 ## Agentes com sub-agentes
@@ -88,9 +88,9 @@ research_lead (supervisor, router)           fallback: rules
 
 | Domínio     | Pacote               | Agentes                                                                                  | O que faz                                                                                                                           |
 | ----------- | -------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `lakehouse` | `packages/lakehouse` | `config/lakehouse` (`lakehouse_team`, `dag_engineer`, `dag_reviewer`, `schema_designer`) | Gera DAGs do Airflow que carregam CSV, JSON, XLSX, API ou ferramenta MCP em tabelas Trino/Iceberg nas camadas bronze, silver e gold |
-| `coworker`  | `packages/coworker`  | `config/coworker` (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`)    | Programação em par: escolhe o contexto dentro de um orçamento de tokens, revisa o código e valida propostas de patch                |
-| `notes`     | — _(só Markdown)_    | `config/notes` (`note_taker`)                                                            | Demo code-free: resumo, extração de ações e digest de reunião via `runtime: prompt`                                                 |
+| `lakehouse` | `packages/lakehouse` | `packages/lakehouse/config` (`lakehouse_team`, `dag_engineer`, `dag_reviewer`, `schema_designer`) | Gera DAGs do Airflow que carregam CSV, JSON, XLSX, API ou ferramenta MCP em tabelas Trino/Iceberg nas camadas bronze, silver e gold |
+| `coworker`  | `packages/coworker`  | `packages/coworker/config` (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`)    | Programação em par: escolhe o contexto dentro de um orçamento de tokens, revisa o código e valida propostas de patch                |
+| `notes`     | — _(só Markdown)_    | `examples/notes` (`note_taker`)                                                            | Demo code-free: resumo, extração de ações e digest de reunião via `runtime: prompt`                                                 |
 
 **Lakehouse.** Pipeline `ingest_to_lakehouse`: `source_inspect` → `medallion_plan` → `airflow_dag_render` → `dag_check`.
 O código do DAG vem de um modelo estático e nenhum valor é interpolado em código ou SQL; credenciais ficam em
@@ -110,9 +110,9 @@ A escolha de contexto é medida: `python -m coworker_fabric.evals --root .` roda
 recall, precisão e tokens; arquivos grandes entram só com os símbolos relevantes.
 
 ```bash
-python -m agent_fabric.lint --domains lake_fabric.domain:register --agents config/lakehouse \
+python -m agent_fabric.lint --domains lake_fabric.domain:register --agents packages/lakehouse/config \
        --schemas lake_fabric.schemas:SCHEMAS --strict
-python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents config/coworker \
+python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents packages/coworker/config \
        --schemas coworker_fabric.schemas:SCHEMAS --strict
 python examples/run_evals.py --domain lakehouse --mode live     # regressão dos planners (proxy no ar)
 python examples/run_evals.py --domain coworker --mode live
@@ -132,10 +132,10 @@ python examples/run_evals.py --domain coworker --mode live
 Interface unificada (rich: cores, tabelas, view ao vivo com spinner; `--plain` ou não-TTY → saída em texto):
 
 ```bash
-agent-fabric catalog --skills config/notes/skills            # tabela: nome, kind, domínio, params, portas
-agent-fabric agents config/notes                             # árvore de agentes + validação
-agent-fabric lint --agents config --domains stat_fabric.domain:register --strict   # tabela colorida de issues
-agent-fabric run config/notes "Resuma a reunião" --input transcript=reuniao.txt    # visão ao vivo no TTY
+agent-fabric catalog --skills examples/notes/skills            # tabela: nome, kind, domínio, params, portas
+agent-fabric agents examples/notes                             # árvore de agentes + validação
+agent-fabric lint --agents examples/research_team --domains stat_fabric.domain:register --strict   # tabela colorida de issues
+agent-fabric run examples/notes "Resuma a reunião" --input transcript=reuniao.txt    # visão ao vivo no TTY
 ```
 
 `--input` aceita `nome=caminho` (`.txt`/`.md` → texto, `.json` → objeto, `.jsonl` → linhas,

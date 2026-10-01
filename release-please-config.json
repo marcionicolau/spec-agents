@@ -53,6 +53,18 @@
           "jsonpath": "$.package[?(@.name=='coworker')].version"
         }
       ]
+    },
+    "packages/text-pack": {
+      "release-type": "python",
+      "package-name": "text-pack",
+      "component": "text-pack",
+      "extra-files": [
+        {
+          "type": "toml",
+          "path": "/uv.lock",
+          "jsonpath": "$.package[?(@.name=='text-pack')].version"
+        }
+      ]
     }
   }
 }

@@ -19,7 +19,7 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
    - Components & pipelines: `skills/<name>/SKILL.md`; agents: `config/agents/<name>/AGENT.md`;
      run-wide settings: `config/fabric.md`. Legacy `*.yaml` specs load into the same models.
 3. **The core (`packages/agent-fabric`) is domain-agnostic.** Domain knowledge lives in _domain packs_
-   (`packages/statistics`, `packages/lakehouse`, `packages/coworker`, `examples/domains/text_pack`).
+   (`packages/statistics`, `packages/lakehouse`, `packages/coworker`, `packages/text-pack`).
    Never import a domain pack from the core.
 4. **Every failure is a typed `FabricError`** with a located `ErrorReport` (`category`, `loc`, `type`,
    `msg`, `hint`, `recoverable`). Validators collect _all_ errors before raising. No bare exceptions,
@@ -29,7 +29,7 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
    concrete Ollama models live only in `config/litellm_config.yaml`.
 7. **Optional frameworks stay optional** — PydanticAI, DSPy, CrewAI, LangChain are imported lazily in
    adapters/builders. The core imports none of them at module level.
-8. **Tests run offline**: `ScriptedBackend`, PydanticAI `FunctionModel`, DSPy `DummyLM`. No proxy in `tests/`.
+8. **Tests run offline**: `ScriptedBackend`, PydanticAI `FunctionModel`, DSPy `DummyLM`. No proxy in tests (`tests/` = cross-package suite for the core against the statistics + text packs; `packages/<pkg>/tests/` = pack and CLI tests).
 9. **Agent trees are bounded**: depth, agent runs, delegations and LLM calls are budgeted per run.
 
 ---
@@ -111,12 +111,17 @@ packages/<domain>/             uv workspace members; dist name = spec `domain:`,
                                builders, render.py, generate.py CLI); pipelines ingest_to_lakehouse, medallion_design
   coworker/src/coworker_fabric/  COWORKER PACK (dist 'coworker'): repo_index, context_select, context_pack,
                                code_review, patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
-examples/domains/text_pack/      second domain (text_stats, keywords, document_digest) – proves genericity
-config/                          litellm_config.yaml, fabric.md (root/budget/llm), agents/<name>/AGENT.md (research team)
-config/lakehouse/                fabric.md + agents: lakehouse_team, dag_engineer, dag_reviewer, schema_designer
-config/coworker/                 fabric.md + agents: pair_programmer, context_scout, code_critic, patch_author
-config/notes/                    code-free demo domain: fabric.md (`skill_dirs`), note_taker planner, 3 prompt skills
-examples/evals/                  planner_cases.yaml (regression cases); run_evals.py
+packages/text-pack/src/text_pack/ TEXT PACK (dist 'text-pack'): text_stats, keywords, document_digest – proves genericity
+packages/<pkg>/tests/            pack tests (statistics, lakehouse, coworker; agent-fabric: CLI + prompt domain)
+packages/<pkg>/config/           lakehouse: fabric.md + lakehouse_team, dag_engineer, dag_reviewer, schema_designer
+                                 coworker:  fabric.md + pair_programmer, context_scout, code_critic, patch_author
+tests/                           cross-package suite: core exercised against the statistics + text packs
+config/litellm_config.yaml       gateway (aliases, fallbacks)
+examples/research_team/          fabric.md + agents/<name>/AGENT.md (statistics + text research team)
+examples/notes/                  code-free demo domain: fabric.md (`skill_dirs`), note_taker planner, 3 prompt skills
+examples/evals/                  planner_cases.yaml (regression cases); run_evals.py, run_demo.py
+tools/check_wheels.py            asserts built wheels ship skills + LICENSE
+justfile                         task runner: sync, fmt, lint, specs, test [pkg], build, evals, check
 ```
 
 ---
@@ -124,25 +129,26 @@ examples/evals/                  planner_cases.yaml (regression cases); run_eval
 ## 4. Commands
 
 ```bash
+just check                                  # everything CI runs (lint, specs, tests, wheels); `just` lists recipes
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
 uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
 # CI (.github/workflows/ci.yml) runs: pytest, ruff (rules F UP E I B SIM RUF PT), the lint commands below, and run_evals --mode rules (informational)
-python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \
-       --agents config --schemas stat_fabric.schemas:SCHEMAS --strict
-python -m agent_fabric.lint --domains lake_fabric.domain:register --agents config/lakehouse \
+python -m agent_fabric.lint --domains stat_fabric.domain:register text_pack:register \
+       --agents examples/research_team --schemas stat_fabric.schemas:SCHEMAS --strict
+python -m agent_fabric.lint --domains lake_fabric.domain:register --agents packages/lakehouse/config \
        --schemas lake_fabric.schemas:SCHEMAS --strict
-python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents config/coworker \
+python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents packages/coworker/config \
        --schemas coworker_fabric.schemas:SCHEMAS --strict
 python -m lake_fabric.generate params.json --sample records.json --out dags   # DAG file, no LLM involved
 python -m agent_fabric.scaffold skill my_step --dir packages/statistics/src/stat_fabric/skills --domain statistics
-python -m agent_fabric.scaffold prompt my_step --dir config/notes/skills --domain notes   # code-free skill
+python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --domain notes   # code-free skill
 python examples/run_evals.py --mode live    # before merging guidance/model changes
 
-uv run agent-fabric catalog --skills config/notes/skills          # rich table; also accepts --domains ref/dir
-uv run agent-fabric agents config/notes                           # renders + validates the agent tree
-uv run agent-fabric lint --agents config/notes                    # same engine as -m agent_fabric.lint, rich output
-uv run agent-fabric run config/notes "Digest this" --input transcript=meeting.txt --plain   # run; drop --plain for live view
+uv run agent-fabric catalog --skills examples/notes/skills          # rich table; also accepts --domains ref/dir
+uv run agent-fabric agents examples/notes                           # renders + validates the agent tree
+uv run agent-fabric lint --agents examples/notes                    # same engine as -m agent_fabric.lint, rich output
+uv run agent-fabric run examples/notes "Digest this" --input transcript=meeting.txt --plain   # run; drop --plain for live view
 
 export OLLAMA_API_BASE=http://localhost:11434 LITELLM_MASTER_KEY=sk-local-dev
 litellm --config config/litellm_config.yaml --port 4000
@@ -224,7 +230,7 @@ model must answer a JSON object (validated, self-corrected, grounded by default 
 inside pipelines and through planner agents; the LLM backend and objective arrive via `StepContext`
 (`llm`, `llm_settings`, `objective`) and every call is charged to `budget.max_llm_calls`. No-LLM runs fail
 the step as `dependency`. Scaffold: `python -m agent_fabric.scaffold prompt <name> --dir ... --domain ...`.
-See `config/notes/` for a domain that is 100% Markdown.
+See `examples/notes/` for a domain that is 100% Markdown.
 
 ---
 
@@ -294,7 +300,7 @@ Nested pipeline errors are re-located as `pipeline.<inner_step>.…`.
 
 `config/fabric.md` holds `root`, `budget`, `llm` (frontmatter; body = human docs) plus `skill_dirs`
 (directories of SKILL.md specs resolved relative to the config dir — this is how code-free domains like
-`config/notes/` are loaded; `python` domain loaders still apply via `--domains`/`build_registry`).
+`examples/notes/` are loaded; `python` domain loaders still apply via `--domains`/`build_registry`).
 Each agent is `config/agents/<name>/AGENT.md`:
 
 ```markdown

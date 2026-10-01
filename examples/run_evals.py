@@ -2,8 +2,8 @@
 
 python examples/run_evals.py --mode rules   # deterministic baseline (stats_rules), no LLM
 python examples/run_evals.py --mode live    # the 'statistician' agent's planner via the LiteLLM proxy
-python examples/run_evals.py --domain lakehouse --mode live   # 'dag_engineer' (config/lakehouse)
-python examples/run_evals.py --domain coworker --mode live    # 'context_scout' (config/coworker)
+python examples/run_evals.py --domain lakehouse --mode live   # 'dag_engineer' (packages/lakehouse/config)
+python examples/run_evals.py --domain coworker --mode live    # 'context_scout' (packages/coworker/config)
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))  # workspace packages are installed; this exposes examples.domains
+sys.path.insert(0, str(ROOT))  # lets `examples.run_demo` be imported
 
 from agent_fabric import build_registry  # noqa: E402
 from agent_fabric.agents import AgentsConfig  # noqa: E402
@@ -24,9 +24,9 @@ from examples.run_demo import make_data  # noqa: E402
 from stat_fabric.rules import StatsRulePlanner  # noqa: E402
 
 DOMAINS = {  # name -> (register callable path, agents dir, planner agent, cases file)
-    "statistics": ("stat_fabric.domain", "config", "statistician", "planner_cases.yaml"),
-    "lakehouse": ("lake_fabric.domain", "config/lakehouse", "dag_engineer", "lakehouse_cases.yaml"),
-    "coworker": ("coworker_fabric.domain", "config/coworker", "context_scout", "coworker_cases.yaml"),
+    "statistics": ("stat_fabric.domain", "examples/research_team", "statistician", "planner_cases.yaml"),
+    "lakehouse": ("lake_fabric.domain", "packages/lakehouse/config", "dag_engineer", "lakehouse_cases.yaml"),
+    "coworker": ("coworker_fabric.domain", "packages/coworker/config", "context_scout", "coworker_cases.yaml"),
 }
 
 

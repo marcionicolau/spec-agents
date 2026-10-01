@@ -10,8 +10,7 @@ dev = ["pytest>=8", "ruff>=0.5"]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
-pythonpath = ["."]
-testpaths = ["tests"]
+testpaths = ["tests", "packages"]
 
 [tool.ruff]
 line-length = 120
@@ -23,10 +22,10 @@ select = ["F", "UP", "E", "I", "B", "SIM", "RUF", "PT"]
 ignore = ["E501", "PT018", "RUF005", "RUF012", "B905"]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["E731", "PT006", "PT011", "B017", "RUF015"]
+"**/tests/*" = ["E731", "PT006", "PT011", "B017", "RUF015"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "examples", "tests"]
+known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "examples", "tests"]
 
 [tool.uv]
 package = false

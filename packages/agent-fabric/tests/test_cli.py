@@ -2,6 +2,7 @@
 
 import io
 import json
+from pathlib import Path
 
 import pytest
 from rich.console import Console
@@ -10,7 +11,7 @@ from agent_fabric.cli import build_parser, main
 from agent_fabric.cli.commands import _load_input, cmd_agents, cmd_catalog, cmd_lint, cmd_run
 from agent_fabric.llm.backends import ScriptedBackend
 
-NOTES = "config/notes"
+NOTES = str(Path(__file__).resolve().parents[3] / "examples" / "notes")
 TRANSCRIPT = "We agreed to ship on Friday. Ana owns the release notes."
 
 

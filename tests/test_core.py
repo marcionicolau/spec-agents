@@ -10,8 +10,7 @@ from agent_fabric.component import Component, ComponentParams, ComponentResult
 from agent_fabric.errors import SpecError
 from agent_fabric.registry import Registry
 from agent_fabric.spec import load_spec
-
-from .conftest import run_component
+from agent_fabric.testing import run_component
 
 STATS = {"summary", "linear_model", "anova", "time_series", "clustering", "pca"}
 STATS_PIPELINES = {"exploratory_analysis", "experiment_analysis", "full_study"}

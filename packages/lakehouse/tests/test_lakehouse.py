@@ -359,7 +359,7 @@ def test_lakehouse_team_runs_engineer_then_reviewer(lake, csv_file):
         "issues": [],
     }
     backend = ScriptedBackend([json.dumps(plan), json.dumps(review)])
-    cfg = AgentsConfig.load(Path(__file__).resolve().parents[1] / "config" / "lakehouse")
+    cfg = AgentsConfig.load(Path(__file__).resolve().parents[1] / "config")
     fabric = AgentFabric(lake, cfg, backend=backend)
     fabric.register_schema("DagReview", DagReview)
     assert not fabric.validate()
