@@ -90,7 +90,7 @@ jobs:
       - name: Lint spec trees and CLI smoke
         run: just specs
       - name: Planner baseline (informational)
-        # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
+        # the rules baseline intentionally fails treatment_effect (docs/maintenance.md); live evals need the proxy
         run: just evals rules
         continue-on-error: true
 
