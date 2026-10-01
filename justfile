@@ -40,6 +40,9 @@ build:
     uv build --all-packages --out-dir dist
     uv run python tools/check_wheels.py dist
 
+cov:
+    uv run pytest -q --cov --cov-report=term
+
 # deterministic planner baseline; `just evals live` needs the LiteLLM proxy
 evals mode="rules":
     uv run python examples/run_evals.py --mode {{mode}}

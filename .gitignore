@@ -6,3 +6,5 @@ __pycache__/
 dags/
 *.egg-info/
 examples/output/
+.coverage
+coverage.xml
