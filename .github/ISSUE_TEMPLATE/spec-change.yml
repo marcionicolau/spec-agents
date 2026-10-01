@@ -1,0 +1,52 @@
+name: Spec / contract change
+description: Change a SKILL.md / AGENT.md contract (ports, params, steps, budgets)
+labels: [type:spec-change, "stage:triage"]
+title: "spec: "
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: "Which package or area does this affect? (applies the matching pkg: label)"
+      options:
+        - agent-fabric
+        - statistics
+        - lakehouse
+        - coworker
+        - text-pack
+        - specs
+        - ci
+        - docs
+        - repo
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: Spec name
+      description: e.g. `pca`, `improve_code`, `research_lead`
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Contract change
+      description: What is added, changed or removed (ports, params, outputs, steps).
+    validations:
+      required: true
+  - type: dropdown
+    id: bump
+    attributes:
+      label: Version bump
+      description: SKILL.md `version:` — minor = new optional field, major = breaking.
+      options: [minor, major, patch (body-only)]
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks planned
+      options:
+        - label: tests for the new/changed checks
+        - label: "`lint --strict`"
+        - label: "`run_evals.py --mode live` (body/prompt edits)"
