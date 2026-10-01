@@ -28,6 +28,14 @@ The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so re
 (skills, LICENSE, `py.typed`), an all-extras job (no skipped tests, coverage floor, `ty` type check) and a lowest-versions job.
 Branch protection should require the single gate job **`ci-ok`** and the PR-title check **`conventional-title`**. Locally: `just check`.
 
+## Branch protection (free plan, private repo)
+GitHub rulesets and branch protection need a public repo or GitHub Pro, so nothing is enforced server-side. What is in place instead:
+- Repository merge settings: squash merge only (title = PR title, which release-please reads), head branches deleted after merge.
+- `just hooks` installs `tools/hooks/pre-push`, which refuses direct pushes to `main` (`ALLOW_MAIN_PUSH=1` to override on purpose).
+- Merge from the CLI after checking the gate: `gh pr checks <n>` must show `ci-ok` and `conventional-title` passing, then `gh pr merge <n> --squash`.
+- `.github/CODEOWNERS` documents who owns which area; it becomes enforceable if the repo goes public or to Pro
+  (then add a ruleset requiring `ci-ok` + `conventional-title`, linear history, no force-push, and Code Owner review).
+
 ## Workflow hardening
 Every `uses:` is pinned to a commit SHA with the tag in a trailing comment; dependabot (weekly, 7-day cooldown) bumps both. `zizmor` and
 `actionlint` run in the lint job; tools installed by actions (`uv`, `just`) are pinned by version. Workflows use least-privilege

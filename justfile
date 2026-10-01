@@ -51,5 +51,10 @@ types:
 evals mode="rules":
     uv run python examples/run_evals.py --mode {{mode}}
 
+# local guard against direct pushes to main (this repo has no server-side branch protection)
+hooks:
+    git config core.hooksPath tools/hooks
+    @echo "hooks installed: direct pushes to main are blocked locally"
+
 # everything CI runs
 check: lint specs test build
