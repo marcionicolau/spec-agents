@@ -1,0 +1,28 @@
+# path -> label for pull requests (actions/labeler v5)
+"pkg:agent-fabric":
+  - changed-files:
+      - any-glob-to-any-file: ["packages/agent-fabric/**"]
+"pkg:statistics":
+  - changed-files:
+      - any-glob-to-any-file: ["packages/statistics/**"]
+"pkg:lakehouse":
+  - changed-files:
+      - any-glob-to-any-file: ["packages/lakehouse/**"]
+"pkg:coworker":
+  - changed-files:
+      - any-glob-to-any-file: ["packages/coworker/**"]
+"pkg:text-pack":
+  - changed-files:
+      - any-glob-to-any-file: ["packages/text-pack/**", "examples/domains/text_pack/**"]
+"pkg:specs":
+  - changed-files:
+      - any-glob-to-any-file: ["**/SKILL.md", "**/AGENT.md", "**/fabric.md"]
+"pkg:ci":
+  - changed-files:
+      - any-glob-to-any-file: [".github/**", "release-please-config.json", ".release-please-manifest.json"]
+"pkg:docs":
+  - changed-files:
+      - any-glob-to-any-file: ["docs/**", "README.md", "CONTRIBUTING.md", "SECURITY.md", "CLAUDE.md"]
+"pkg:repo":
+  - changed-files:
+      - any-glob-to-any-file: ["pyproject.toml", "uv.lock", "justfile", ".gitignore", "tools/**"]

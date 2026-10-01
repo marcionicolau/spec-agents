@@ -1,0 +1,39 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug, "stage:triage"]
+title: "bug: "
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: "Which package or area does this affect? (applies the matching pkg: label)"
+      options:
+        - agent-fabric
+        - statistics
+        - lakehouse
+        - coworker
+        - text-pack
+        - specs
+        - ci
+        - docs
+        - repo
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the command or code, the full error (FabricError category/loc/type if shown) and what you expected.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal spec/config and inputs; offline (ScriptedBackend) if possible.
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: "Output of `uv pip list | grep -E \"agent-fabric|statistics|lakehouse|coworker\"` and Python version."

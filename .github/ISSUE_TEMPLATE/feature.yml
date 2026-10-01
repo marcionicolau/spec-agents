@@ -1,0 +1,42 @@
+name: Feature or improvement
+description: Propose an enhancement
+labels: [enhancement, "stage:triage"]
+title: "feat: "
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      description: "Which package or area does this affect? (applies the matching pkg: label)"
+      options:
+        - agent-fabric
+        - statistics
+        - lakehouse
+        - coworker
+        - text-pack
+        - specs
+        - ci
+        - docs
+        - repo
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: A checkbox list that tells us when this is done.
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Breaking change?
+      options: ["No", "Yes (needs a major/minor contract bump)"]
