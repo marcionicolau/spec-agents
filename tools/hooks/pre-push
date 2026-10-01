@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Local guard (free-plan substitute for branch protection): refuse direct pushes to main.
+# Install once with `just hooks`. Bypass deliberately with ALLOW_MAIN_PUSH=1 git push ...
+set -euo pipefail
+[ "${ALLOW_MAIN_PUSH:-}" = "1" ] && exit 0
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "pre-push: direct push to main blocked. Open a PR (squash merge) instead, or set ALLOW_MAIN_PUSH=1." >&2
+    exit 1
+  fi
+done
