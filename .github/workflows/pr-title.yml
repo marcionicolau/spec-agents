@@ -25,4 +25,5 @@ jobs:
             ci
             deps
             docs
+            text-pack
           requireScope: false
