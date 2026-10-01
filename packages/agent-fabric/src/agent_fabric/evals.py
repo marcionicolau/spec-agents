@@ -12,9 +12,10 @@ The same score is the DSPy optimisation metric (``integrations.dspy.plan_metric`
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
@@ -99,3 +100,60 @@ def evaluate_planner(planner: Any, cases: list[PlannerCase], inputs: dict[str, A
                 CaseResult(name=case.name, score=0.0, passed=False, error=f"{exc.category.value}: {exc.message}")
             )
     return EvalReport(results=results)
+
+
+# ------------------------------------------------------------------ baselines (regression gate for deterministic suites)
+DEFAULT_TOLERANCE = 0.02
+
+
+class BaselineIssue(BaseModel):
+    severity: Literal["regression", "improvement", "new", "missing"]
+    suite: str
+    metric: str
+    msg: str
+
+    def __str__(self) -> str:
+        return f"{self.severity.upper():11} {self.suite}.{self.metric}: {self.msg}"
+
+
+def load_baselines(path: str | Path) -> dict[str, Any]:
+    p = Path(path)
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"tolerance": DEFAULT_TOLERANCE, "suites": {}}
+
+
+def save_baselines(path: str | Path, data: dict[str, Any]) -> None:
+    Path(path).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def compare_baseline(
+    suite: str, current: dict[str, float], baselines: dict[str, Any], tolerance: float | None = None
+) -> list[BaselineIssue]:
+    """Regressions are metrics below ``baseline - tolerance``; metrics well above it are reported as improvements
+    (refresh the baseline in the same PR so the gain is protected); unknown/missing metrics are reported too."""
+    tol = tolerance if tolerance is not None else float(baselines.get("tolerance", DEFAULT_TOLERANCE))
+    base: dict[str, float] = baselines.get("suites", {}).get(suite, {})
+    issues: list[BaselineIssue] = []
+    for metric, was in base.items():
+        if metric not in current:
+            issues.append(BaselineIssue(severity="missing", suite=suite, metric=metric, msg="no longer produced"))
+        elif current[metric] < was - tol:
+            issues.append(
+                BaselineIssue(
+                    severity="regression",
+                    suite=suite,
+                    metric=metric,
+                    msg=f"{current[metric]:.3f} < baseline {was:.3f} - tolerance {tol:g}",
+                )
+            )
+        elif current[metric] > was + tol:
+            issues.append(
+                BaselineIssue(
+                    severity="improvement",
+                    suite=suite,
+                    metric=metric,
+                    msg=f"{current[metric]:.3f} > baseline {was:.3f}: refresh the baseline",
+                )
+            )
+    for metric in current.keys() - base.keys():
+        issues.append(BaselineIssue(severity="new", suite=suite, metric=metric, msg="not in the baseline yet"))
+    return issues

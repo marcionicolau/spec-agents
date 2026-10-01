@@ -8,6 +8,17 @@
 | Coworker scorer / `context_select` change          | `python -m coworker_fabric.evals --root .` (deterministic, labeled cases in `examples/evals/context_cases.yaml`; also asserted in `packages/coworker/tests/test_coworker.py`); add a case for every retrieval bug you fix |
 | New skill / agent                                  | `scaffold` → fill sections → `lint --strict` → tests for its checks                                                                                                                                     |
 
+## Eval baselines
+`examples/evals/baselines.json` stores the scores of the deterministic suites: the statistics rules planner (per case and mean;
+`treatment_effect` fails on purpose) and coworker context selection (means). `just evals-check` (CI, `specs` job) fails when a
+score drops below `baseline - tolerance` (0.02), or when a case is added or removed without refreshing the file. To refresh after
+an intended change run `just evals-update` and commit the diff in the same PR, so the new baseline is reviewed. Scores above
+baseline + tolerance are reported as improvements: refresh them too, so the gain is protected.
+
+Live LLM evals (`just evals live`, needs the LiteLLM proxy) are manual. PRs that change SKILL.md/AGENT.md/fabric.md prose or the
+model aliases are labelled `stage:needs-eval` automatically: run them, paste `mean_score` next to the previous one in the PR,
+then remove the label.
+
 Lint rules (`agent_fabric/lint.py`): unknown backticked identifiers, missing canonical sections, broken
 relative links (error), description > 200 or < 20 chars, description style (`description_filler`: not "This component…"/"A…"; `description_first_person`; `description_no_trigger`: neither the description nor the first paragraph of `## When to use` says when it applies; `description_duplicate`: two skills with the same text), skill body > 6000 / agent body > 4000 chars, router bodies
 that never mention a sub-agent, bodies mentioning agents that are not sub-agents, plus full tree validation.

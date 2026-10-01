@@ -51,6 +51,13 @@ contracts base="origin/main":
 types:
     uv run --all-extras ty check
 
+# regression gate for the deterministic eval suites (CI); `just evals-update` rewrites the baseline file (review the diff)
+evals-check:
+    uv run python examples/check_baselines.py
+
+evals-update:
+    uv run python examples/check_baselines.py --update
+
 # deterministic planner baseline; `just evals live` needs the LiteLLM proxy
 evals mode="rules":
     uv run python examples/run_evals.py --mode {{mode}}

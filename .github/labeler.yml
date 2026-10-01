@@ -17,6 +17,10 @@
 "pkg:specs":
   - changed-files:
       - any-glob-to-any-file: ["**/SKILL.md", "**/AGENT.md", "**/fabric.md"]
+"stage:needs-eval":
+  # prompts changed without code changing: live evals (`just evals live`) must be run and the scores noted in the PR
+  - changed-files:
+      - any-glob-to-any-file: ["**/SKILL.md", "**/AGENT.md", "**/fabric.md", "config/litellm_config.yaml"]
 "pkg:ci":
   - changed-files:
       - any-glob-to-any-file: [".github/**", "release-please-config.json", ".release-please-manifest.json"]

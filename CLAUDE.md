@@ -67,7 +67,7 @@ just types                                  # ty type check (core only for now; 
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
 uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
-# CI (.github/workflows/ci.yml) runs: pytest, ruff (rules F UP E I B SIM RUF PT), the lint commands below, and run_evals --mode rules (informational)
+# CI (.github/workflows/ci.yml) runs: pytest, ruff (rules F UP E I B SIM RUF PT), the lint commands below, and the eval baseline gate (just evals-check)
 python -m agent_fabric.lint --domains stat_fabric.domain:register text_pack:register \
        --agents examples/research_team --schemas stat_fabric.schemas:SCHEMAS --strict
 python -m agent_fabric.lint --domains lake_fabric.domain:register --agents packages/lakehouse/config \
@@ -77,7 +77,8 @@ python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents p
 python -m lake_fabric.generate params.json --sample records.json --out dags   # DAG file, no LLM involved
 python -m agent_fabric.scaffold skill my_step --dir packages/statistics/src/stat_fabric/skills --domain statistics
 python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --domain notes   # code-free skill
-python examples/run_evals.py --mode live    # before merging guidance/model changes
+python examples/run_evals.py --mode live    # before merging guidance/model changes (PRs get `stage:needs-eval`)
+just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
 
 uv run agent-fabric catalog --skills examples/notes/skills          # rich table; also accepts --domains ref/dir
 uv run agent-fabric agents examples/notes                           # renders + validates the agent tree
