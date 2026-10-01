@@ -11,7 +11,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Callable
+from typing import Any
+from collections.abc import Callable
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -48,8 +49,9 @@ def _string_fields(obj: Any, loc: tuple = ()) -> list[tuple[tuple, str]]:
     return []
 
 
-def _structured_or_text(agent: BaseAgent, ctx: RunContext, path: str, system: str, user: str,
-                        grounding_sources: list[Any] | None) -> Any:
+def _structured_or_text(
+    agent: BaseAgent, ctx: RunContext, path: str, system: str, user: str, grounding_sources: list[Any] | None
+) -> Any:
     """Shared by workers and supervisors: schema output (validated) or free text, both grounded."""
     schema = agent.fabric.schema(agent.spec.output_schema) if agent.spec.output_schema else None
     check = agent.spec.options.get("check_grounding", grounding_sources is not None)
@@ -68,17 +70,32 @@ def _structured_or_text(agent: BaseAgent, ctx: RunContext, path: str, system: st
             ground(value)
             return value
 
-        return structured_completion(agent.llm(ctx, path), system, user, parse, model=agent.model,
-                                     max_attempts=agent.settings.max_correction_attempts,
-                                     json_mode=agent.settings.json_mode, temperature=agent.settings.temperature).value
+        return structured_completion(
+            agent.llm(ctx, path),
+            system,
+            user,
+            parse,
+            model=agent.model,
+            max_attempts=agent.settings.max_correction_attempts,
+            json_mode=agent.settings.json_mode,
+            temperature=agent.settings.temperature,
+        ).value
 
     def parse_text(text: str) -> dict[str, Any]:
         ground(text)
         return {"text": text}
 
-    return structured_completion(agent.llm(ctx, path), system, user, parse_text, model=agent.model,
-                                 max_attempts=agent.settings.max_correction_attempts, json_mode=False,
-                                 temperature=agent.settings.temperature, extract=extract_text).value
+    return structured_completion(
+        agent.llm(ctx, path),
+        system,
+        user,
+        parse_text,
+        model=agent.model,
+        max_attempts=agent.settings.max_correction_attempts,
+        json_mode=False,
+        temperature=agent.settings.temperature,
+        extract=extract_text,
+    ).value
 
 
 def _summary_of(output: Any) -> str:
@@ -90,6 +107,7 @@ def _summary_of(output: Any) -> str:
 
 
 # ============================================================================ leaf kinds
+
 
 class LLMWorkerAgent(BaseAgent):
     def _run(self, task: AgentTask, ctx: RunContext, path: str, depth: int) -> AgentResult:
@@ -112,8 +130,10 @@ class FunctionAgent(BaseAgent):
         except FabricError:
             raise
         except Exception as exc:
-            raise DependencyError(f"function '{self.spec.function}' raised {type(exc).__name__}",
-                                  [ErrorDetail(type=type(exc).__name__, msg=str(exc)[:300])]) from exc
+            raise DependencyError(
+                f"function '{self.spec.function}' raised {type(exc).__name__}",
+                [ErrorDetail(type=type(exc).__name__, msg=str(exc)[:300])],
+            ) from exc
         return self.result(path, "ok", output=output, summary=_summary_of(output), artifacts=[ctx.put(path, output)])
 
 
@@ -139,34 +159,61 @@ class _PipelineRunner(BaseAgent):
             if len(fits) == 1:  # unambiguous: bind by type
                 chosen[name] = spare.pop(fits[0])
             elif port.required:
-                errors.append(ErrorDetail(loc=("inputs", name), type="missing_pipeline_input",
-                                          msg=f"pipeline input '{name}' ({port.type}) not provided"
-                                              + (f"; ambiguous candidates {fits}" if fits else ""),
-                                          hint="pass it in task inputs or map it with options.input_map"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("inputs", name),
+                        type="missing_pipeline_input",
+                        msg=f"pipeline input '{name}' ({port.type}) not provided"
+                        + (f"; ambiguous candidates {fits}" if fits else ""),
+                        hint="pass it in task inputs or map it with options.input_map",
+                    )
+                )
         if errors:
             raise DataValidationError("Pipeline inputs are incomplete", errors)
         return PipelineInputs(declared, chosen, types)
 
-    def execute_and_report(self, plan: Any, pin: PipelineInputs, ctx: RunContext, path: str, extra: dict[str, Any]) -> AgentResult:
-        repairer = LLMParamRepairer(self.llm(ctx, path), self.fabric.registry, self.settings) \
-            if self.spec.options.get("repair", False) else None
-        report: PipelineReport = PipelineExecutor(self.fabric.registry, repairer=repairer,
-                                                  fail_policy=self.spec.options.get("fail_policy", "continue")).run(plan, pin)
+    def execute_and_report(
+        self, plan: Any, pin: PipelineInputs, ctx: RunContext, path: str, extra: dict[str, Any]
+    ) -> AgentResult:
+        repairer = (
+            LLMParamRepairer(self.llm(ctx, path), self.fabric.registry, self.settings)
+            if self.spec.options.get("repair", False)
+            else None
+        )
+        report: PipelineReport = PipelineExecutor(
+            self.fabric.registry,
+            repairer=repairer,
+            fail_policy=self.spec.options.get("fail_policy", "continue"),
+            llm=self.llm(ctx, path),
+            llm_settings=self.settings,
+            on_step=ctx.on_step,
+        ).run(plan, pin)
         interps = self.interpret(report, plan.objective, ctx, path)
         artifacts = [ctx.put(f"{path}.{name}", value) for name, value in report.output_values().items()]
-        output = {**extra, "steps": {o.step_id: o.status.value for o in report.outcomes},
-                  "results": {o.step_id: o.result for o in report.outcomes if o.result is not None},
-                  "interpretations": interps,
-                  "failures": {o.step_id: o.error.to_llm_feedback() for o in report.failures() if o.error}}
+        output = {
+            **extra,
+            "steps": {o.step_id: o.status.value for o in report.outcomes},
+            "results": {o.step_id: o.result for o in report.outcomes if o.result is not None},
+            "interpretations": interps,
+            "failures": {o.step_id: o.error.to_llm_feedback() for o in report.failures() if o.error},
+        }
         artifacts.insert(0, ctx.put(path, output))
         heads = [i["headline"] for i in interps]
-        summary = " | ".join(heads[:4]) or f"{sum(o.status.value in ('ok', 'repaired') for o in report.outcomes)} step(s) ok"
+        summary = (
+            " | ".join(heads[:4]) or f"{sum(o.status.value in ('ok', 'repaired') for o in report.outcomes)} step(s) ok"
+        )
         status = "ok" if report.ok else ("partial" if any(o.result for o in report.outcomes) else "failed")
         err = None
         if not report.ok:
-            err = DependencyError(f"{len(report.failures())} pipeline step(s) did not succeed",
-                                  [d.model_copy(update={"loc": ("steps", o.step_id) + d.loc})
-                                   for o in report.failures() if o.error for d in o.error.details[:3]]).report
+            err = DependencyError(
+                f"{len(report.failures())} pipeline step(s) did not succeed",
+                [
+                    d.model_copy(update={"loc": ("steps", o.step_id) + d.loc})
+                    for o in report.failures()
+                    if o.error
+                    for d in o.error.details[:3]
+                ],
+            ).report
         return self.result(path, status, output=output, summary=summary, artifacts=artifacts, error=err)
 
     def interpret(self, report: PipelineReport, objective: str, ctx: RunContext, path: str) -> list[dict[str, Any]]:
@@ -215,15 +262,24 @@ class PlannerAgent(_PipelineRunner):
         if getattr(planner, "name", "") == "pydantic_ai":  # calls not seen by MeteredBackend
             ctx.budget.charge_llm(path, outcome.attempts)
             ctx.llm_calls_by_path[path] = ctx.llm_calls_by_path.get(path, 0) + outcome.attempts
-        res = self.execute_and_report(outcome.plan, pin, ctx, path, {
-            "planner": outcome.planner, "plan": outcome.plan.model_dump(),
-            "rejected_plans": [r.to_llm_feedback() for r in outcome.rejected]})
+        res = self.execute_and_report(
+            outcome.plan,
+            pin,
+            ctx,
+            path,
+            {
+                "planner": outcome.planner,
+                "plan": outcome.plan.model_dump(),
+                "rejected_plans": [r.to_llm_feedback() for r in outcome.rejected],
+            },
+        )
         if outcome.rejected:
             res.notes.append(f"planner self-corrected {len(outcome.rejected)} time(s)")
         return res
 
 
 # ============================================================================ supervisors
+
 
 class Delegation(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -246,29 +302,61 @@ def delegation_errors(plan: DelegationPlan, children: list[str], keys: list[str]
     errors: list[ErrorDetail] = []
     ids = [d.id for d in plan.delegations]
     if len(ids) > max_n:
-        errors.append(ErrorDetail(loc=("delegations",), type="too_many_delegations",
-                                  msg=f"{len(ids)} delegations, at most {max_n} allowed", hint="merge related work"))
+        errors.append(
+            ErrorDetail(
+                loc=("delegations",),
+                type="too_many_delegations",
+                msg=f"{len(ids)} delegations, at most {max_n} allowed",
+                hint="merge related work",
+            )
+        )
     for dup in sorted({i for i in ids if ids.count(i) > 1}):
         errors.append(ErrorDetail(loc=("delegations",), type="duplicate_id", msg=f"id '{dup}' used twice"))
     for i, d in enumerate(plan.delegations):
         loc = ("delegations", i)
         if d.agent not in children:
-            errors.append(ErrorDetail(loc=loc + ("agent",), type="unknown_agent", input=d.agent,
-                                      msg=f"'{d.agent}' is not one of your sub-agents",
-                                      hint=suggest(d.agent, children) or f"use one of {children}"))
+            errors.append(
+                ErrorDetail(
+                    loc=loc + ("agent",),
+                    type="unknown_agent",
+                    input=d.agent,
+                    msg=f"'{d.agent}' is not one of your sub-agents",
+                    hint=suggest(d.agent, children) or f"use one of {children}",
+                )
+            )
         for dep in d.depends_on:
             if dep not in ids or dep == d.id:
-                errors.append(ErrorDetail(loc=loc + ("depends_on",), type="unknown_dependency", input=dep,
-                                          msg=f"'{dep}' is not another delegation id", hint=suggest(dep, ids)))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("depends_on",),
+                        type="unknown_dependency",
+                        input=dep,
+                        msg=f"'{dep}' is not another delegation id",
+                        hint=suggest(dep, ids),
+                    )
+                )
         for key in d.inputs:
             if key.startswith("@"):
                 if key[1:] not in ids or key[1:] == d.id:
-                    errors.append(ErrorDetail(loc=loc + ("inputs",), type="unknown_reference", input=key,
-                                              msg=f"'{key}' does not name another delegation", hint=suggest(key[1:], ids)))
+                    errors.append(
+                        ErrorDetail(
+                            loc=loc + ("inputs",),
+                            type="unknown_reference",
+                            input=key,
+                            msg=f"'{key}' does not name another delegation",
+                            hint=suggest(key[1:], ids),
+                        )
+                    )
             elif key not in keys:
-                errors.append(ErrorDetail(loc=loc + ("inputs",), type="unknown_key", input=key,
-                                          msg=f"'{key}' is not on the blackboard",
-                                          hint=suggest(key, keys) or f"available: {keys[:15]}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("inputs",),
+                        type="unknown_key",
+                        input=key,
+                        msg=f"'{key}' is not on the blackboard",
+                        hint=suggest(key, keys) or f"available: {keys[:15]}",
+                    )
+                )
     if not errors:
         deps = {d.id: set(d.depends_on) | {k[1:] for k in d.inputs if k.startswith("@")} for d in plan.delegations}
         state: dict[str, int] = {}
@@ -310,13 +398,19 @@ class SupervisorAgent(BaseAgent):
             child = self.children[name]
             if ctx.budget.exhausted:
                 ctx.event(f"{path}/{name}", "skip", "budget exhausted")
-                results.append(child.result(f"{path}/{name}", "skipped", summary=f"budget exhausted ({ctx.budget.exhausted})"))
+                results.append(
+                    child.result(f"{path}/{name}", "skipped", summary=f"budget exhausted ({ctx.budget.exhausted})")
+                )
                 continue
             ctx.budget.charge_delegation(path)
             ctx.event(path, "delegate", name)
             own = list(child.spec.inputs or base)
-            res = child.run(AgentTask(instruction=task.instruction, inputs=own + [k for k in carried if k not in own]),
-                            ctx, path, depth + 1)
+            res = child.run(
+                AgentTask(instruction=task.instruction, inputs=own + [k for k in carried if k not in own]),
+                ctx,
+                path,
+                depth + 1,
+            )
             results.append(res)
             if res.status in ("ok", "partial") and res.artifacts:
                 carried.append(res.artifacts[0])
@@ -325,7 +419,11 @@ class SupervisorAgent(BaseAgent):
     def _route(self, task: AgentTask, ctx: RunContext, path: str) -> DelegationPlan:
         team = json.dumps([c.card() for c in self.children.values()], ensure_ascii=False, indent=1)
         keys = sorted(ctx.blackboard)
-        system = self.system_prompt() + "\n\n" + ROUTER_RULES.format(team=team, keys=keys, max_delegations=self.spec.max_delegations)
+        system = (
+            self.system_prompt()
+            + "\n\n"
+            + ROUTER_RULES.format(team=team, keys=keys, max_delegations=self.spec.max_delegations)
+        )
         user = f"Task: {task.instruction}"
         mem = self.memory_context(ctx, path)
         if mem:
@@ -341,11 +439,20 @@ class SupervisorAgent(BaseAgent):
                 raise DelegationError(f"Delegation plan has {len(errs)} problem(s)", errs)
             return plan
 
-        return structured_completion(self.llm(ctx, path), system, user, parse, model=self.model,
-                                     max_attempts=self.settings.max_correction_attempts,
-                                     json_mode=self.settings.json_mode, temperature=self.settings.temperature).value
+        return structured_completion(
+            self.llm(ctx, path),
+            system,
+            user,
+            parse,
+            model=self.model,
+            max_attempts=self.settings.max_correction_attempts,
+            json_mode=self.settings.json_mode,
+            temperature=self.settings.temperature,
+        ).value
 
-    def _execute(self, plan: DelegationPlan, task: AgentTask, ctx: RunContext, path: str, depth: int) -> list[AgentResult]:
+    def _execute(
+        self, plan: DelegationPlan, task: AgentTask, ctx: RunContext, path: str, depth: int
+    ) -> list[AgentResult]:
         by_id = {d.id: d for d in plan.delegations}
         deps = {d.id: set(d.depends_on) | {k[1:] for k in d.inputs if k.startswith("@")} for d in plan.delegations}
         done: dict[str, AgentResult] = {}
@@ -375,20 +482,39 @@ class SupervisorAgent(BaseAgent):
             except FabricError as exc:
                 done[did] = child.result(child_path, "skipped", summary=exc.message, error=exc.report)
                 continue
-            inputs = [done[k[1:]].artifacts[0] if k.startswith("@") and done[k[1:]].artifacts else k
-                      for k in d.inputs if not (k.startswith("@") and not done[k[1:]].artifacts)]
+            inputs = [
+                done[k[1:]].artifacts[0] if k.startswith("@") and done[k[1:]].artifacts else k
+                for k in d.inputs
+                if not (k.startswith("@") and not done[k[1:]].artifacts)
+            ]
             ctx.event(path, "delegate", f"{d.id} -> {d.agent}")
             done[did] = child.run(AgentTask(instruction=d.instruction, inputs=inputs), ctx, path, depth + 1)
         return [done[d.id] for d in plan.delegations]
 
     # ---------------------------------------------------------------- synthesis
-    def _finish(self, task: AgentTask, ctx: RunContext, path: str, children: list[AgentResult], note: str) -> AgentResult:
+    def _finish(
+        self, task: AgentTask, ctx: RunContext, path: str, children: list[AgentResult], note: str
+    ) -> AgentResult:
         ok = [c for c in children if c.status in ("ok", "partial")]
-        status = "ok" if len(ok) == len(children) and all(c.status == "ok" for c in children) else ("partial" if ok else "failed")
-        digest = {c.path: {"status": c.status, "summary": c.summary, "output": c.output,
-                           **({"error": c.error.message} if c.error else {})} for c in children}
-        output: dict[str, Any] = {"strategy": self.spec.strategy if self.spec.backend != "rules" else "sequential",
-                                  "rationale": note, "delegations": {c.path: c.status for c in children}}
+        status = (
+            "ok"
+            if len(ok) == len(children) and all(c.status == "ok" for c in children)
+            else ("partial" if ok else "failed")
+        )
+        digest = {
+            c.path: {
+                "status": c.status,
+                "summary": c.summary,
+                "output": c.output,
+                **({"error": c.error.message} if c.error else {}),
+            }
+            for c in children
+        }
+        output: dict[str, Any] = {
+            "strategy": self.spec.strategy if self.spec.backend != "rules" else "sequential",
+            "rationale": note,
+            "delegations": {c.path: c.status for c in children},
+        }
         summary = " | ".join(c.summary for c in ok)[:300] or "no sub-agent succeeded"
         if ctx.budget.exhausted:
             notes = [f"synthesis skipped: budget exhausted ({ctx.budget.exhausted})"]
@@ -396,8 +522,9 @@ class SupervisorAgent(BaseAgent):
             user = f"Task: {task.instruction}\n\nSub-agent results:\n{compact(digest, max_chars=8000)}"
             notes: list[str] = []
             try:
-                answer = _structured_or_text(self, ctx, path, f"{self.system_prompt()}\n\n{SYNTHESIS_RULES}", user,
-                                             [digest, task.instruction])
+                answer = _structured_or_text(
+                    self, ctx, path, f"{self.system_prompt()}\n\n{SYNTHESIS_RULES}", user, [digest, task.instruction]
+                )
                 output["answer"] = answer
                 summary = _summary_of(answer)
             except FabricError as exc:  # keep the children's work even if synthesis fails
@@ -410,13 +537,31 @@ class SupervisorAgent(BaseAgent):
         if status != "ok":
             failed = [c for c in children if c.status in ("failed", "skipped")]
             partial = [c for c in children if c.status == "partial"]
-            message = (f"{len(failed)} sub-agent(s) did not succeed" if failed
-                       else f"{len(partial)} sub-agent(s) partially succeeded" if partial else "; ".join(notes) or "incomplete")
-            error = ErrorReport(category="dependency", message=message,
-                                details=[ErrorDetail(loc=("sub_agents", c.agent), type=c.status, msg=c.summary[:200])
-                                         for c in failed + partial])
-        return self.result(path, status, output=output, summary=summary, children=children,
-                           artifacts=[ctx.put(path, output)], error=error, notes=notes)
+            message = (
+                f"{len(failed)} sub-agent(s) did not succeed"
+                if failed
+                else f"{len(partial)} sub-agent(s) partially succeeded"
+                if partial
+                else "; ".join(notes) or "incomplete"
+            )
+            error = ErrorReport(
+                category="dependency",
+                message=message,
+                details=[
+                    ErrorDetail(loc=("sub_agents", c.agent), type=c.status, msg=c.summary[:200])
+                    for c in failed + partial
+                ],
+            )
+        return self.result(
+            path,
+            status,
+            output=output,
+            summary=summary,
+            children=children,
+            artifacts=[ctx.put(path, output)],
+            error=error,
+            notes=notes,
+        )
 
 
 class PydanticAISupervisor(SupervisorAgent):
@@ -428,10 +573,15 @@ class PydanticAISupervisor(SupervisorAgent):
         children_results: list[AgentResult] = []
         names = sorted(self.children)
         team = json.dumps([c.card() for c in self.children.values()], ensure_ascii=False)
-        instructions = (f"{self.system_prompt()}\n\nDelegate work with the `delegate` tool. Sub-agents: {team}\n"
-                        f"Blackboard keys: {sorted(ctx.blackboard)}\n{SYNTHESIS_RULES}")
-        agent = Agent(self.fabric.pydantic_ai_model(self.spec), instructions=instructions,
-                      retries=self.settings.max_correction_attempts)
+        instructions = (
+            f"{self.system_prompt()}\n\nDelegate work with the `delegate` tool. Sub-agents: {team}\n"
+            f"Blackboard keys: {sorted(ctx.blackboard)}\n{SYNTHESIS_RULES}"
+        )
+        agent = Agent(
+            self.fabric.pydantic_ai_model(self.spec),
+            instructions=instructions,
+            retries=self.settings.max_correction_attempts,
+        )
 
         @agent.tool_plain
         def delegate(agent_name: str, instruction: str, inputs: list[str] | None = None) -> str:
@@ -443,7 +593,9 @@ class PydanticAISupervisor(SupervisorAgent):
                 raise ModelRetry(f"unknown blackboard keys {bad}; available: {sorted(ctx.blackboard)[:15]}")
             ctx.budget.charge_delegation(path)
             ctx.event(path, "delegate", agent_name)
-            res = self.children[agent_name].run(AgentTask(instruction=instruction, inputs=inputs or []), ctx, path, depth + 1)
+            res = self.children[agent_name].run(
+                AgentTask(instruction=instruction, inputs=inputs or []), ctx, path, depth + 1
+            )
             children_results.append(res)
             return f"[{res.status}] {res.summary}\noutput: {compact(res.output, max_chars=3000)}"
 
@@ -455,7 +607,16 @@ class PydanticAISupervisor(SupervisorAgent):
         answer = {"text": str(run.output)}
         ok = [c for c in children_results if c.status in ("ok", "partial")]
         status = "ok" if children_results and len(ok) == len(children_results) else ("partial" if ok else "failed")
-        output = {"strategy": "pydantic_ai_tools", "delegations": {c.path: c.status for c in children_results},
-                  "answer": answer}
-        return self.result(path, status, output=output, summary=answer["text"][:300], children=children_results,
-                           artifacts=[ctx.put(path, output)])
+        output = {
+            "strategy": "pydantic_ai_tools",
+            "delegations": {c.path: c.status for c in children_results},
+            "answer": answer,
+        }
+        return self.result(
+            path,
+            status,
+            output=output,
+            summary=answer["text"][:300],
+            children=children_results,
+            artifacts=[ctx.put(path, output)],
+        )

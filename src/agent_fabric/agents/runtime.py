@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Iterator, Literal
+from typing import Any, Literal
+from collections.abc import Iterator
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
@@ -19,7 +20,7 @@ from ..errors import BudgetExceeded, DependencyError, ErrorDetail, ErrorReport, 
 from ..llm.backends import LLMBackend, Message
 from ..memory.base import MemoryPort
 
-Status = Literal["ok", "partial", "failed", "skipped"]
+type Status = Literal["ok", "partial", "failed", "skipped"]
 
 
 class AgentTask(BaseModel):
@@ -44,16 +45,16 @@ class AgentResult(BaseModel):
     artifacts: list[str] = Field(default_factory=list, description="blackboard keys written by this agent")
     error: ErrorReport | None = None
     notes: list[str] = Field(default_factory=list)
-    children: list["AgentResult"] = Field(default_factory=list)
+    children: list[AgentResult] = Field(default_factory=list)
     llm_calls: int = 0
     duration_s: float = 0.0
 
-    def walk(self) -> Iterator["AgentResult"]:
+    def walk(self) -> Iterator[AgentResult]:
         yield self
         for c in self.children:
             yield from c.walk()
 
-    def find(self, path: str) -> "AgentResult":
+    def find(self, path: str) -> AgentResult:
         for r in self.walk():
             if r.path == path or r.path.endswith("/" + path) or r.agent == path:
                 return r
@@ -81,9 +82,17 @@ class Budget:
 
     def _exceeded(self, what: str, limit: int, path: str) -> BudgetExceeded:
         self.exhausted = self.exhausted or what
-        return BudgetExceeded(f"{what} budget exhausted ({limit}) at '{path}'",
-                              [ErrorDetail(loc=("budget", what), type="budget_exceeded", msg=f"limit {limit} reached",
-                                           hint=f"raise budget.{what} in the agents config or simplify the tree")])
+        return BudgetExceeded(
+            f"{what} budget exhausted ({limit}) at '{path}'",
+            [
+                ErrorDetail(
+                    loc=("budget", what),
+                    type="budget_exceeded",
+                    msg=f"limit {limit} reached",
+                    hint=f"raise budget.{what} in the agents config or simplify the tree",
+                )
+            ],
+        )
 
     def charge_run(self, path: str, depth: int) -> None:
         if depth > self.s.max_depth:
@@ -116,9 +125,14 @@ class RunContext:
     input_keys: list[str] = field(default_factory=list)
     llm_calls_by_path: dict[str, int] = field(default_factory=dict)
     t0: float = field(default_factory=time.perf_counter)
+    on_event: Any = None  # optional listener(TraceEvent) - UIs render a live view from it
+    on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
 
     def event(self, path: str, event: str, detail: str = "") -> None:
-        self.trace.append(TraceEvent(at=round(time.perf_counter() - self.t0, 4), path=path, event=event, detail=detail[:200]))
+        e = TraceEvent(at=round(time.perf_counter() - self.t0, 4), path=path, event=event, detail=detail[:200])
+        self.trace.append(e)
+        if self.on_event is not None:
+            self.on_event(e)
 
     def put(self, key: str, value: Any) -> str:
         self.blackboard[key] = value
@@ -127,13 +141,22 @@ class RunContext:
     def collect(self, keys: list[str]) -> dict[str, Any]:
         missing = [k for k in keys if k not in self.blackboard]
         if missing:
-            raise DependencyError(f"blackboard keys not available: {missing}",
-                                  [ErrorDetail(loc=("inputs",), type="missing_input", input=k, msg=f"'{k}' is not on the blackboard",
-                                               hint=suggest(k, self.blackboard) or f"available: {sorted(self.blackboard)[:15]}")
-                                   for k in missing])
+            raise DependencyError(
+                f"blackboard keys not available: {missing}",
+                [
+                    ErrorDetail(
+                        loc=("inputs",),
+                        type="missing_input",
+                        input=k,
+                        msg=f"'{k}' is not on the blackboard",
+                        hint=suggest(k, self.blackboard) or f"available: {sorted(self.blackboard)[:15]}",
+                    )
+                    for k in missing
+                ],
+            )
         return {k: self.blackboard[k] for k in keys}
 
-    def metered(self, backend: LLMBackend, path: str) -> "MeteredBackend":
+    def metered(self, backend: LLMBackend, path: str) -> MeteredBackend:
         return MeteredBackend(backend, self, path)
 
 
@@ -143,8 +166,14 @@ class MeteredBackend:
     def __init__(self, inner: LLMBackend, ctx: RunContext, path: str) -> None:
         self.inner, self.ctx, self.path = inner, ctx, path
 
-    def complete(self, messages: list[Message], *, model: str | None = None, json_mode: bool = False,
-                 temperature: float | None = None) -> str:
+    def complete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
         self.ctx.budget.charge_llm(self.path)
         self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
         self.ctx.event(self.path, "llm_call", model or "")

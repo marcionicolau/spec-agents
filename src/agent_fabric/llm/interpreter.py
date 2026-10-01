@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Iterable, Literal, Protocol
+from typing import Any, Literal, Protocol
+from collections.abc import Iterable
 
 from pydantic import BaseModel, Field
 

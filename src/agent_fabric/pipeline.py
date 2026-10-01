@@ -46,6 +46,7 @@ def types_compatible(src: str, dst: str) -> bool:
 
 # ============================================================================ plan models
 
+
 class PipelineStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -76,7 +77,7 @@ class PipelinePlan(BaseModel):
     outputs: dict[str, str] = Field(default_factory=dict, description="exposed name -> '<step_id>.<port>'")
 
     @model_validator(mode="after")
-    def _dag(self) -> "PipelinePlan":
+    def _dag(self) -> PipelinePlan:
         ids = [s.id for s in self.steps]
         dupes = sorted({i for i in ids if ids.count(i) > 1})
         if dupes:
@@ -119,6 +120,7 @@ class PipelinePlan(BaseModel):
 
 # ============================================================================ inputs
 
+
 class PipelineInputs:
     """Declared pipeline inputs + (optionally) their values and profiles."""
 
@@ -130,14 +132,18 @@ class PipelineInputs:
             self.profiles[name] = types.get(spec.type).profile(v) if v is not None else None
 
     @classmethod
-    def from_values(cls, values: dict[str, Any], types: TypeRegistry) -> "PipelineInputs":
+    def from_values(cls, values: dict[str, Any], types: TypeRegistry) -> PipelineInputs:
         return cls({k: PortSpec(type=types.infer(v).name) for k, v in values.items()}, values, types)
 
     def to_prompt(self) -> str:
         lines = []
         for name, spec in self.specs.items():
             prof = self.profiles.get(name)
-            desc = self.types.get(spec.type).describe(prof, self.values.get(name)) if (prof or name in self.values) else spec.type
+            desc = (
+                self.types.get(spec.type).describe(prof, self.values.get(name))
+                if (prof or name in self.values)
+                else spec.type
+            )
             lines.append(f"$inputs.{name} ({spec.type}){': ' + spec.description if spec.description else ''}\n{desc}")
         return "\n".join(lines) or "(no inputs)"
 
@@ -175,24 +181,38 @@ def _has_param_ref(v: Any) -> bool:
     return False
 
 
-def semantic_errors(plan: PipelinePlan, registry: Any, inputs: PipelineInputs | None,
-                    allow_param_refs: bool = False) -> list[ErrorDetail]:
+def semantic_errors(
+    plan: PipelinePlan, registry: Any, inputs: PipelineInputs | None, allow_param_refs: bool = False
+) -> list[ErrorDetail]:
     errors: list[ErrorDetail] = []
     by_id = {s.id: s for s in plan.steps}
     for i, step in enumerate(plan.steps):
         loc = ("steps", i)
         if not registry.has(step.component):
-            errors.append(ErrorDetail(loc=loc + ("component",), type="unknown_component", input=step.component,
-                                      msg=f"component '{step.component}' does not exist",
-                                      hint=suggest(step.component, registry.names()) or f"use one of {registry.names()}"))
+            errors.append(
+                ErrorDetail(
+                    loc=loc + ("component",),
+                    type="unknown_component",
+                    input=step.component,
+                    msg=f"component '{step.component}' does not exist",
+                    hint=suggest(step.component, registry.names()) or f"use one of {registry.names()}",
+                )
+            )
             continue
         comp = registry.get(step.component)
         # ---- params
         params = None
         if allow_param_refs and _has_param_ref(step.params):
             extra = [k for k in step.params if k not in comp.Params.model_fields]
-            errors += [ErrorDetail(loc=loc + ("params", k), type="extra_forbidden", msg="unknown parameter",
-                                   hint=suggest(k, comp.Params.model_fields)) for k in extra]
+            errors += [
+                ErrorDetail(
+                    loc=loc + ("params", k),
+                    type="extra_forbidden",
+                    msg="unknown parameter",
+                    hint=suggest(k, comp.Params.model_fields),
+                )
+                for k in extra
+            ]
         else:
             try:
                 params = comp.Params.model_validate(step.params)
@@ -201,9 +221,15 @@ def semantic_errors(plan: PipelinePlan, registry: Any, inputs: PipelineInputs | 
         # ---- ports
         for port in step.inputs:
             if port not in comp.spec.inputs:
-                errors.append(ErrorDetail(loc=loc + ("inputs", port), type="unknown_port", input=port,
-                                          msg=f"'{step.component}' has no input port '{port}'",
-                                          hint=suggest(port, comp.spec.inputs) or f"ports: {sorted(comp.spec.inputs)}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("inputs", port),
+                        type="unknown_port",
+                        input=port,
+                        msg=f"'{step.component}' has no input port '{port}'",
+                        hint=suggest(port, comp.spec.inputs) or f"ports: {sorted(comp.spec.inputs)}",
+                    )
+                )
         bindings = resolve_bindings(step, comp, inputs)
         bound: dict[str, BaseModel | None] = {}
         for port, ref in bindings.items():
@@ -213,15 +239,28 @@ def semantic_errors(plan: PipelinePlan, registry: Any, inputs: PipelineInputs | 
             head, name = ref.split(".", 1)
             ploc = loc + ("inputs", port)
             if head == "$params":
-                errors.append(ErrorDetail(loc=ploc, type="param_ref_not_allowed", msg="$params references are only valid in pipeline specs"))
+                errors.append(
+                    ErrorDetail(
+                        loc=ploc,
+                        type="param_ref_not_allowed",
+                        msg="$params references are only valid in pipeline specs",
+                    )
+                )
                 continue
             if head == "$inputs":
                 if inputs is None:
                     bound[port] = None
                     continue
                 if name not in inputs.specs:
-                    errors.append(ErrorDetail(loc=ploc, type="unknown_input", input=ref, msg=f"pipeline has no input '{name}'",
-                                              hint=suggest(name, inputs.specs) or f"inputs: {sorted(inputs.specs)}"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=ploc,
+                            type="unknown_input",
+                            input=ref,
+                            msg=f"pipeline has no input '{name}'",
+                            hint=suggest(name, inputs.specs) or f"inputs: {sorted(inputs.specs)}",
+                        )
+                    )
                     bound[port] = None  # treat as bound: avoid cascading 'unbound' errors
                     continue
                 have = inputs.specs[name].type
@@ -233,15 +272,27 @@ def semantic_errors(plan: PipelinePlan, registry: Any, inputs: PipelineInputs | 
                 have = _output_type(registry, producer.component, name)
                 if have is None:
                     outs = [RESULT_PORT, *registry.spec(producer.component).outputs]
-                    errors.append(ErrorDetail(loc=ploc, type="unknown_output", input=ref,
-                                              msg=f"step '{head}' ({producer.component}) has no output '{name}'",
-                                              hint=suggest(name, outs) or f"outputs: {outs}"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=ploc,
+                            type="unknown_output",
+                            input=ref,
+                            msg=f"step '{head}' ({producer.component}) has no output '{name}'",
+                            hint=suggest(name, outs) or f"outputs: {outs}",
+                        )
+                    )
                     bound[port] = None
                     continue
                 bound[port] = None
             if not types_compatible(have, want):
-                errors.append(ErrorDetail(loc=ploc, type="type_mismatch", input=ref,
-                                          msg=f"'{ref}' is {have}, port '{port}' expects {want}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=ploc,
+                        type="type_mismatch",
+                        input=ref,
+                        msg=f"'{ref}' is {have}, port '{port}' expects {want}",
+                    )
+                )
         if params is not None and inputs is not None:
             for d in comp.static_checks(bound, params):
                 errors.append(d.model_copy(update={"loc": loc + d.loc}))
@@ -249,13 +300,20 @@ def semantic_errors(plan: PipelinePlan, registry: Any, inputs: PipelineInputs | 
         head, port = ref.split(".", 1)
         comp_name = by_id[head].component
         if registry.has(comp_name) and _output_type(registry, comp_name, port) is None:
-            errors.append(ErrorDetail(loc=("outputs", name), type="unknown_output", input=ref,
-                                      msg=f"step '{head}' has no output '{port}'"))
+            errors.append(
+                ErrorDetail(
+                    loc=("outputs", name), type="unknown_output", input=ref, msg=f"step '{head}' has no output '{port}'"
+                )
+            )
     return errors
 
 
-def parse_plan(raw: dict[str, Any] | PipelinePlan, registry: Any, inputs: PipelineInputs | None = None,
-               allow_param_refs: bool = False) -> PipelinePlan:
+def parse_plan(
+    raw: dict[str, Any] | PipelinePlan,
+    registry: Any,
+    inputs: PipelineInputs | None = None,
+    allow_param_refs: bool = False,
+) -> PipelinePlan:
     """Validate a raw plan end-to-end; raises ``PlanValidationError`` listing every problem."""
     if isinstance(raw, PipelinePlan):
         plan = raw
@@ -280,6 +338,7 @@ def validate_pipeline_spec(pspec: PipelineSpec, registry: Any) -> None:
 
 # ============================================================================ pipelines as components
 
+
 class PipelineResult(ComponentResult):
     pipeline: str
     steps: dict[str, str]
@@ -294,7 +353,7 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
     registry: Any
 
     @classmethod
-    def from_spec(cls, pspec: PipelineSpec, registry: Any) -> "PipelineComponent":
+    def from_spec(cls, pspec: PipelineSpec, registry: Any) -> PipelineComponent:
         fields = {k: (Any, ... if p.required else p.default) for k, p in pspec.params.items()}
         params_model = create_model(f"{pspec.name}_params", __base__=ComponentParams, **fields)
         by_id = {s.id: s for s in pspec.steps}
@@ -302,12 +361,25 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
         for name, ref in pspec.outputs.items():
             head, port = ref.split(".", 1)
             outputs[name] = PortSpec(type=_output_type(registry, by_id[head].component, port) or "any")
-        cspec = ComponentSpec(name=pspec.name, version=pspec.version, title=pspec.title, description=pspec.description,
-                              domain=pspec.domain, category="pipeline", tags=pspec.tags, llm=pspec.llm, guidance=pspec.guidance,
-                              params={k: ParamDoc(description=p.description, example=p.example) for k, p in pspec.params.items()},
-                              inputs=pspec.inputs, outputs=outputs)
-        sub = type(f"Pipeline_{pspec.name}", (cls,), {"Params": params_model, "spec_name": pspec.name,
-                                                       "pspec": pspec, "registry": registry})
+        cspec = ComponentSpec(
+            name=pspec.name,
+            version=pspec.version,
+            title=pspec.title,
+            description=pspec.description,
+            domain=pspec.domain,
+            category="pipeline",
+            tags=pspec.tags,
+            llm=pspec.llm,
+            guidance=pspec.guidance,
+            params={k: ParamDoc(description=p.description, example=p.example) for k, p in pspec.params.items()},
+            inputs=pspec.inputs,
+            outputs=outputs,
+        )
+        sub = type(
+            f"Pipeline_{pspec.name}",
+            (cls,),
+            {"Params": params_model, "spec_name": pspec.name, "pspec": pspec, "registry": registry},
+        )
         return sub(cspec, registry.types)
 
     def compute(self, inputs: dict[str, Any], params: ComponentParams, ctx: StepContext) -> PipelineResult:
@@ -321,23 +393,49 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
             plan = parse_plan(raw, self.registry, pin)
         except PlanValidationError as exc:  # re-locate inner errors as pipeline.<step_id>...
             ids = [s["id"] for s in raw["steps"]]
-            details = [d.model_copy(update={"loc": ("pipeline", ids[d.loc[1]]) + d.loc[2:]})
-                       if len(d.loc) > 1 and d.loc[0] == "steps" and isinstance(d.loc[1], int) else d
-                       for d in exc.details]
+            details = [
+                d.model_copy(update={"loc": ("pipeline", ids[d.loc[1]]) + d.loc[2:]})
+                if len(d.loc) > 1 and d.loc[0] == "steps" and isinstance(d.loc[1], int)
+                else d
+                for d in exc.details
+            ]
             raise DataValidationError(f"pipeline '{self.pspec.name}' cannot run on these inputs", details) from exc
-        report = PipelineExecutor(self.registry).run(plan, pin, depth=ctx.depth + 1)
+        report = PipelineExecutor(self.registry, llm=ctx.llm, llm_settings=ctx.llm_settings, on_step=ctx.on_step).run(
+            plan, pin, depth=ctx.depth + 1
+        )
         failed = [o for o in report.outcomes if o.status in (StepStatus.FAILED, StepStatus.SKIPPED)]
         if failed:
-            details = [d.model_copy(update={"loc": ("pipeline", o.step_id) + d.loc})
-                       for o in failed if o.error for d in (o.error.details or [ErrorDetail(type="failed", msg=o.error.message)])]
-            raise ComponentExecutionError(f"pipeline '{self.pspec.name}': {len(failed)} step(s) did not succeed", details,
-                                          recoverable=all(o.error and o.error.recoverable for o in failed if o.status == StepStatus.FAILED))
+            details = [
+                d.model_copy(update={"loc": ("pipeline", o.step_id) + d.loc})
+                for o in failed
+                if o.error
+                for d in (o.error.details or [ErrorDetail(type="failed", msg=o.error.message)])
+            ]
+            raise ComponentExecutionError(
+                f"pipeline '{self.pspec.name}': {len(failed)} step(s) did not succeed",
+                details,
+                recoverable=all(o.error and o.error.recoverable for o in failed if o.status == StepStatus.FAILED),
+            )
         for name, ref in self.pspec.outputs.items():
             ctx.emit(name, report.artifacts.get(ref))
         warns = [f"{o.step_id}: {w}" for o in report.outcomes for w in (o.result or {}).get("warnings", [])]
-        return PipelineResult(pipeline=self.pspec.name, steps={o.step_id: o.status.value for o in report.outcomes},
-                              step_results={o.step_id: o.result for o in report.outcomes}, warnings=warns)
+        return PipelineResult(
+            pipeline=self.pspec.name,
+            steps={o.step_id: o.status.value for o in report.outcomes},
+            step_results={o.step_id: o.result for o in report.outcomes},
+            warnings=warns,
+        )
 
 
-__all__ = ["FabricError", "PipelineComponent", "PipelineInputs", "PipelinePlan", "PipelineStep", "parse_plan",
-           "resolve_bindings", "semantic_errors", "types_compatible", "validate_pipeline_spec"]
+__all__ = [
+    "FabricError",
+    "PipelineComponent",
+    "PipelineInputs",
+    "PipelinePlan",
+    "PipelineStep",
+    "parse_plan",
+    "resolve_bindings",
+    "semantic_errors",
+    "types_compatible",
+    "validate_pipeline_spec",
+]

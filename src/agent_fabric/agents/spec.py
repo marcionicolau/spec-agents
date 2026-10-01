@@ -67,7 +67,7 @@ class AgentSpec(BaseModel):
     options: dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def _has_purpose(self) -> "AgentSpec":
+    def _has_purpose(self) -> AgentSpec:
         if not (self.goal or self.description or self.instructions):
             raise ValueError("an agent needs a goal, a description or instructions (AGENT.md body)")
         return self
@@ -84,10 +84,15 @@ class AgentsConfig(BaseModel):
     llm: LLMSettings = Field(default_factory=LLMSettings)
     budget: BudgetSettings = Field(default_factory=BudgetSettings)
     root: str | None = None
+    skill_dirs: list[str] = Field(
+        default_factory=list,
+        description="spec directories (skills/<name>/SKILL.md) loaded into the registry "
+        "- code-free domains need no Python package",
+    )
     agents: dict[str, AgentSpec]
 
     @model_validator(mode="after")
-    def _names(self) -> "AgentsConfig":
+    def _names(self) -> AgentsConfig:
         import re
 
         bad = [n for n in self.agents if not re.match(AGENT_NAME, n)]
@@ -98,7 +103,7 @@ class AgentsConfig(BaseModel):
         return self
 
     @classmethod
-    def load(cls, path: str | Path) -> "AgentsConfig":
+    def load(cls, path: str | Path) -> AgentsConfig:
         """Directory (fabric.md + agents/*/AGENT.md), a fabric.md file, or a YAML file."""
         path = Path(path)
         if path.is_dir():
@@ -108,7 +113,7 @@ class AgentsConfig(BaseModel):
         return cls.from_yaml(path)
 
     @classmethod
-    def from_dir(cls, directory: str | Path) -> "AgentsConfig":
+    def from_dir(cls, directory: str | Path) -> AgentsConfig:
         root = Path(directory)
         details: list[ErrorDetail] = []
         header: dict[str, Any] = {}
@@ -116,17 +121,44 @@ class AgentsConfig(BaseModel):
             f = root / candidate
             if f.is_file():
                 try:
-                    header = read_markdown(f).meta if f.suffix == ".md" else (yaml.safe_load(f.read_text(encoding="utf-8")) or {})
+                    header = (
+                        read_markdown(f).meta
+                        if f.suffix == ".md"
+                        else (yaml.safe_load(f.read_text(encoding="utf-8")) or {})
+                    )
                 except SpecError as exc:
                     details += exc.details
                 break
         if "agents" in header:
-            details.append(ErrorDetail(loc=("fabric.md", "agents"), type="agents_in_header",
-                                       msg="declare agents as agents/<name>/AGENT.md, not in fabric.md"))
+            details.append(
+                ErrorDetail(
+                    loc=("fabric.md", "agents"),
+                    type="agents_in_header",
+                    msg="declare agents as agents/<name>/AGENT.md, not in fabric.md",
+                )
+            )
+        raw_dirs = header.get("skill_dirs")
+        if isinstance(raw_dirs, list):
+            resolved = []
+            for i, d in enumerate(raw_dirs):
+                p = Path(str(d)) if Path(str(d)).is_absolute() else (root / str(d)).resolve()
+                if not p.is_dir():
+                    details.append(
+                        ErrorDetail(
+                            loc=("fabric.md", "skill_dirs", i),
+                            type="missing_skill_dir",
+                            msg=f"skills directory '{d}' does not exist",
+                            hint="create it or fix the path (relative to the config root)",
+                        )
+                    )
+                resolved.append(str(p))
+            header["skill_dirs"] = resolved
         agents: dict[str, Any] = {}
         files = sorted((root / "agents").glob("*/AGENT.md"))
         if not files:
-            details.append(ErrorDetail(loc=(str(root / "agents"),), type="no_agents", msg="no agents/<name>/AGENT.md files found"))
+            details.append(
+                ErrorDetail(loc=(str(root / "agents"),), type="no_agents", msg="no agents/<name>/AGENT.md files found")
+            )
         for f in files:
             rel = str(f.relative_to(root))
             try:
@@ -137,13 +169,25 @@ class AgentsConfig(BaseModel):
             meta = dict(doc.meta)
             for forbidden in ("instructions", "source"):
                 if forbidden in meta:
-                    details.append(ErrorDetail(loc=(rel, forbidden), type="derived_field",
-                                               msg=f"'{forbidden}' comes from the file itself", hint="remove it from the frontmatter"))
+                    details.append(
+                        ErrorDetail(
+                            loc=(rel, forbidden),
+                            type="derived_field",
+                            msg=f"'{forbidden}' comes from the file itself",
+                            hint="remove it from the frontmatter",
+                        )
+                    )
                     meta.pop(forbidden)
             name = meta.get("name") or f.parent.name
             if name != f.parent.name:
-                details.append(ErrorDetail(loc=(rel, "name"), type="name_mismatch",
-                                           msg=f"folder '{f.parent.name}' != name '{name}'", hint="make them equal"))
+                details.append(
+                    ErrorDetail(
+                        loc=(rel, "name"),
+                        type="name_mismatch",
+                        msg=f"folder '{f.parent.name}' != name '{name}'",
+                        hint="make them equal",
+                    )
+                )
                 continue
             meta.update(name=name, instructions=doc.body, source=str(f))
             try:
@@ -155,15 +199,22 @@ class AgentsConfig(BaseModel):
         try:
             return cls.model_validate({**header, "agents": agents})
         except ValidationError as exc:
-            raise AgentConfigError(f"Invalid fabric.md under {root}", details_from_pydantic(exc, ("fabric.md",))) from exc
+            raise AgentConfigError(
+                f"Invalid fabric.md under {root}", details_from_pydantic(exc, ("fabric.md",))
+            ) from exc
 
     @classmethod
-    def from_yaml(cls, path: str | Path) -> "AgentsConfig":
-        raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
-        return cls.from_dict(raw, source=Path(path).name)
+    def from_yaml(cls, path: str | Path) -> AgentsConfig:
+        path = Path(path)
+        raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        if isinstance(raw.get("skill_dirs"), list):
+            raw["skill_dirs"] = [
+                d if Path(str(d)).is_absolute() else str((path.parent / str(d)).resolve()) for d in raw["skill_dirs"]
+            ]
+        return cls.from_dict(raw, source=path.name)
 
     @classmethod
-    def from_dict(cls, raw: dict[str, Any], source: str = "<dict>") -> "AgentsConfig":
+    def from_dict(cls, raw: dict[str, Any], source: str = "<dict>") -> AgentsConfig:
         try:
             return cls.model_validate(raw)
         except ValidationError as exc:

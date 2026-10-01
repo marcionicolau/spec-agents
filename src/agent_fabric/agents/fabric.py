@@ -14,7 +14,9 @@ Extension points (no call-site changes):
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any
+from collections.abc import Callable
 
 from pydantic import BaseModel
 
@@ -38,8 +40,14 @@ class BuilderInfo:
 class AgentFabric:
     _builders: dict[tuple[str, str], BuilderInfo] = {}
 
-    def __init__(self, registry: Any, config: AgentsConfig, backend: LLMBackend | None = None,
-                 memory: MemoryPort | None = None, validate: bool = True) -> None:
+    def __init__(
+        self,
+        registry: Any,
+        config: AgentsConfig,
+        backend: LLMBackend | None = None,
+        memory: MemoryPort | None = None,
+        validate: bool = True,
+    ) -> None:
         self.registry, self.config = registry, config
         self._backend = backend
         self.memory = memory if memory is not None else InMemoryMemory()
@@ -47,14 +55,24 @@ class AgentFabric:
         self._functions: dict[str, Callable[..., Any]] = {}
         self._agents: dict[str, BaseAgent] = {}
         self._validate, self._validated = validate, False
+        for d in self.config.skill_dirs:  # code-free domains: plain SKILL.md directories
+            p = Path(d)
+            if not p.is_dir():
+                raise AgentConfigError(
+                    f"skills directory '{d}' does not exist",
+                    [ErrorDetail(type="missing_skill_dir", msg=str(p), hint="fix 'skill_dirs' in fabric.md")],
+                )
+            self.registry.load_domain(p)
 
     # ------------------------------------------------------------ extension registries
     @classmethod
-    def builder(cls, kind: str, backend: str = "fabric", *, accepts_sub_agents: bool = False,
-                requires: tuple[str, ...] = ()) -> Callable[[Factory], Factory]:
+    def builder(
+        cls, kind: str, backend: str = "fabric", *, accepts_sub_agents: bool = False, requires: tuple[str, ...] = ()
+    ) -> Callable[[Factory], Factory]:
         def deco(fn: Factory) -> Factory:
             cls._builders[(kind, backend)] = BuilderInfo(fn, accepts_sub_agents, requires)
             return fn
+
         return deco
 
     @classmethod
@@ -76,14 +94,18 @@ class AgentFabric:
 
     def schema(self, name: str) -> type[BaseModel]:
         if name not in self._schemas:
-            raise SpecError(f"Unknown output schema '{name}'",
-                            [ErrorDetail(type="unknown_schema", msg=name, hint=suggest(name, self._schemas))])
+            raise SpecError(
+                f"Unknown output schema '{name}'",
+                [ErrorDetail(type="unknown_schema", msg=name, hint=suggest(name, self._schemas))],
+            )
         return self._schemas[name]
 
     def function(self, name: str) -> Callable[..., Any]:
         if name not in self._functions:
-            raise SpecError(f"Unknown function '{name}'",
-                            [ErrorDetail(type="unknown_function", msg=name, hint=suggest(name, self._functions))])
+            raise SpecError(
+                f"Unknown function '{name}'",
+                [ErrorDetail(type="unknown_function", msg=name, hint=suggest(name, self._functions))],
+            )
         return self._functions[name]
 
     # ------------------------------------------------------------ LLM plumbing
@@ -91,12 +113,15 @@ class AgentFabric:
     def llm_backend(self) -> LLMBackend:
         if self._backend is None:
             from ..llm.backends import LiteLLMProxyBackend
+
             self._backend = LiteLLMProxyBackend(self.config.llm)
         return self._backend
 
     def model_for(self, spec: AgentSpec) -> str:
         s = self.config.llm
-        return spec.model or {"planner": s.planner_model, "supervisor": s.planner_model}.get(spec.kind, s.interpreter_model)
+        return spec.model or {"planner": s.planner_model, "supervisor": s.planner_model}.get(
+            spec.kind, s.interpreter_model
+        )
 
     def settings_for(self, spec: AgentSpec) -> LLMSettings:
         upd: dict[str, Any] = {}
@@ -113,6 +138,7 @@ class AgentFabric:
             return spec.options["model_object"]
         from pydantic_ai.models.openai import OpenAIChatModel
         from pydantic_ai.providers.openai import OpenAIProvider
+
         s = self.config.llm
         return OpenAIChatModel(self.model_for(spec), provider=OpenAIProvider(base_url=s.base_url, api_key=s.api_key))
 
@@ -138,47 +164,113 @@ class AgentFabric:
         for name, a in cfg.agents.items():
             loc = ("agents", name)
             if a.kind not in kinds:
-                errors.append(ErrorDetail(loc=loc + ("kind",), type="unknown_kind", input=a.kind, msg=f"no builder for kind '{a.kind}'",
-                                          hint=suggest(a.kind, kinds) or f"kinds: {sorted(kinds)}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("kind",),
+                        type="unknown_kind",
+                        input=a.kind,
+                        msg=f"no builder for kind '{a.kind}'",
+                        hint=suggest(a.kind, kinds) or f"kinds: {sorted(kinds)}",
+                    )
+                )
                 continue
             for field, backend in (("backend", a.backend), ("fallback", a.fallback)):
                 if backend and (a.kind, backend) not in self._builders:
-                    errors.append(ErrorDetail(loc=loc + (field,), type="unknown_backend", input=backend,
-                                              msg=f"kind '{a.kind}' has no backend '{backend}'",
-                                              hint=suggest(backend, kinds[a.kind]) or f"backends: {kinds[a.kind]}"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=loc + (field,),
+                            type="unknown_backend",
+                            input=backend,
+                            msg=f"kind '{a.kind}' has no backend '{backend}'",
+                            hint=suggest(backend, kinds[a.kind]) or f"backends: {kinds[a.kind]}",
+                        )
+                    )
             info = self._builders.get((a.kind, a.backend))
             if info is None:
                 continue
             if a.sub_agents and not info.accepts_sub_agents:
-                errors.append(ErrorDetail(loc=loc + ("sub_agents",), type="sub_agents_not_allowed",
-                                          msg=f"kind '{a.kind}' cannot own sub-agents", hint="use kind: supervisor"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("sub_agents",),
+                        type="sub_agents_not_allowed",
+                        msg=f"kind '{a.kind}' cannot own sub-agents",
+                        hint="use kind: supervisor",
+                    )
+                )
             if info.accepts_sub_agents and not a.sub_agents:
-                errors.append(ErrorDetail(loc=loc + ("sub_agents",), type="no_sub_agents", msg="a supervisor needs at least one sub-agent"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("sub_agents",), type="no_sub_agents", msg="a supervisor needs at least one sub-agent"
+                    )
+                )
             for i, child in enumerate(a.sub_agents):
                 if child == name:
-                    errors.append(ErrorDetail(loc=loc + ("sub_agents", i), type="self_reference", msg="an agent cannot be its own sub-agent"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=loc + ("sub_agents", i),
+                            type="self_reference",
+                            msg="an agent cannot be its own sub-agent",
+                        )
+                    )
                 elif child not in cfg.agents:
-                    errors.append(ErrorDetail(loc=loc + ("sub_agents", i), type="unknown_agent", input=child,
-                                              msg=f"sub-agent '{child}' is not declared", hint=suggest(child, cfg.agents)))
+                    errors.append(
+                        ErrorDetail(
+                            loc=loc + ("sub_agents", i),
+                            type="unknown_agent",
+                            input=child,
+                            msg=f"sub-agent '{child}' is not declared",
+                            hint=suggest(child, cfg.agents),
+                        )
+                    )
             if len(set(a.sub_agents)) != len(a.sub_agents):
                 errors.append(ErrorDetail(loc=loc + ("sub_agents",), type="duplicate", msg="sub-agent listed twice"))
             for field in info.requires:
                 if not getattr(a, field):
-                    errors.append(ErrorDetail(loc=loc + (field,), type="missing", msg=f"kind '{a.kind}' requires '{field}'"))
+                    errors.append(
+                        ErrorDetail(loc=loc + (field,), type="missing", msg=f"kind '{a.kind}' requires '{field}'")
+                    )
             if a.pipeline and a.pipeline not in self.registry.pipelines():
-                errors.append(ErrorDetail(loc=loc + ("pipeline",), type="unknown_pipeline", input=a.pipeline,
-                                          msg=f"pipeline '{a.pipeline}' is not registered",
-                                          hint=suggest(a.pipeline, self.registry.pipelines()) or f"available: {self.registry.pipelines()}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("pipeline",),
+                        type="unknown_pipeline",
+                        input=a.pipeline,
+                        msg=f"pipeline '{a.pipeline}' is not registered",
+                        hint=suggest(a.pipeline, self.registry.pipelines())
+                        or f"available: {self.registry.pipelines()}",
+                    )
+                )
             if a.function and a.function not in self._functions:
-                errors.append(ErrorDetail(loc=loc + ("function",), type="unknown_function", input=a.function,
-                                          msg=f"function '{a.function}' is not registered", hint=suggest(a.function, self._functions)))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("function",),
+                        type="unknown_function",
+                        input=a.function,
+                        msg=f"function '{a.function}' is not registered",
+                        hint=suggest(a.function, self._functions),
+                    )
+                )
             if a.output_schema and a.output_schema not in self._schemas:
-                errors.append(ErrorDetail(loc=loc + ("output_schema",), type="unknown_schema", input=a.output_schema,
-                                          msg=f"schema '{a.output_schema}' is not registered", hint=suggest(a.output_schema, self._schemas)))
+                errors.append(
+                    ErrorDetail(
+                        loc=loc + ("output_schema",),
+                        type="unknown_schema",
+                        input=a.output_schema,
+                        msg=f"schema '{a.output_schema}' is not registered",
+                        hint=suggest(a.output_schema, self._schemas),
+                    )
+                )
             for d in a.domains:
                 if d not in self.registry.domains():
-                    errors.append(ErrorDetail(loc=loc + ("domains",), type="unknown_domain", input=d, msg=f"domain '{d}' has no components",
-                                              hint=suggest(d, self.registry.domains()) or f"domains: {self.registry.domains()}"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=loc + ("domains",),
+                            type="unknown_domain",
+                            input=d,
+                            msg=f"domain '{d}' has no components",
+                            hint=suggest(d, self.registry.domains()) or f"domains: {self.registry.domains()}",
+                        )
+                    )
         if errors:
             return errors
         # cycles and depth over the sub-agent graph
@@ -187,8 +279,14 @@ class AgentFabric:
 
         def visit(n: str, trail: tuple[str, ...]) -> int:
             if state.get(n) == 1:
-                errors.append(ErrorDetail(loc=("agents", n, "sub_agents"), type="cycle", msg=" -> ".join(trail + (n,)),
-                                          hint="an agent may not (indirectly) delegate to its own ancestor"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("agents", n, "sub_agents"),
+                        type="cycle",
+                        msg=" -> ".join(trail + (n,)),
+                        hint="an agent may not (indirectly) delegate to its own ancestor",
+                    )
+                )
                 return 0
             if state.get(n) == 2:
                 return depth[n]
@@ -205,9 +303,14 @@ class AgentFabric:
         if not errors:
             for r in cfg.roots():
                 if depth[r] > cfg.budget.max_depth:
-                    errors.append(ErrorDetail(loc=("agents", r), type="too_deep",
-                                              msg=f"tree under '{r}' is {depth[r]} levels deep (max_depth {cfg.budget.max_depth})",
-                                              hint="flatten the hierarchy or raise budget.max_depth"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=("agents", r),
+                            type="too_deep",
+                            msg=f"tree under '{r}' is {depth[r]} levels deep (max_depth {cfg.budget.max_depth})",
+                            hint="flatten the hierarchy or raise budget.max_depth",
+                        )
+                    )
         return errors
 
     # ------------------------------------------------------------ building
@@ -218,8 +321,10 @@ class AgentFabric:
                 raise AgentConfigError(f"Agent tree has {len(errs)} problem(s)", errs)
             self._validated = True
         if name not in self.config.agents:
-            raise AgentConfigError(f"Unknown agent '{name}'",
-                                   [ErrorDetail(type="unknown_agent", msg=name, hint=suggest(name, self.config.agents))])
+            raise AgentConfigError(
+                f"Unknown agent '{name}'",
+                [ErrorDetail(type="unknown_agent", msg=name, hint=suggest(name, self.config.agents))],
+            )
         if name not in self._agents:
             spec = self.config.agents[name]
             children = {c: self.build(c) for c in spec.sub_agents}
@@ -242,19 +347,43 @@ class AgentFabric:
         return agent
 
     # ------------------------------------------------------------ running
-    def run(self, instruction: str, inputs: dict[str, Any] | None = None, *, root: str | None = None,
-            session_id: str = "default") -> AgentRunReport:
+    def run(
+        self,
+        instruction: str,
+        inputs: dict[str, Any] | None = None,
+        *,
+        root: str | None = None,
+        session_id: str = "default",
+        on_event: Any = None,
+        on_step: Any = None,
+    ) -> AgentRunReport:
         roots = [root] if root else self.config.roots()
         if len(roots) != 1:
-            raise AgentConfigError("Cannot determine the root agent",
-                                   [ErrorDetail(loc=("root",), type="ambiguous_root", msg=f"candidates: {roots}",
-                                                hint="set 'root' in the config or pass root=...")])
+            raise AgentConfigError(
+                "Cannot determine the root agent",
+                [
+                    ErrorDetail(
+                        loc=("root",),
+                        type="ambiguous_root",
+                        msg=f"candidates: {roots}",
+                        hint="set 'root' in the config or pass root=...",
+                    )
+                ],
+            )
         agent = self.build(roots[0])
-        ctx = RunContext(session_id=session_id, budget=Budget(self.config.budget), memory=self.memory,
-                         blackboard=dict(inputs or {}), input_keys=list(inputs or {}))
+        ctx = RunContext(
+            session_id=session_id,
+            budget=Budget(self.config.budget),
+            memory=self.memory,
+            blackboard=dict(inputs or {}),
+            input_keys=list(inputs or {}),
+            on_event=on_event,
+            on_step=on_step,
+        )
         result = agent.run(AgentTask(instruction=instruction), ctx)
-        report = AgentRunReport(session_id=session_id, instruction=instruction, result=result, trace=ctx.trace,
-                                usage=ctx.budget.usage())
+        report = AgentRunReport(
+            session_id=session_id, instruction=instruction, result=result, trace=ctx.trace, usage=ctx.budget.usage()
+        )
         report._blackboard = ctx.blackboard
         return report
 
@@ -287,6 +416,7 @@ def _supervisor(f: AgentFabric, name: str, spec: AgentSpec, children: dict) -> B
 @AgentFabric.builder("supervisor", "pydantic_ai", accepts_sub_agents=True)
 def _supervisor_pai(f: AgentFabric, name: str, spec: AgentSpec, children: dict) -> BaseAgent:
     import pydantic_ai  # noqa: F401  (fail at build time -> fallback)
+
     return _k.PydanticAISupervisor(name, spec, f, children)
 
 
@@ -300,17 +430,21 @@ def planner_builder(backend: str, make: Callable[[AgentFabric, AgentSpec, LLMBac
 
 def _make_llm_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend) -> Any:
     from ..llm.planner import LLMPlanner
+
     return LLMPlanner(backend, f.registry, f.settings_for(spec), spec.domains or None)
 
 
 def _make_pai_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend) -> Any:
     from ..llm.planner import PydanticAIPlanner
-    return PydanticAIPlanner(f.registry, f.settings_for(spec), model=spec.options.get("model_object"),
-                             domains=spec.domains or None)
+
+    return PydanticAIPlanner(
+        f.registry, f.settings_for(spec), model=spec.options.get("model_object"), domains=spec.domains or None
+    )
 
 
 def _make_template_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend) -> Any:
     from ..llm.planner import TemplatePlanner
+
     return TemplatePlanner(f.registry, spec.pipeline or spec.options["pipeline"], spec.options.get("params"))
 
 

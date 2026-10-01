@@ -10,7 +10,8 @@ from __future__ import annotations
 
 from importlib import metadata
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
+from collections.abc import Callable, Iterable
 
 from .artifacts import TypeRegistry
 from .errors import ErrorDetail, SpecError, suggest
@@ -42,12 +43,14 @@ class Registry:
         self.types = types or TypeRegistry()
         try:
             from .tabular import register_tabular_types
+
             register_tabular_types(self.types)
         except ImportError:  # pragma: no cover - pandas missing
             pass
         self._specs: dict[str, AnySpec] = {}
         self._components: dict[str, Any] = {}
         self._pipelines: dict[str, PipelineSpec] = {}
+        self._loaded_dirs: dict[Path, list[str]] = {}
 
     # ------------------------------------------------------------ specs
     def add_specs(self, specs: Iterable[AnySpec]) -> None:
@@ -66,9 +69,16 @@ class Registry:
             raise SpecError(f"{cls!r} is not a Component subclass")
         spec = self._specs.get(str(name))
         if not isinstance(spec, ComponentSpec):
-            raise SpecError(f"No component spec for class {cls.__name__} (spec_name={name!r})",
-                            [ErrorDetail(type="spec_not_found", msg=f"'{name}' has no component YAML spec",
-                                         hint=suggest(str(name), self._specs) or "add a YAML file to the domain's spec directory")])
+            raise SpecError(
+                f"No component spec for class {cls.__name__} (spec_name={name!r})",
+                [
+                    ErrorDetail(
+                        type="spec_not_found",
+                        msg=f"'{name}' has no component YAML spec",
+                        hint=suggest(str(name), self._specs) or "add a YAML file to the domain's spec directory",
+                    )
+                ],
+            )
         errors: list[ErrorDetail] = []
         pm, rm = getattr(cls, "Params", None), getattr(cls, "Result", None)
         if not (isinstance(pm, type) and issubclass(pm, ComponentParams)):
@@ -77,15 +87,27 @@ class Registry:
             errors.append(ErrorDetail(loc=("Result",), type="bad_model", msg="Result must subclass ComponentResult"))
         if not errors:
             code, declared = set(pm.model_fields), set(spec.params)
-            errors += [ErrorDetail(loc=("params", f), type="spec_only_param", msg="declared in the spec but missing in Params")
-                       for f in sorted(declared - code)]
-            errors += [ErrorDetail(loc=("params", f), type="undocumented_param", msg="present in Params but not documented in the spec")
-                       for f in sorted(code - declared)]
+            errors += [
+                ErrorDetail(loc=("params", f), type="spec_only_param", msg="declared in the spec but missing in Params")
+                for f in sorted(declared - code)
+            ]
+            errors += [
+                ErrorDetail(
+                    loc=("params", f), type="undocumented_param", msg="present in Params but not documented in the spec"
+                )
+                for f in sorted(code - declared)
+            ]
         for port, ps in {**spec.inputs, **spec.outputs}.items():
             if not self.types.has(ps.type):
-                errors.append(ErrorDetail(loc=("ports", port, "type"), type="unknown_type", input=ps.type,
-                                          msg=f"artifact type '{ps.type}' is not registered",
-                                          hint=suggest(ps.type, self.types.names()) or f"available: {self.types.names()}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("ports", port, "type"),
+                        type="unknown_type",
+                        input=ps.type,
+                        msg=f"artifact type '{ps.type}' is not registered",
+                        hint=suggest(ps.type, self.types.names()) or f"available: {self.types.names()}",
+                    )
+                )
         if errors:
             raise SpecError(f"Contract mismatch between spec '{name}' and {cls.__name__}", errors, component=name)
         self._components[spec.name] = cls(spec, self.types)  # parses port constraints (may raise SpecError)
@@ -99,20 +121,45 @@ class Registry:
         if pspec.expose_as_component:
             self._components[pspec.name] = PipelineComponent.from_spec(pspec, self)
 
-    def load_domain(self, spec_dir: str | Path | None = None, classes: Iterable[type] | None = None,
-                    specs: Iterable[AnySpec] | None = None) -> list[str]:
-        """Load a domain pack: specs, then components, then pipelines (dependency order)."""
-        loaded = list(specs or []) + (load_spec_dir(spec_dir) if spec_dir else [])
+    def load_domain(
+        self,
+        spec_dir: str | Path | None = None,
+        classes: Iterable[type] | None = None,
+        specs: Iterable[AnySpec] | None = None,
+    ) -> list[str]:
+        """Load a domain pack: specs, then components, then pipelines (dependency order).
+
+        Loading the same ``spec_dir`` twice is a no-op (resolved path), so ``--domains dir``
+        and ``fabric.md`` ``skill_dirs`` may point at the same directory.
+        """
+        key = Path(spec_dir).resolve() if spec_dir is not None else None
+        if key is not None and key in self._loaded_dirs and specs is None and classes is None:
+            return self._loaded_dirs[key]
+        dir_specs = [] if key in self._loaded_dirs else (load_spec_dir(spec_dir) if spec_dir else [])
+        loaded = list(specs or []) + dir_specs
         self.add_specs(loaded)
-        names = {s.name for s in loaded}
+        names = {s.name for s in loaded} | set(self._loaded_dirs.get(key, ()))
         for cls in classes if classes is not None else declared_components():
             if getattr(cls, "spec_name", None) in names and cls.spec_name not in self._components:
                 self.register(cls)
+        for s in loaded:  # 'runtime: prompt' skills need no Python class
+            if isinstance(s, ComponentSpec) and s.runtime == "prompt" and s.name not in self._components:
+                from .prompt import PromptComponent
+
+                self._components[s.name] = PromptComponent.from_spec(s, self.types)
         missing = [s.name for s in loaded if isinstance(s, ComponentSpec) and s.name not in self._components]
         if missing:
-            raise SpecError(f"Component specs without implementation: {missing}",
-                            [ErrorDetail(loc=("components", m), type="implementation_missing",
-                                         msg="no @component class registered for this spec") for m in missing])
+            raise SpecError(
+                f"Component specs without implementation: {missing}",
+                [
+                    ErrorDetail(
+                        loc=("components", m),
+                        type="implementation_missing",
+                        msg="no @component class registered for this spec",
+                    )
+                    for m in missing
+                ],
+            )
         pending = [s for s in loaded if isinstance(s, PipelineSpec)]
         while pending:
             ready = [p for p in pending if all(st.component in self._components for st in p.steps)]
@@ -121,6 +168,8 @@ class Registry:
             for p in ready:
                 self.register_pipeline(p)
             pending = [p for p in pending if p not in ready]
+        if key is not None:
+            self._loaded_dirs[key] = sorted(set(self._loaded_dirs.get(key, ())) | names)
         return sorted(names)
 
     def discover_domains(self) -> list[str]:
@@ -135,17 +184,28 @@ class Registry:
         try:
             return self._components[name]
         except KeyError:
-            raise SpecError(f"Unknown component '{name}'",
-                            [ErrorDetail(type="unknown_component", msg=f"'{name}' is not registered", input=name,
-                                         hint=suggest(name, self._components) or f"available: {self.names()}")]) from None
+            raise SpecError(
+                f"Unknown component '{name}'",
+                [
+                    ErrorDetail(
+                        type="unknown_component",
+                        msg=f"'{name}' is not registered",
+                        input=name,
+                        hint=suggest(name, self._components) or f"available: {self.names()}",
+                    )
+                ],
+            ) from None
 
     def has(self, name: str) -> bool:
         return name in self._components and self._components[name].spec.enabled
 
     def names(self, domains: Iterable[str] | None = None) -> list[str]:
         doms = set(domains) if domains else None
-        return sorted(n for n, c in self._components.items()
-                      if c.spec.enabled and (doms is None or c.spec.domain in doms or c.spec.domain == "core"))
+        return sorted(
+            n
+            for n, c in self._components.items()
+            if c.spec.enabled and (doms is None or c.spec.domain in doms or c.spec.domain == "core")
+        )
 
     def domains(self) -> list[str]:
         return sorted({c.spec.domain for c in self._components.values()})
@@ -155,9 +215,17 @@ class Registry:
 
     def pipeline(self, name: str) -> PipelineSpec:
         if name not in self._pipelines:
-            raise SpecError(f"Unknown pipeline '{name}'",
-                            [ErrorDetail(type="unknown_pipeline", msg=f"'{name}' is not registered", input=name,
-                                         hint=suggest(name, self._pipelines) or f"available: {sorted(self._pipelines)}")])
+            raise SpecError(
+                f"Unknown pipeline '{name}'",
+                [
+                    ErrorDetail(
+                        type="unknown_pipeline",
+                        msg=f"'{name}' is not registered",
+                        input=name,
+                        hint=suggest(name, self._pipelines) or f"available: {sorted(self._pipelines)}",
+                    )
+                ],
+            )
         return self._pipelines[name]
 
     def guidance(self, name: str, section: str | None = None, max_chars: int | None = None) -> str:
@@ -177,16 +245,24 @@ class Registry:
             schema = comp.Params.model_json_schema()
             params = {}
             for pname, prop in schema.get("properties", {}).items():
-                t = prop.get("type") or [a.get("type") for a in prop.get("anyOf", []) if a.get("type") not in (None, "null")]
+                t = prop.get("type") or [
+                    a.get("type") for a in prop.get("anyOf", []) if a.get("type") not in (None, "null")
+                ]
                 if "enum" in prop:
                     t = f"one of {prop['enum']}"
-                entry = {"type": t or "any", "required": pname in schema.get("required", []),
-                         "doc": spec.params[pname].description}
+                entry = {
+                    "type": t or "any",
+                    "required": pname in schema.get("required", []),
+                    "doc": spec.params[pname].description,
+                }
                 if not compact and "default" in prop:
                     entry["default"] = prop["default"]
                 params[pname] = entry
             item: dict[str, Any] = {
-                "name": name, "domain": spec.domain, "description": spec.description, "when_to_use": spec.when_to_use,
+                "name": name,
+                "domain": spec.domain,
+                "description": spec.description,
+                "when_to_use": spec.when_to_use,
                 "params": params,
                 "inputs": {p: f"{ps.type}{'' if ps.required else ' (optional)'}" for p, ps in spec.inputs.items()},
                 "outputs": {"result": "json", **{p: ps.type for p, ps in spec.outputs.items()}},

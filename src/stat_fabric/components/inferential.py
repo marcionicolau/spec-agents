@@ -72,7 +72,7 @@ class LinearModelParams(ComponentParams):
         return [_no_quotes(x) for x in v]
 
     @model_validator(mode="after")
-    def _check(self) -> "LinearModelParams":
+    def _check(self) -> LinearModelParams:
         if self.response in self.predictors:
             raise ValueError("response cannot also be a predictor")
         bad = [p for pair in self.interactions for p in pair if p not in self.predictors]

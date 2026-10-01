@@ -8,7 +8,7 @@ session ids (``<session>/<agent path>``) so each agent in a tree has its own mem
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
@@ -25,7 +25,7 @@ class RunSummary(BaseModel):
     steps: list[str] = Field(default_factory=list)
     status: dict[str, str] = Field(default_factory=dict)
     headlines: list[str] = Field(default_factory=list)
-    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
 
     def to_text(self) -> str:
         st = ", ".join(f"{k}={v}" for k, v in self.status.items())

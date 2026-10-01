@@ -29,12 +29,18 @@ _H2 = re.compile(r"^##[ \t]+(.+?)[ \t]*#*[ \t]*$", re.M)
 _H1 = re.compile(r"^#[ \t]+(.+?)[ \t]*$", re.M)
 
 # Canonical section names (matched case-insensitively). Consumers:
-WHEN_TO_USE = "when to use"            # planner catalogue (first paragraph)
-WHEN_NOT_TO_USE = "when not to use"    # planner catalogue
-INTERPRETING = "interpreting"          # step interpreter
-COMMON_MISTAKES = "common mistakes"    # parameter repair + planner feedback
-PROCEDURE = "procedure"                # pipelines: why the steps are ordered this way
-SECTION_ALIASES = {"avoid when": WHEN_NOT_TO_USE, "interpretation": INTERPRETING, "pitfalls": COMMON_MISTAKES}
+WHEN_TO_USE = "when to use"  # planner catalogue (first paragraph)
+WHEN_NOT_TO_USE = "when not to use"  # planner catalogue
+INTERPRETING = "interpreting"  # step interpreter
+COMMON_MISTAKES = "common mistakes"  # parameter repair + planner feedback
+PROCEDURE = "procedure"  # pipelines: why the steps are ordered this way
+INSTRUCTIONS = "instructions"  # runtime: prompt - the prompt template ({params.x}, {inputs.x}, {objective})
+SECTION_ALIASES = {
+    "avoid when": WHEN_NOT_TO_USE,
+    "interpretation": INTERPRETING,
+    "pitfalls": COMMON_MISTAKES,
+    "task": INSTRUCTIONS,
+}
 
 
 @dataclass
@@ -57,7 +63,7 @@ def split_sections(body: str) -> dict[str, str]:
     for i, m in enumerate(matches):
         end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
         key = m.group(1).strip().lower()
-        out[SECTION_ALIASES.get(key, key)] = body[m.end():end].strip()
+        out[SECTION_ALIASES.get(key, key)] = body[m.end() : end].strip()
     return out
 
 
@@ -66,18 +72,29 @@ def read_markdown(path: str | Path) -> MarkdownDoc:
     text = path.read_text(encoding="utf-8")
     m = _FM.match(text)
     if not m:
-        raise SpecError(f"{path} has no YAML frontmatter",
-                        [ErrorDetail(loc=(str(path),), type="missing_frontmatter",
-                                     msg="file must start with a '---' fenced YAML block",
-                                     hint="add the contract (name, kind, ...) between two '---' lines")])
+        raise SpecError(
+            f"{path} has no YAML frontmatter",
+            [
+                ErrorDetail(
+                    loc=(str(path),),
+                    type="missing_frontmatter",
+                    msg="file must start with a '---' fenced YAML block",
+                    hint="add the contract (name, kind, ...) between two '---' lines",
+                )
+            ],
+        )
     try:
         meta = yaml.safe_load(m.group(1)) or {}
     except yaml.YAMLError as exc:
-        raise SpecError(f"{path}: invalid YAML frontmatter",
-                        [ErrorDetail(loc=(str(path), "frontmatter"), type="yaml_error", msg=str(exc)[:300])]) from exc
+        raise SpecError(
+            f"{path}: invalid YAML frontmatter",
+            [ErrorDetail(loc=(str(path), "frontmatter"), type="yaml_error", msg=str(exc)[:300])],
+        ) from exc
     if not isinstance(meta, dict):
-        raise SpecError(f"{path}: frontmatter must be a mapping",
-                        [ErrorDetail(loc=(str(path), "frontmatter"), type="not_a_mapping", msg=type(meta).__name__)])
+        raise SpecError(
+            f"{path}: frontmatter must be a mapping",
+            [ErrorDetail(loc=(str(path), "frontmatter"), type="not_a_mapping", msg=type(meta).__name__)],
+        )
     body = m.group(2).strip()
     return MarkdownDoc(path=path, meta=meta, body=body, sections=split_sections(body))
 
