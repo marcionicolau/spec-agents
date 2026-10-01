@@ -28,5 +28,5 @@ lakehouse_team (supervisor, sequential)
 schema_designer (planner, lakehouse)       design only, no code (use as root for a dry run)
 ```
 
-Validate with `python -m agent_fabric.lint --domains lake_fabric.domain:register --agents config/lakehouse
+Validate with `python -m agent_fabric.lint --domains lake_fabric.domain:register --agents packages/lakehouse/config
 --schemas lake_fabric.schemas:SCHEMAS --strict`.

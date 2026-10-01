@@ -28,5 +28,5 @@ pair_programmer (supervisor, router)
 └── patch_author (planner, coworker)    proposes edits; the checker validates them and returns a diff
 ```
 
-Validate with `python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents config/coworker
+Validate with `python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents packages/coworker/config
 --schemas coworker_fabric.schemas:SCHEMAS --strict`.

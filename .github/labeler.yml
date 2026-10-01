@@ -13,7 +13,7 @@
       - any-glob-to-any-file: ["packages/coworker/**"]
 "pkg:text-pack":
   - changed-files:
-      - any-glob-to-any-file: ["packages/text-pack/**", "examples/domains/text_pack/**"]
+      - any-glob-to-any-file: ["packages/text-pack/**"]
 "pkg:specs":
   - changed-files:
       - any-glob-to-any-file: ["**/SKILL.md", "**/AGENT.md", "**/fabric.md"]

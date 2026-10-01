@@ -92,7 +92,7 @@ def errors_of(registry, cfg) -> dict:
 
 def test_valid_tree_and_yaml_config(registry):
     assert errors_of(registry, tree()) == {}
-    fabric = AgentFabric(registry, AgentsConfig.load(ROOT / "config"))
+    fabric = AgentFabric(registry, AgentsConfig.load(ROOT / "examples" / "research_team"))
     fabric.register_schema("Review", Review)
     assert fabric.validate() == []
 

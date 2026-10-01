@@ -11,9 +11,9 @@ invalid trees). The lint adds what loading cannot know - *prose* that drifted:
 
 CLI (non-zero exit on errors, and on warnings with ``--strict``)::
 
-    python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \\
+    python -m agent_fabric.lint --domains stat_fabric.domain:register text_pack:register \\
                                 --agents config [--strict]
-    python -m agent_fabric.lint --agents config/notes                 # code-free pack via fabric.md skill_dirs
+    python -m agent_fabric.lint --agents examples/notes                 # code-free pack via fabric.md skill_dirs
 """
 
 from __future__ import annotations

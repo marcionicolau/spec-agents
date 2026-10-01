@@ -20,6 +20,7 @@ members = [
     "lakehouse",
     "spec-agents",
     "statistics",
+    "text-pack",
 ]
 
 [[package]]
@@ -4108,6 +4109,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
 ]
+
+[[package]]
+name = "text-pack"
+version = "0.2.0"
+source = { editable = "packages/text-pack" }
+dependencies = [
+    { name = "agent-fabric" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agent-fabric", editable = "packages/agent-fabric" }]
 
 [[package]]
 name = "threadpoolctl"

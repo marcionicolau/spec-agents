@@ -1,4 +1,4 @@
-"""End-to-end demo of the hierarchical agent tree in config/ (fabric.md + agents/*/AGENT.md).
+"""End-to-end demo of the hierarchical agent tree in examples/research_team/ (fabric.md + agents/*/AGENT.md).
 
     python examples/run_demo.py --mode scripted   # simulated small-model mistakes -> self-correction at every level
     python examples/run_demo.py --mode offline    # proxy "down": router -> rules, planner -> stats_rules
@@ -7,8 +7,8 @@
 
 For day-to-day runs prefer the CLI (live view on a terminal):
 
-    agent-fabric run config "How do nitrogen treatments affect yield?" --input notes=notes.txt
-    agent-fabric run config/notes "Digest this meeting" --input transcript=meeting.txt   # code-free domain
+    agent-fabric run examples/research_team "How do nitrogen treatments affect yield?" --input notes=notes.txt
+    agent-fabric run examples/notes "Digest this meeting" --input transcript=meeting.txt   # code-free domain
 """
 
 from __future__ import annotations
@@ -22,16 +22,16 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))  # workspace packages are installed; this exposes examples.domains.text_pack
+sys.path.insert(0, str(ROOT))
 
 from agent_fabric import build_registry  # noqa: E402
 from agent_fabric.agents import AgentFabric, AgentsConfig  # noqa: E402
 from agent_fabric.errors import DependencyError, ErrorDetail  # noqa: E402
 from agent_fabric.llm import ScriptedBackend  # noqa: E402
 from agent_fabric.report import render_markdown  # noqa: E402
-from examples.domains.text_pack import register as register_text  # noqa: E402
 from stat_fabric.domain import register as register_stats  # noqa: E402
 from stat_fabric.schemas import SCHEMAS  # noqa: E402
+from text_pack import register as register_text  # noqa: E402
 
 QUESTION = (
     "How do nitrogen treatments, soil nutrients and rainfall affect wheat yield, and what do the field notes add?"
@@ -146,7 +146,7 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
 
     registry = build_registry([register_stats, register_text])
-    config = AgentsConfig.load(ROOT / "config")
+    config = AgentsConfig.load(ROOT / "examples" / "research_team")
     backend = {"scripted": scripted_backend(), "offline": DownBackend()}.get(args.mode)
     fabric = AgentFabric(registry, config, backend=backend)
     for name, model in SCHEMAS.items():

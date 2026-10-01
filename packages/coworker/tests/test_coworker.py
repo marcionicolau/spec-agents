@@ -300,9 +300,7 @@ def test_pair_programmer_team_with_patch_repair(cw, repo):
             "Replace the default with None; the patch validates and was not applied.",
         ]
     )
-    fabric = AgentFabric(
-        cw, AgentsConfig.load(Path(__file__).resolve().parents[1] / "config" / "coworker"), backend=backend
-    )
+    fabric = AgentFabric(cw, AgentsConfig.load(Path(__file__).resolve().parents[1] / "config"), backend=backend)
     fabric.register_schema("Critique", Critique)
     assert not fabric.validate()
     rep = fabric.run("Improve order totals in " + root, session_id="cw")
@@ -354,7 +352,7 @@ def test_context_selection_quality_on_this_repository(cw, monkeypatch):
 
     from coworker_fabric.evals import load_cases, run_cases
 
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[3]
     monkeypatch.setenv("COWORKER_ALLOWED_ROOTS", str(root))
     cases = load_cases(root / "examples" / "evals" / "context_cases.yaml")
     missing = [p for c in cases for p in c.expected if not (root / p).exists()]

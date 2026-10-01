@@ -1,0 +1,29 @@
+[project]
+name = "text-pack"
+version = "0.2.0"
+description = "Text domain pack for agent-fabric (text_stats, keywords, document_digest); proves the core is domain-agnostic"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+dependencies = [
+  "agent-fabric>=0.2,<1",
+]
+
+[project.entry-points."agent_fabric.domains"]
+text = "text_pack:register"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+text_pack = ["skills/**/*.md"]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+agent-fabric = { workspace = true }

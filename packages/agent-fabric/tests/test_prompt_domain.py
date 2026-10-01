@@ -1,5 +1,7 @@
 """runtime: prompt - code-free domains (SKILL.md only, no Python classes)."""
 
+from pathlib import Path
+
 import pytest
 
 from agent_fabric import build_registry
@@ -10,7 +12,7 @@ from agent_fabric.llm.backends import LLMSettings, ScriptedBackend
 from agent_fabric.pipeline import parse_plan
 from agent_fabric.spec import load_spec
 
-NOTES = "config/notes"
+NOTES = str(Path(__file__).resolve().parents[3] / "examples" / "notes")
 TRANSCRIPT = "We agreed to ship on Friday. Ana owns the release notes."
 
 

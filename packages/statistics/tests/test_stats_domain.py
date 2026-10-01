@@ -6,8 +6,7 @@ import pytest
 
 from agent_fabric.errors import ComponentExecutionError, DataValidationError, ErrorCategory, ParamsValidationError
 from agent_fabric.tabular import ColumnKind, profile_dataframe
-
-from .conftest import run_component
+from agent_fabric.testing import run_component
 
 
 def details(exc):

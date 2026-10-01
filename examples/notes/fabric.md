@@ -27,5 +27,5 @@ note_taker (planner, domains: notes, interpret: rules)
 └── skills/  summarize_notes · extract_actions · note_digest (pipeline)
 ```
 
-Run it:  `agent-fabric run config/notes --input transcript=meeting.txt "Digest this meeting"`
-Check it: `agent-fabric lint --agents config/notes`  or  `python -m agent_fabric.lint --agents config/notes`
+Run it:  `agent-fabric run examples/notes --input transcript=meeting.txt "Digest this meeting"`
+Check it: `agent-fabric lint --agents examples/notes`  or  `python -m agent_fabric.lint --agents examples/notes`
