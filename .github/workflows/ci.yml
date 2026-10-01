@@ -140,12 +140,11 @@ jobs:
           if grep -q "^SKIPPED" pytest.log; then echo "::error::tests were skipped with all extras installed"; exit 1; fi
 
   lowest:
-    # floors in pyproject.toml must work: informational until they are verified
+    # the floors declared in pyproject.toml must actually work (lowest versions that satisfy them, oldest Python)
     needs: changes
     if: needs.changes.outputs.core == 'true' || github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -156,7 +155,7 @@ jobs:
           python-version: "3.12" # oldest supported; older floors have no wheels for newer Pythons
           enable-cache: true
       - run: uv sync --resolution lowest-direct --all-packages --group dev
-      - run: uv run pytest -q
+      - run: uv run --no-sync pytest -q # --no-sync: `uv run` would re-resolve to the highest versions
 
   build:
     runs-on: ubuntu-24.04

@@ -189,7 +189,9 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
             warns.append(f"residuals are not normal (Jarque-Bera p={jb_p:.3g})")
         if not 1.5 <= dw <= 2.5:
             warns.append(f"possible residual autocorrelation (Durbin-Watson={dw:.2f})")
-        warns += [f"high multicollinearity for {k} (VIF={v:.1f})" for k, v in vif.items() if np.isfinite(v) and v > 10]
+        warns += [
+            f"high multicollinearity for {k} (VIF={v:.1f})" for k, v in vif.items() if not np.isnan(v) and v > 10
+        ]  # inf = perfect collinearity (older numpy/statsmodels return inf, newer a huge value)
         return LinearModelResult(
             n_used=int(fit.nobs),
             formula=formula,
