@@ -398,15 +398,19 @@ rejects duplicate names). Keep YAML only for legacy packs.
 ## 11. Conventions
 
 - Dependencies are managed with `uv` in a workspace: add with `uv add --package <dist> <dep>` (dist names =
-  `agent-fabric`/`statistics`/`lakehouse`/`coworker`), never `pip install` (it desyncs `uv.lock`).
+  `agent-fabric`/`statistics`/`lakehouse`/`coworker`/`text-pack`), never `pip install` (it desyncs `uv.lock`).
 - **Commits are conventional with package scopes**: `feat(statistics): …`, `fix(agent-fabric): …`. PR titles are linted
   (`pr-title` workflow) and, squash-merged, become the commit that **release-please** reads: it keeps one release PR per
-  package (`release-please-config.json`, `.release-please-manifest.json`); merging it tags `<pkg>-vX.Y.Z`, writes
-  `packages/<pkg>/CHANGELOG.md`, bumps `pyproject.toml` and `uv.lock`. A path outside `packages/<pkg>/` triggers no bump;
-  cross-cutting changes use `chore`/`ci`/`docs`. Pre-1.0 packages bump minor on breaking changes.
-- Package versions bump automatically per package; **SKILL.md `version:` fields stay manual** — they mark
+  package (`release-please-config.json`, `.release-please-manifest.json`, `release-type: simple`); merging it writes
+  `packages/<pkg>/CHANGELOG.md` + `version.txt` and creates the `<pkg>-vX.Y.Z` tag and GitHub Release. A path outside
+  `packages/<pkg>/` triggers no bump; cross-cutting changes use `chore`/`ci`/`docs`. Pre-1.0 packages bump minor on breaking changes.
+- **Versions are dynamic**: no `version` in any `pyproject.toml`. `uv-dynamic-versioning` (hatchling backend) derives it from
+  the latest `<pkg>-v*` git tag (other packages' tags are ignored); a commit after the tag is `X.Y.(Z+1).devN+<sha>`, so
+  `uv.lock` never pins a workspace version. Consequences: checkouts need full history and tags (`fetch-depth: 0` in CI), and
+  never create or move `<pkg>-v*` tags by hand — release-please owns them (baseline: all packages at `0.0.1`).
+- **SKILL.md `version:` fields stay manual** — they mark
   contract changes (minor = new optional field, major = breaking), not releases.
-- Packs depend on the core with a bounded range (`agent-fabric>=0.2,<1`); widen it deliberately when the core makes a
+- Packs depend on the core with a bounded range (`agent-fabric>=0.0.1,<1`); widen it deliberately when the core makes a
   breaking change. License: MIT (root `LICENSE`, copied into each package).
 - Python ≥ 3.12, `from __future__ import annotations`, type hints, ruff line length 120. Generics use PEP 695 syntax
   (`class Component[P: ComponentParams, R: ComponentResult]`, `def f[T](...)`, `type X = ...`), not `TypeVar`/`Generic`.

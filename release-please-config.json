@@ -7,64 +7,29 @@
   "bump-patch-for-minor-pre-major": false,
   "packages": {
     "packages/agent-fabric": {
-      "release-type": "python",
+      "release-type": "simple",
       "package-name": "agent-fabric",
-      "component": "agent-fabric",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/uv.lock",
-          "jsonpath": "$.package[?(@.name=='agent-fabric')].version"
-        }
-      ]
+      "component": "agent-fabric"
     },
     "packages/statistics": {
-      "release-type": "python",
+      "release-type": "simple",
       "package-name": "statistics",
-      "component": "statistics",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/uv.lock",
-          "jsonpath": "$.package[?(@.name=='statistics')].version"
-        }
-      ]
+      "component": "statistics"
     },
     "packages/lakehouse": {
-      "release-type": "python",
+      "release-type": "simple",
       "package-name": "lakehouse",
-      "component": "lakehouse",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/uv.lock",
-          "jsonpath": "$.package[?(@.name=='lakehouse')].version"
-        }
-      ]
+      "component": "lakehouse"
     },
     "packages/coworker": {
-      "release-type": "python",
+      "release-type": "simple",
       "package-name": "coworker",
-      "component": "coworker",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/uv.lock",
-          "jsonpath": "$.package[?(@.name=='coworker')].version"
-        }
-      ]
+      "component": "coworker"
     },
     "packages/text-pack": {
-      "release-type": "python",
+      "release-type": "simple",
       "package-name": "text-pack",
-      "component": "text-pack",
-      "extra-files": [
-        {
-          "type": "toml",
-          "path": "/uv.lock",
-          "jsonpath": "$.package[?(@.name=='text-pack')].version"
-        }
-      ]
+      "component": "text-pack"
     }
   }
 }

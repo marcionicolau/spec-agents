@@ -1,12 +1,12 @@
 [project]
 name = "lakehouse"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Lakehouse domain pack for agent-fabric: source_inspect, medallion_plan, airflow_dag_render, dag_check"
 requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
 dependencies = [
-  "agent-fabric>=0.2,<1",
+  "agent-fabric>=0.0.1,<1",
   "openpyxl>=3.1",
   "requests>=2.31",
 ]
@@ -15,17 +15,25 @@ dependencies = [
 lakehouse = "lake_fabric.domain:register"
 
 [build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-data]
-lake_fabric = ["skills/**/*.md"]
+requires = ["hatchling", "uv-dynamic-versioning>=0.14"]
+build-backend = "hatchling.build"
 
 [tool.uv]
 package = true
 
 [tool.uv.sources]
 agent-fabric = { workspace = true }
+
+# version = latest "lakehouse-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/lake_fabric"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+pattern-prefix = "lakehouse-"
+fallback-version = "0.0.0"

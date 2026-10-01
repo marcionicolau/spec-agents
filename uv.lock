@@ -25,7 +25,6 @@ members = [
 
 [[package]]
 name = "agent-fabric"
-version = "0.2.0"
 source = { editable = "packages/agent-fabric" }
 dependencies = [
     { name = "numpy" },
@@ -63,14 +62,18 @@ tabular = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-fabric", extras = ["tabular", "pydantic-ai", "dspy", "crewai", "langchain"], marker = "extra == 'all'" },
+    { name = "crewai", marker = "extra == 'all'", specifier = ">=0.100" },
     { name = "crewai", marker = "extra == 'crewai'", specifier = ">=0.100" },
+    { name = "dspy", marker = "extra == 'all'", specifier = ">=3.0" },
     { name = "dspy", marker = "extra == 'dspy'", specifier = ">=3.0" },
+    { name = "langchain-core", marker = "extra == 'all'", specifier = ">=0.3" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=0.3" },
     { name = "litellm", extras = ["proxy"], marker = "extra == 'proxy'", specifier = ">=1.60" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", marker = "extra == 'all'", specifier = ">=2.1" },
     { name = "pandas", marker = "extra == 'tabular'", specifier = ">=2.1" },
     { name = "pydantic", specifier = ">=2.7" },
+    { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'all'", specifier = ">=1.0" },
     { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
     { name = "pyyaml", specifier = ">=6" },
     { name = "rich", specifier = ">=13.7.1" },
@@ -831,7 +834,6 @@ wheels = [
 
 [[package]]
 name = "coworker"
-version = "1.0.0"
 source = { editable = "packages/coworker" }
 dependencies = [
     { name = "agent-fabric" },
@@ -1794,7 +1796,6 @@ wheels = [
 
 [[package]]
 name = "lakehouse"
-version = "0.2.0"
 source = { editable = "packages/lakehouse" }
 dependencies = [
     { name = "agent-fabric" },
@@ -4127,7 +4128,6 @@ wheels = [
 
 [[package]]
 name = "statistics"
-version = "0.2.0"
 source = { editable = "packages/statistics" }
 dependencies = [
     { name = "agent-fabric" },
@@ -4227,7 +4227,6 @@ wheels = [
 
 [[package]]
 name = "text-pack"
-version = "0.2.0"
 source = { editable = "packages/text-pack" }
 dependencies = [
     { name = "agent-fabric" },
