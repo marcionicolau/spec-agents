@@ -73,9 +73,15 @@ def grounding_errors_texts(texts: list[tuple[tuple[str | int, ...], str]], *sour
     for loc, text in texts:
         bad = [tok for tok in _NUM.findall(text) if not _grounded(tok, pool)]
         if bad:
-            errors.append(ErrorDetail(loc=loc, type="ungrounded_number", input=text[:120],
-                                      msg=f"numbers {bad} do not appear in the source data",
-                                      hint="copy values from the results (rounding allowed) or remove them"))
+            errors.append(
+                ErrorDetail(
+                    loc=loc,
+                    type="ungrounded_number",
+                    input=text[:120],
+                    msg=f"numbers {bad} do not appear in the source data",
+                    hint="copy values from the results (rounding allowed) or remove them",
+                )
+            )
     return errors
 
 
@@ -95,9 +101,15 @@ class LLMInterpreter:
         if outcome.result is None:
             return None
         spec = registry.spec(outcome.component)
-        user = INTERPRETER_USER.format(objective=objective, step_id=outcome.step_id, component=spec.name, title=spec.title,
-                                       focus=spec.interpretation_guide,
-                                       params=compact(outcome.params), result=compact(outcome.result))
+        user = INTERPRETER_USER.format(
+            objective=objective,
+            step_id=outcome.step_id,
+            component=spec.name,
+            title=spec.title,
+            focus=spec.interpretation_guide,
+            params=compact(outcome.params),
+            result=compact(outcome.result),
+        )
 
         def parse(data: Any) -> Interpretation:
             interp = Interpretation.model_validate({**data, "step_id": outcome.step_id, "source": "llm"})
@@ -107,9 +119,16 @@ class LLMInterpreter:
                     raise LLMOutputError("Interpretation cites numbers not present in the result", errs)
             return interp
 
-        return structured_completion(self.backend, INTERPRETER_SYSTEM, user, parse, model=self.s.interpreter_model,
-                                     max_attempts=self.s.max_correction_attempts, json_mode=self.s.json_mode,
-                                     temperature=self.s.temperature).value
+        return structured_completion(
+            self.backend,
+            INTERPRETER_SYSTEM,
+            user,
+            parse,
+            model=self.s.interpreter_model,
+            max_attempts=self.s.max_correction_attempts,
+            json_mode=self.s.json_mode,
+            temperature=self.s.temperature,
+        ).value
 
 
 class RuleInterpreter:
@@ -125,6 +144,11 @@ class RuleInterpreter:
         if outcome.status == StepStatus.REPAIRED:
             warns.append("parameters were automatically repaired before this step succeeded")
         conf = "high" if not warns else "medium" if len(warns) <= 2 else "low"
-        return Interpretation(step_id=outcome.step_id, headline=(head or "completed")[:240],
-                              findings=(findings or ["See the result for details."])[:6], caveats=warns[:8],
-                              confidence=conf, source="rules")
+        return Interpretation(
+            step_id=outcome.step_id,
+            headline=(head or "completed")[:240],
+            findings=(findings or ["See the result for details."])[:6],
+            caveats=warns[:8],
+            confidence=conf,
+            source="rules",
+        )

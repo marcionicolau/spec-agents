@@ -21,8 +21,10 @@ class StatsRulePlanner:
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
         frames = [n for n, s in inputs.specs.items() if s.type == "dataframe"]
         if not frames:
-            raise DataValidationError("stats_rules planner needs a dataframe input",
-                                      [ErrorDetail(loc=("inputs",), type="no_dataframe", msg=f"inputs: {sorted(inputs.specs)}")])
+            raise DataValidationError(
+                "stats_rules planner needs a dataframe input",
+                [ErrorDetail(loc=("inputs",), type="no_dataframe", msg=f"inputs: {sorted(inputs.specs)}")],
+            )
         src = frames[0]
         profile: DatasetProfile = inputs.profiles[src]  # type: ignore[assignment]
         h = self.hints
@@ -38,24 +40,47 @@ class StatsRulePlanner:
         if response and response in num:
             preds = features[:8] + factors[:1]
             if preds:
-                steps.append(PipelineStep(id="regression", component="linear_model", inputs=data,
-                                          params={"response": response, "predictors": preds}))
+                steps.append(
+                    PipelineStep(
+                        id="regression",
+                        component="linear_model",
+                        inputs=data,
+                        params={"response": response, "predictors": preds},
+                    )
+                )
             if factors:
-                steps.append(PipelineStep(id="anova", component="anova", inputs=data,
-                                          params={"response": response, "factors": factors[:2]}))
+                steps.append(
+                    PipelineStep(
+                        id="anova",
+                        component="anova",
+                        inputs=data,
+                        params={"response": response, "factors": factors[:2]},
+                    )
+                )
         time_col = h.get("time_col") or (dt[0] if dt else None)
         if time_col and response and profile.n_rows >= 12:
-            steps.append(PipelineStep(id="time_series", component="time_series", inputs=data,
-                                      params={"time_col": time_col, "value_col": response}))
+            steps.append(
+                PipelineStep(
+                    id="time_series",
+                    component="time_series",
+                    inputs=data,
+                    params={"time_col": time_col, "value_col": response},
+                )
+            )
         if len(features) >= 3:
             steps.append(PipelineStep(id="pca", component="pca", inputs=data, params={"features": features}))
             if profile.n_rows >= 20:
                 steps.append(PipelineStep(id="clusters", component="clustering", inputs={"matrix": "pca.scores"}))
         elif len(features) == 2 and profile.n_rows >= 20:
-            steps.append(PipelineStep(id="clusters", component="clustering", inputs=data, params={"features": features}))
+            steps.append(
+                PipelineStep(id="clusters", component="clustering", inputs=data, params={"features": features})
+            )
         outputs = {"cluster_labels": "clusters.labels"} if any(s.id == "clusters" for s in steps) else {}
-        plan = PipelinePlan(objective=objective if len(objective) >= 3 else "statistical analysis",
-                            steps=[s for s in steps if self.registry.has(s.component)], outputs=outputs)
+        plan = PipelinePlan(
+            objective=objective if len(objective) >= 3 else "statistical analysis",
+            steps=[s for s in steps if self.registry.has(s.component)],
+            outputs=outputs,
+        )
         return PlanningOutcome(plan=parse_plan(plan, self.registry, inputs), planner=self.name)
 
 

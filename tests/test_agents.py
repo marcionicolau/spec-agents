@@ -18,17 +18,44 @@ QUESTION = "How do nitrogen treatments affect yield and what do the field notes 
 
 def tree(**overrides) -> dict:
     agents = {
-        "lead": {"kind": "supervisor", "strategy": "router", "sub_agents": ["stats_team", "digest"],
-                 "role": "Research lead", "goal": "answer research questions"},
-        "stats_team": {"kind": "supervisor", "strategy": "sequential", "synthesize": False,
-                       "sub_agents": ["statistician", "reviewer"], "role": "Stats team", "goal": "run statistics"},
-        "statistician": {"kind": "planner", "backend": "stats_rules", "domains": ["statistics"], "inputs": ["data"],
-                         "role": "Statistician", "goal": "plan and run analyses",
-                         "options": {"hints": {"response": "yield_t_ha", "factors": ["treatment"],
-                                               "features": ["nitrogen", "phosphorus", "potassium", "ph"]}}},
+        "lead": {
+            "kind": "supervisor",
+            "strategy": "router",
+            "sub_agents": ["stats_team", "digest"],
+            "role": "Research lead",
+            "goal": "answer research questions",
+        },
+        "stats_team": {
+            "kind": "supervisor",
+            "strategy": "sequential",
+            "synthesize": False,
+            "sub_agents": ["statistician", "reviewer"],
+            "role": "Stats team",
+            "goal": "run statistics",
+        },
+        "statistician": {
+            "kind": "planner",
+            "backend": "stats_rules",
+            "domains": ["statistics"],
+            "inputs": ["data"],
+            "role": "Statistician",
+            "goal": "plan and run analyses",
+            "options": {
+                "hints": {
+                    "response": "yield_t_ha",
+                    "factors": ["treatment"],
+                    "features": ["nitrogen", "phosphorus", "potassium", "ph"],
+                }
+            },
+        },
         "reviewer": {"kind": "llm", "role": "Reviewer", "goal": "review the statistics"},
-        "digest": {"kind": "pipeline", "pipeline": "document_digest", "inputs": ["notes"],
-                   "role": "Digester", "goal": "digest field notes"},
+        "digest": {
+            "kind": "pipeline",
+            "pipeline": "document_digest",
+            "inputs": ["notes"],
+            "role": "Digester",
+            "goal": "digest field notes",
+        },
     }
     for k, v in overrides.items():
         if v is None:
@@ -39,9 +66,13 @@ def tree(**overrides) -> dict:
 
 
 ROUTE_BAD = {"delegations": [{"id": "d1", "agent": "stats", "instruction": "analyse yield", "inputs": ["dta"]}]}
-ROUTE_OK = {"rationale": "split by data type", "delegations": [
-    {"id": "d1", "agent": "stats_team", "instruction": "analyse yield vs treatments", "inputs": ["data"]},
-    {"id": "d2", "agent": "digest", "instruction": "digest the field notes", "inputs": ["notes"]}]}
+ROUTE_OK = {
+    "rationale": "split by data type",
+    "delegations": [
+        {"id": "d1", "agent": "stats_team", "instruction": "analyse yield vs treatments", "inputs": ["data"]},
+        {"id": "d2", "agent": "digest", "instruction": "digest the field notes", "inputs": ["notes"]},
+    ],
+}
 
 
 def make(registry, cfg: dict, replies=(), **kw) -> tuple[AgentFabric, ScriptedBackend]:
@@ -58,6 +89,7 @@ def errors_of(registry, cfg) -> dict:
 
 # ------------------------------------------------------------------ tree validation
 
+
 def test_valid_tree_and_yaml_config(registry):
     assert errors_of(registry, tree()) == {}
     fabric = AgentFabric(registry, AgentsConfig.load(ROOT / "config"))
@@ -66,12 +98,15 @@ def test_valid_tree_and_yaml_config(registry):
 
 
 def test_tree_errors_are_located_with_hints(registry):
-    e = errors_of(registry, tree(
-        lead={"sub_agents": ["stats_tem", "digest", "lead"]},
-        reviewer={"sub_agents": ["digest"]},
-        digest={"pipeline": "document_digets"},
-        statistician={"backend": "stat_rules", "domains": ["statistcs"]},
-    ))
+    e = errors_of(
+        registry,
+        tree(
+            lead={"sub_agents": ["stats_tem", "digest", "lead"]},
+            reviewer={"sub_agents": ["digest"]},
+            digest={"pipeline": "document_digets"},
+            statistician={"backend": "stat_rules", "domains": ["statistcs"]},
+        ),
+    )
     assert "stats_team" in e[("agents.lead.sub_agents.0", "unknown_agent")].hint
     assert ("agents.lead.sub_agents.2", "self_reference") in e
     assert ("agents.reviewer.sub_agents", "sub_agents_not_allowed") in e
@@ -80,8 +115,13 @@ def test_tree_errors_are_located_with_hints(registry):
 
 
 def test_cycle_and_depth(registry):
-    e = errors_of(registry, tree(stats_team={"sub_agents": ["statistician", "loop"]},
-                                 loop={"kind": "supervisor", "sub_agents": ["stats_team"], "role": "r", "goal": "g"}))
+    e = errors_of(
+        registry,
+        tree(
+            stats_team={"sub_agents": ["statistician", "loop"]},
+            loop={"kind": "supervisor", "sub_agents": ["stats_team"], "role": "r", "goal": "g"},
+        ),
+    )
     assert any(t == "cycle" for _, t in e)
     deep = tree()
     deep["budget"] = {"max_depth": 1}
@@ -102,12 +142,18 @@ def test_build_refuses_invalid_tree(registry):
 
 # ------------------------------------------------------------------ running trees
 
+
 def test_router_self_corrects_and_runs_three_levels(registry, df, note):
-    fabric, backend = make(registry, tree(), [
-        json.dumps(ROUTE_BAD), json.dumps(ROUTE_OK),
-        "The model is plausible; residual checks look acceptable.",       # reviewer
-        "Treatments raise yield; notes stress nitrogen and wheat.",       # lead synthesis
-    ])
+    fabric, backend = make(
+        registry,
+        tree(),
+        [
+            json.dumps(ROUTE_BAD),
+            json.dumps(ROUTE_OK),
+            "The model is plausible; residual checks look acceptable.",  # reviewer
+            "Treatments raise yield; notes stress nitrogen and wheat.",  # lead synthesis
+        ],
+    )
     rep = fabric.run(QUESTION, {"data": df, "notes": note}, session_id="s1")
     r = rep.result
     assert rep.ok, r.tree()
@@ -127,14 +173,17 @@ def test_router_self_corrects_and_runs_three_levels(registry, df, note):
 
 
 def test_delegation_outputs_and_dependencies(registry, df, note):
-    route = {"delegations": [
-        {"id": "a", "agent": "digest", "instruction": "digest notes", "inputs": ["missing_but_valid_key"]},
-        {"id": "b", "agent": "stats_team", "instruction": "use digest", "inputs": ["data", "@a"]}]}
+    route = {
+        "delegations": [
+            {"id": "a", "agent": "digest", "instruction": "digest notes", "inputs": ["missing_but_valid_key"]},
+            {"id": "b", "agent": "stats_team", "instruction": "use digest", "inputs": ["data", "@a"]},
+        ]
+    }
     fabric, _ = make(registry, tree(lead={"synthesize": False}), [json.dumps(route)])
     rep = fabric.run(QUESTION, {"data": df, "notes": note, "missing_but_valid_key": 42})
     r = rep.result
-    assert r.find("digest").status == "failed"          # 42 is not text -> pipeline input missing
-    assert r.find("stats_team").status == "skipped"     # depends on failed delegation
+    assert r.find("digest").status == "failed"  # 42 is not text -> pipeline input missing
+    assert r.find("stats_team").status == "skipped"  # depends on failed delegation
     assert r.status == "failed" and r.error.category.value == "dependency"
 
 
@@ -168,13 +217,16 @@ class DownBackend:
 
 
 def test_fallbacks_when_proxy_is_down(registry, df, note):
-    cfg = tree(lead={"fallback": "rules"}, reviewer=None,
-               stats_team={"sub_agents": ["statistician"]},
-               statistician={"backend": "fabric", "fallback": "stats_rules"})
+    cfg = tree(
+        lead={"fallback": "rules"},
+        reviewer=None,
+        stats_team={"sub_agents": ["statistician"]},
+        statistician={"backend": "fabric", "fallback": "stats_rules"},
+    )
     fabric = AgentFabric(registry, AgentsConfig.from_dict(cfg), backend=DownBackend())
     rep = fabric.run(QUESTION, {"data": df, "notes": note})
     assert rep.ok, rep.result.tree()
-    assert rep.result.output["strategy"] == "sequential"                       # router -> rules
+    assert rep.result.output["strategy"] == "sequential"  # router -> rules
     assert any("fell back" in n for n in rep.result.notes)
     st = rep.result.find("statistician")
     assert st.output["planner"] == "stats_rules" and any("fell back" in n for n in st.notes)
@@ -188,14 +240,36 @@ def test_function_agent_and_custom_kind(registry, df):
 
         class Echo(LLMWorkerAgent):
             def _run(self, task, ctx, path, depth):
-                return self.result(path, "ok", output={"echo": task.instruction}, summary=task.instruction,
-                                   artifacts=[ctx.put(path, {"echo": task.instruction})])
+                return self.result(
+                    path,
+                    "ok",
+                    output={"echo": task.instruction},
+                    summary=task.instruction,
+                    artifacts=[ctx.put(path, {"echo": task.instruction})],
+                )
+
         return Echo(name, spec, f)
 
-    cfg = {"root": "team", "agents": {
-        "team": {"kind": "supervisor", "backend": "rules", "sub_agents": ["rows", "echo"], "role": "t", "goal": "g"},
-        "rows": {"kind": "function", "function": "count_rows", "inputs": ["data"], "role": "counter", "goal": "count"},
-        "echo": {"kind": "echo", "role": "e", "goal": "echo"}}}
+    cfg = {
+        "root": "team",
+        "agents": {
+            "team": {
+                "kind": "supervisor",
+                "backend": "rules",
+                "sub_agents": ["rows", "echo"],
+                "role": "t",
+                "goal": "g",
+            },
+            "rows": {
+                "kind": "function",
+                "function": "count_rows",
+                "inputs": ["data"],
+                "role": "counter",
+                "goal": "count",
+            },
+            "echo": {"kind": "echo", "role": "e", "goal": "echo"},
+        },
+    }
     fabric, backend = make(registry, cfg)
     fabric.register_function("count_rows", lambda task, inputs: {"summary": f"{len(inputs['data'])} rows"})
     rep = fabric.run("count and echo", {"data": df})
@@ -228,8 +302,13 @@ def test_pydantic_ai_supervisor_delegates_via_tools(registry, df, note):
         if n == 1:
             return ModelResponse(parts=[ToolCallPart("delegate", {"agent_name": "digst", "instruction": "digest"})])
         if n == 2:
-            return ModelResponse(parts=[ToolCallPart("delegate", {"agent_name": "digest", "instruction": "digest notes",
-                                                                  "inputs": ["notes"]})])
+            return ModelResponse(
+                parts=[
+                    ToolCallPart(
+                        "delegate", {"agent_name": "digest", "instruction": "digest notes", "inputs": ["notes"]}
+                    )
+                ]
+            )
         return ModelResponse(parts=[TextPart("The notes focus on nitrogen.")])
 
     cfg = tree(lead={"backend": "pydantic_ai", "options": {"model_object": FunctionModel(fn)}})
@@ -266,8 +345,11 @@ def test_langchain_memory_backs_the_tree(registry, df, note):
     from agent_fabric.memory import LangChainMemory
 
     mem = LangChainMemory()
-    fabric, _ = make(registry, tree(lead={"backend": "rules"}, reviewer=None, stats_team={"sub_agents": ["statistician"]}),
-                     memory=mem)
+    fabric, _ = make(
+        registry,
+        tree(lead={"backend": "rules"}, reviewer=None, stats_team={"sub_agents": ["statistician"]}),
+        memory=mem,
+    )
     fabric.run("first run", {"data": df, "notes": note}, session_id="lc")
     runs = mem.recent_runs("lc/lead/digest")
     assert runs and runs[0].agent == "lead/digest"

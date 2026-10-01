@@ -24,10 +24,12 @@ def _agent_section(r: AgentResult, level: int) -> list[str]:
     answer = out.get("answer")
     if isinstance(answer, dict):
         text = answer.get("text")
-        lines += ([text, ""] if text else [f"```json\n{answer}\n```", ""])
+        lines += [text, ""] if text else [f"```json\n{answer}\n```", ""]
     if r.error and r.status != "ok":
         lines.append(f"Error ({r.error.category.value}): {r.error.message}")
-        lines += [f"- `{'.'.join(map(str, d.loc))}` {d.msg}" + (f" — {d.hint}" if d.hint else "") for d in r.error.details[:6]]
+        lines += [
+            f"- `{'.'.join(map(str, d.loc))}` {d.msg}" + (f" — {d.hint}" if d.hint else "") for d in r.error.details[:6]
+        ]
         lines.append("")
     lines += [f"> {n}" for n in r.notes]
     for c in r.children:

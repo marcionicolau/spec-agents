@@ -16,8 +16,9 @@ from agent_fabric.pipeline import PipelineInputs, parse_plan
 from .domain import register
 
 
-def generate_dag(params: dict[str, Any], sample: Any = None, out_dir: str | Path | None = None,
-                 overwrite: bool = False) -> dict[str, Any]:
+def generate_dag(
+    params: dict[str, Any], sample: Any = None, out_dir: str | Path | None = None, overwrite: bool = False
+) -> dict[str, Any]:
     """Return ``{"dag_code", "layout", "schema", "path"}``; raise the first step error if any step failed.
 
     The file ``<out_dir>/<dag_id>.py`` is written only after ``dag_check`` passed, and an existing file is never
@@ -44,7 +45,10 @@ def generate_dag(params: dict[str, Any], sample: Any = None, out_dir: str | Path
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="python -m lake_fabric.generate", description=__doc__.split("\n\n")[0])
-    ap.add_argument("params", help="JSON file with the pipeline parameters: source {type, path|url, ...}, dag_id, catalog, table, business_keys, ...")
+    ap.add_argument(
+        "params",
+        help="JSON file with the pipeline parameters: source {type, path|url, ...}, dag_id, catalog, table, business_keys, ...",
+    )
     ap.add_argument("--sample", help="JSON file with example records (required for api and mcp sources)")
     ap.add_argument("--out", default="dags", help="directory for the generated DAG file")
     ap.add_argument("--overwrite", action="store_true")

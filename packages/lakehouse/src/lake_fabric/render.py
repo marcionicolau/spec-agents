@@ -117,14 +117,14 @@ def _scalar(sql, parameters=None):
 '''
 
 READERS = {
-    "csv": '''
+    "csv": """
 
 def _read_records(watermark=None):
     src = CONFIG["source"]
     with open(src["path"], newline="", encoding=src["encoding"]) as fh:
         return list(csv.DictReader(fh, delimiter=src["delimiter"]))
-''',
-    "json": '''
+""",
+    "json": """
 
 def _read_records(watermark=None):
     src = CONFIG["source"]
@@ -134,8 +134,8 @@ def _read_records(watermark=None):
         else:
             data = json.load(fh)
     return _select(data, src["records_path"])
-''',
-    "xlsx": '''
+""",
+    "xlsx": """
 
 def _read_records(watermark=None):
     src = CONFIG["source"]
@@ -144,8 +144,8 @@ def _read_records(watermark=None):
     rows = sheet.iter_rows(values_only=True)
     header = [str(h).strip() if h is not None else "" for h in next(rows)]
     return [dict(zip(header, row)) for row in rows if any(v is not None for v in row)]
-''',
-    "api": '''
+""",
+    "api": """
 
 def _headers():
     src = CONFIG["source"]
@@ -191,7 +191,7 @@ def _read_records(watermark=None):
     else:
         raise AirflowFailException(f"pagination did not finish within {pager['max_pages'] if pager else 1} pages")
     return records
-''',
+""",
     "mcp": '''
 
 def _headers():
@@ -222,7 +222,7 @@ def _read_records(watermark=None):
 ''',
 }
 
-DAG = '''
+DAG = """
 
 @dag(
     dag_id=CONFIG["dag_id"],
@@ -286,9 +286,13 @@ def medallion_ingest():
 
 
 medallion_ingest()
-'''
+"""
 
-THIRD_PARTY = {"xlsx": "\nfrom openpyxl import load_workbook\n", "api": "\nimport requests\n", "mcp": "\nimport requests\n"}
+THIRD_PARTY = {
+    "xlsx": "\nfrom openpyxl import load_workbook\n",
+    "api": "\nimport requests\n",
+    "mcp": "\nimport requests\n",
+}
 STDLIB_EXTRA = {"api": "from urllib.parse import urlparse\n"}
 TASKS = ("ensure_tables", "load_bronze", "quality_gate", "bronze_to_silver", "refresh_gold")
 
@@ -297,8 +301,13 @@ def render_dag(config: dict[str, Any]) -> str:
     kind = config["source"]["type"]
     needs_hook = kind in ("api", "mcp")
     text = HEAD.format(
-        dag_id=config["dag_id"], source_type=kind, csv_import="import csv\n" if kind == "csv" else "", stdlib_extra=STDLIB_EXTRA.get(kind, ""), third_party=THIRD_PARTY.get(kind, ""),
+        dag_id=config["dag_id"],
+        source_type=kind,
+        csv_import="import csv\n" if kind == "csv" else "",
+        stdlib_extra=STDLIB_EXTRA.get(kind, ""),
+        third_party=THIRD_PARTY.get(kind, ""),
         sdk_names="BaseHook, dag, get_current_context, task" if needs_hook else "dag, get_current_context, task",
         airflow2_extra="    from airflow.hooks.base import BaseHook\n" if needs_hook else "",
-        config=pprint.pformat(config, width=110, sort_dicts=False))
+        config=pprint.pformat(config, width=110, sort_dicts=False),
+    )
     return "\n".join(line.rstrip() for line in (text + COMMON + READERS[kind] + DAG).splitlines()) + "\n"

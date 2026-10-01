@@ -51,6 +51,7 @@ def _no_quotes(v: str) -> str:
 
 # =========================================================================== linear model
 
+
 class LinearModelParams(ComponentParams):
     response: str
     predictors: list[str] = Field(min_length=1)
@@ -121,17 +122,32 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         d = df[[params.response, *params.predictors]].dropna()
         errors = []
         if params.log_response and (d[params.response] <= 0).any():
-            errors.append(ErrorDetail(loc=("params", "log_response"), type="non_positive_response",
-                                      msg="log_response requires a strictly positive response", hint="set log_response=false"))
-        n_terms = 1 + sum(1 if infer_kind(d[p]) == ColumnKind.NUMERIC else max(d[p].nunique() - 1, 1) for p in params.predictors)
+            errors.append(
+                ErrorDetail(
+                    loc=("params", "log_response"),
+                    type="non_positive_response",
+                    msg="log_response requires a strictly positive response",
+                    hint="set log_response=false",
+                )
+            )
+        n_terms = 1 + sum(
+            1 if infer_kind(d[p]) == ColumnKind.NUMERIC else max(d[p].nunique() - 1, 1) for p in params.predictors
+        )
         n_terms += len(params.interactions)
         if len(d) <= n_terms + 1:
-            errors.append(ErrorDetail(loc=("params", "predictors"), type="too_many_terms",
-                                      msg=f"{len(d)} complete rows cannot support {n_terms} model terms",
-                                      hint="use fewer predictors or drop interactions"))
+            errors.append(
+                ErrorDetail(
+                    loc=("params", "predictors"),
+                    type="too_many_terms",
+                    msg=f"{len(d)} complete rows cannot support {n_terms} model terms",
+                    hint="use fewer predictors or drop interactions",
+                )
+            )
         return errors
 
-    def compute_table(self, df: pd.DataFrame, params: LinearModelParams, ctx: StepContext, inputs: dict) -> LinearModelResult:
+    def compute_table(
+        self, df: pd.DataFrame, params: LinearModelParams, ctx: StepContext, inputs: dict
+    ) -> LinearModelResult:
         cols = [params.response, *params.predictors]
         d = df[cols].dropna().copy()
         if params.log_response:
@@ -143,9 +159,19 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         model = smf.ols(formula, data=d, eval_env=0)
         fit = model.fit(cov_type=params.robust_se) if params.robust_se != "none" else model.fit()
         ci = fit.conf_int(alpha=params.alpha)
-        coefs = [Coefficient(term=pretty_term(t), estimate=fit.params[t], std_error=fit.bse[t], statistic=fit.tvalues[t],
-                             p_value=fit.pvalues[t], ci_low=ci.loc[t, 0], ci_high=ci.loc[t, 1],
-                             significant=bool(fit.pvalues[t] < params.alpha)) for t in fit.params.index]
+        coefs = [
+            Coefficient(
+                term=pretty_term(t),
+                estimate=fit.params[t],
+                std_error=fit.bse[t],
+                statistic=fit.tvalues[t],
+                p_value=fit.pvalues[t],
+                ci_low=ci.loc[t, 0],
+                ci_high=ci.loc[t, 1],
+                significant=bool(fit.pvalues[t] < params.alpha),
+            )
+            for t in fit.params.index
+        ]
         exog = model.exog
         bp_p = het_breuschpagan(fit.resid, exog)[1] if exog.shape[1] > 1 else None
         jb_p = jarque_bera(fit.resid)[1]
@@ -164,13 +190,26 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         if not 1.5 <= dw <= 2.5:
             warns.append(f"possible residual autocorrelation (Durbin-Watson={dw:.2f})")
         warns += [f"high multicollinearity for {k} (VIF={v:.1f})" for k, v in vif.items() if np.isfinite(v) and v > 10]
-        return LinearModelResult(n_used=int(fit.nobs), formula=formula, coefficients=coefs, r_squared=fit.rsquared,
-                                 adj_r_squared=fit.rsquared_adj, f_statistic=fit.fvalue, f_p_value=fit.f_pvalue,
-                                 aic=fit.aic, bic=fit.bic, breusch_pagan_p=bp_p, jarque_bera_p=jb_p,
-                                 durbin_watson=dw, vif=vif, warnings=warns)
+        return LinearModelResult(
+            n_used=int(fit.nobs),
+            formula=formula,
+            coefficients=coefs,
+            r_squared=fit.rsquared,
+            adj_r_squared=fit.rsquared_adj,
+            f_statistic=fit.fvalue,
+            f_p_value=fit.f_pvalue,
+            aic=fit.aic,
+            bic=fit.bic,
+            breusch_pagan_p=bp_p,
+            jarque_bera_p=jb_p,
+            durbin_watson=dw,
+            vif=vif,
+            warnings=warns,
+        )
 
 
 # =========================================================================== ANOVA
+
 
 class AnovaParams(ComponentParams):
     response: str
@@ -229,8 +268,11 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
     def summarize(self, r: dict) -> tuple[str, list[str]]:
         rows = [x for x in r["table"] if x["source"] != "Residual" and x["p_value"] is not None]
         head = "; ".join(f"{x['source']}: F={x['f_value']:.3g}, p={x['p_value']:.3g}" for x in rows)
-        return head, [f"{x['group_a']} vs {x['group_b']}: diff {x['mean_diff']:.3g} (p adj={x['p_adj']:.3g})"
-                      for x in r.get("tukey", []) if x["reject"]][:5]
+        return head, [
+            f"{x['group_a']} vs {x['group_b']}: diff {x['mean_diff']:.3g} (p adj={x['p_adj']:.3g})"
+            for x in r.get("tukey", [])
+            if x["reject"]
+        ][:5]
 
     def extra_data_checks(self, df: pd.DataFrame, params: AnovaParams) -> list[ErrorDetail]:
         d = df[[params.response, *params.factors]].dropna()
@@ -238,12 +280,24 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         for f in params.factors:
             counts = d[f].value_counts()
             if counts.size < 2:
-                errors.append(ErrorDetail(loc=("params", "factors"), type="single_level", input=f,
-                                          msg=f"factor '{f}' has fewer than 2 levels"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("params", "factors"),
+                        type="single_level",
+                        input=f,
+                        msg=f"factor '{f}' has fewer than 2 levels",
+                    )
+                )
             elif counts.min() < 2:
-                errors.append(ErrorDetail(loc=("params", "factors"), type="small_group", input=f,
-                                          msg=f"level '{counts.idxmin()}' of '{f}' has {counts.min()} observation(s); need >= 2",
-                                          hint="merge rare levels or filter them out"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("params", "factors"),
+                        type="small_group",
+                        input=f,
+                        msg=f"level '{counts.idxmin()}' of '{f}' has {counts.min()} observation(s); need >= 2",
+                        hint="merge rare levels or filter them out",
+                    )
+                )
         return errors
 
     def compute_table(self, df: pd.DataFrame, params: AnovaParams, ctx: StepContext, inputs: dict) -> AnovaResult:
@@ -262,8 +316,16 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         rows = []
         for src, r in tab.iterrows():
             eta = None if src == "Residual" else r["sum_sq"] / (r["sum_sq"] + ss_res)
-            rows.append(AnovaRow(source=pretty_term(str(src)), sum_sq=r["sum_sq"], df=r["df"], f_value=r.get("F"),
-                                 p_value=r.get("PR(>F)"), eta_sq_partial=eta))
+            rows.append(
+                AnovaRow(
+                    source=pretty_term(str(src)),
+                    sum_sq=r["sum_sq"],
+                    df=r["df"],
+                    f_value=r.get("F"),
+                    p_value=r.get("PR(>F)"),
+                    eta_sq_partial=eta,
+                )
+            )
         groups = [g[params.response].values for _, g in d.groupby(params.factors)]
         levene_p = stats.levene(*groups).pvalue if len(groups) > 1 else None
         shapiro_p = stats.shapiro(fit.resid).pvalue if 3 <= len(d) <= 5000 else None
@@ -272,8 +334,18 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         if params.posthoc and len(params.factors) == 1:
             res = pairwise_tukeyhsd(d[params.response], d[params.factors[0]], alpha=params.alpha)
             tbl = res.summary().data[1:]
-            tukey = [TukeyComparison(group_a=str(r[0]), group_b=str(r[1]), mean_diff=float(r[2]), p_adj=float(r[3]),
-                                     ci_low=float(r[4]), ci_high=float(r[5]), reject=bool(r[6])) for r in tbl]
+            tukey = [
+                TukeyComparison(
+                    group_a=str(r[0]),
+                    group_b=str(r[1]),
+                    mean_diff=float(r[2]),
+                    p_adj=float(r[3]),
+                    ci_low=float(r[4]),
+                    ci_high=float(r[5]),
+                    reject=bool(r[6]),
+                )
+                for r in tbl
+            ]
         warns = []
         if levene_p is not None and levene_p < 0.05:
             warns.append(f"unequal variances across groups (Levene p={levene_p:.3g}); consider Welch ANOVA")
@@ -284,5 +356,13 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         sizes = d.groupby(params.factors).size()
         if sizes.max() > 1.5 * sizes.min() and params.anova_type == 1:
             warns.append("unbalanced design: Type I sums of squares depend on factor order")
-        return AnovaResult(n_used=len(d), formula=formula, table=rows, group_means=means, levene_p=levene_p,
-                           shapiro_resid_p=shapiro_p, tukey=tukey, warnings=warns)
+        return AnovaResult(
+            n_used=len(d),
+            formula=formula,
+            table=rows,
+            group_means=means,
+            levene_p=levene_p,
+            shapiro_resid_p=shapiro_p,
+            tukey=tukey,
+            warnings=warns,
+        )

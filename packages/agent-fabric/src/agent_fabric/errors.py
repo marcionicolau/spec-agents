@@ -17,15 +17,15 @@ from pydantic import BaseModel, Field, ValidationError
 
 
 class ErrorCategory(StrEnum):
-    SPEC = "spec"                # component spec / contract is broken (developer error)
-    PLAN = "plan"                # analysis plan is structurally invalid
-    PARAMS = "params"            # step parameters do not match the component's Params model
-    DATA = "data"                # an input artifact does not satisfy the port constraints
-    EXECUTION = "execution"      # numerical / library failure while computing
-    LLM_OUTPUT = "llm_output"    # model returned unparsable or invalid output
-    DEPENDENCY = "dependency"    # upstream step failed or optional package missing
-    AGENT = "agent"              # agent tree config or delegation is invalid
-    BUDGET = "budget"            # depth / LLM-call / delegation budget exhausted
+    SPEC = "spec"  # component spec / contract is broken (developer error)
+    PLAN = "plan"  # analysis plan is structurally invalid
+    PARAMS = "params"  # step parameters do not match the component's Params model
+    DATA = "data"  # an input artifact does not satisfy the port constraints
+    EXECUTION = "execution"  # numerical / library failure while computing
+    LLM_OUTPUT = "llm_output"  # model returned unparsable or invalid output
+    DEPENDENCY = "dependency"  # upstream step failed or optional package missing
+    AGENT = "agent"  # agent tree config or delegation is invalid
+    BUDGET = "budget"  # depth / LLM-call / delegation budget exhausted
 
 
 class ErrorDetail(BaseModel):
@@ -52,12 +52,16 @@ class ErrorReport(BaseModel):
             "step_id": self.step_id,
             "component": self.component,
             "errors": [
-                {k: v for k, v in {
-                    "loc": ".".join(str(p) for p in d.loc) or None,
-                    "type": d.type,
-                    "msg": d.msg,
-                    "hint": d.hint,
-                }.items() if v is not None}
+                {
+                    k: v
+                    for k, v in {
+                        "loc": ".".join(str(p) for p in d.loc) or None,
+                        "type": d.type,
+                        "msg": d.msg,
+                        "hint": d.hint,
+                    }.items()
+                    if v is not None
+                }
                 for d in self.details[:max_details]
             ],
         }
@@ -163,12 +167,18 @@ class MissingOptionalDependency(DependencyError):
     def __init__(self, package: str, extra: str) -> None:
         super().__init__(
             f"Optional dependency '{package}' is not installed.",
-            [ErrorDetail(type="missing_dependency", msg=f"import of '{package}' failed",
-                         hint=f"pip install 'agent-fabric[{extra}]'")],
+            [
+                ErrorDetail(
+                    type="missing_dependency",
+                    msg=f"import of '{package}' failed",
+                    hint=f"pip install 'agent-fabric[{extra}]'",
+                )
+            ],
         )
 
 
 # --------------------------------------------------------------------------- helpers
+
 
 def _preview(value: Any, limit: int = 80) -> Any:
     if value is None or isinstance(value, (bool, int, float)):
@@ -188,8 +198,15 @@ def details_from_pydantic(exc: ValidationError, prefix: Iterable[str | int] = ()
             hint = "this field is required"
         elif err["type"].startswith("literal_error"):
             hint = f"allowed values: {err.get('ctx', {}).get('expected')}"
-        out.append(ErrorDetail(loc=prefix + tuple(err["loc"]), type=err["type"], msg=err["msg"],
-                               input=_preview(err.get("input")), hint=hint))
+        out.append(
+            ErrorDetail(
+                loc=prefix + tuple(err["loc"]),
+                type=err["type"],
+                msg=err["msg"],
+                input=_preview(err.get("input")),
+                hint=hint,
+            )
+        )
     return out
 
 

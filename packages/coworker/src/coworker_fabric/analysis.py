@@ -9,12 +9,52 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-SKIP_DIRS = {".git", ".hg", ".venv", "venv", "env", "node_modules", "__pycache__", "build", "dist", ".mypy_cache",
-             ".ruff_cache", ".pytest_cache", ".tox", ".eggs", "site-packages"}
+SKIP_DIRS = {
+    ".git",
+    ".hg",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "__pycache__",
+    "build",
+    "dist",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    ".tox",
+    ".eggs",
+    "site-packages",
+}
 _BRANCH = (ast.If, ast.For, ast.AsyncFor, ast.While, ast.ExceptHandler, ast.IfExp, ast.comprehension)
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9]+")
-STOPWORDS = {"the", "and", "for", "with", "that", "this", "from", "into", "code", "file", "files", "function", "class",
-             "make", "add", "fix", "improve", "refactor", "use", "using", "should", "when", "have", "not", "are"}
+STOPWORDS = {
+    "the",
+    "and",
+    "for",
+    "with",
+    "that",
+    "this",
+    "from",
+    "into",
+    "code",
+    "file",
+    "files",
+    "function",
+    "class",
+    "make",
+    "add",
+    "fix",
+    "improve",
+    "refactor",
+    "use",
+    "using",
+    "should",
+    "when",
+    "have",
+    "not",
+    "are",
+}
 
 
 def token_estimate(text: str) -> int:
@@ -108,15 +148,22 @@ def analyse_python(source: str) -> dict[str, Any]:
                 name = f"{prefix}{node.name}"
                 is_class = isinstance(node, ast.ClassDef)
                 end = node.end_lineno or node.lineno
-                sym: dict[str, Any] = {"name": name, "kind": "class" if is_class else "function", "line": node.lineno,
-                                       "end_line": end, "tokens": token_estimate("\n".join(lines[node.lineno - 1:end])),
-                                       "terms": _vocab(node, 25)}
+                sym: dict[str, Any] = {
+                    "name": name,
+                    "kind": "class" if is_class else "function",
+                    "line": node.lineno,
+                    "end_line": end,
+                    "tokens": token_estimate("\n".join(lines[node.lineno - 1 : end])),
+                    "terms": _vocab(node, 25),
+                }
                 if not is_class:
                     a = node.args
                     n_params = len(a.posonlyargs) + len(a.args) + len(a.kwonlyargs) + bool(a.vararg) + bool(a.kwarg)
                     if prefix and a.args and a.args[0].arg in ("self", "cls"):
                         n_params -= 1
-                    sym.update(complexity=complexity(node), n_params=n_params, returns_annotated=node.returns is not None)
+                    sym.update(
+                        complexity=complexity(node), n_params=n_params, returns_annotated=node.returns is not None
+                    )
                 symbols.append(sym)
                 visit(node.body, f"{name}.")
             elif isinstance(node, (ast.If, ast.Try, ast.With)):
@@ -133,7 +180,9 @@ def analyse_python(source: str) -> dict[str, Any]:
     return {"symbols": symbols, "imports": imports, "terms": _vocab(tree, 120)}
 
 
-def resolve_import(mod: str, level: int, name: str | None, current: str, is_package: bool, modules: set[str]) -> str | None:
+def resolve_import(
+    mod: str, level: int, name: str | None, current: str, is_package: bool, modules: set[str]
+) -> str | None:
     """Module name (present in ``modules``) that an import statement refers to, longest match wins."""
     if level:
         pkg = current.split(".") if is_package else current.split(".")[:-1]
@@ -152,7 +201,9 @@ def resolve_import(mod: str, level: int, name: str | None, current: str, is_pack
     return None
 
 
-def review_source(rel: str, source: str, *, max_function_lines: int, max_complexity: int, max_params: int) -> list[dict[str, Any]]:
+def review_source(
+    rel: str, source: str, *, max_function_lines: int, max_complexity: int, max_params: int
+) -> list[dict[str, Any]]:
     """Static findings for one Python file. Each: {path, line, rule, severity, message, suggestion}."""
     try:
         tree = ast.parse(source)
@@ -166,37 +217,111 @@ def review_source(rel: str, source: str, *, max_function_lines: int, max_complex
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             length = (node.end_lineno or node.lineno) - node.lineno + 1
             if length > max_function_lines:
-                out.append(_f(rel, node.lineno, "long_function", "warning", f"{node.name} spans {length} lines (max {max_function_lines})",
-                              "extract cohesive blocks into helpers"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "long_function",
+                        "warning",
+                        f"{node.name} spans {length} lines (max {max_function_lines})",
+                        "extract cohesive blocks into helpers",
+                    )
+                )
             cx = complexity(node)
             if cx > max_complexity:
-                out.append(_f(rel, node.lineno, "high_complexity", "warning", f"{node.name} has complexity {cx} (max {max_complexity})",
-                              "split branches into functions or use early returns"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "high_complexity",
+                        "warning",
+                        f"{node.name} has complexity {cx} (max {max_complexity})",
+                        "split branches into functions or use early returns",
+                    )
+                )
             a = node.args
-            n = len(a.posonlyargs) + len(a.args) + len(a.kwonlyargs) - (1 if a.args and a.args[0].arg in ("self", "cls") else 0)
+            n = (
+                len(a.posonlyargs)
+                + len(a.args)
+                + len(a.kwonlyargs)
+                - (1 if a.args and a.args[0].arg in ("self", "cls") else 0)
+            )
             if n > max_params:
-                out.append(_f(rel, node.lineno, "many_params", "info", f"{node.name} takes {n} parameters (max {max_params})",
-                              "group related parameters into a dataclass or model"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "many_params",
+                        "info",
+                        f"{node.name} takes {n} parameters (max {max_params})",
+                        "group related parameters into a dataclass or model",
+                    )
+                )
             for d in list(a.defaults) + [d for d in a.kw_defaults if d is not None]:
-                if isinstance(d, (ast.List, ast.Dict, ast.Set)) or (isinstance(d, ast.Call) and _name(d.func) in ("list", "dict", "set")):
-                    out.append(_f(rel, d.lineno, "mutable_default", "error", f"{node.name} has a mutable default argument",
-                                  "default to None and create the value inside the function"))
+                if isinstance(d, (ast.List, ast.Dict, ast.Set)) or (
+                    isinstance(d, ast.Call) and _name(d.func) in ("list", "dict", "set")
+                ):
+                    out.append(
+                        _f(
+                            rel,
+                            d.lineno,
+                            "mutable_default",
+                            "error",
+                            f"{node.name} has a mutable default argument",
+                            "default to None and create the value inside the function",
+                        )
+                    )
             if not node.name.startswith("_") and node.returns is None and not is_test:
-                out.append(_f(rel, node.lineno, "missing_return_annotation", "info", f"public function {node.name} has no return annotation",
-                              "annotate the return type"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "missing_return_annotation",
+                        "info",
+                        f"public function {node.name} has no return annotation",
+                        "annotate the return type",
+                    )
+                )
         elif isinstance(node, ast.ExceptHandler):
             if node.type is None:
-                out.append(_f(rel, node.lineno, "bare_except", "warning", "bare 'except:' also catches KeyboardInterrupt and SystemExit",
-                              "catch the specific exception types you expect"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "bare_except",
+                        "warning",
+                        "bare 'except:' also catches KeyboardInterrupt and SystemExit",
+                        "catch the specific exception types you expect",
+                    )
+                )
             elif _name(node.type) in ("Exception", "BaseException") and all(isinstance(s, ast.Pass) for s in node.body):
-                out.append(_f(rel, node.lineno, "swallowed_exception", "warning", f"'except {_name(node.type)}: pass' hides failures",
-                              "handle, log or re-raise the error"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "swallowed_exception",
+                        "warning",
+                        f"'except {_name(node.type)}: pass' hides failures",
+                        "handle, log or re-raise the error",
+                    )
+                )
         elif isinstance(node, ast.Call):
             fn = _name(node.func)
             if fn in ("eval", "exec"):
-                out.append(_f(rel, node.lineno, "eval_exec", "error", f"call to {fn}()", "use ast.literal_eval or an explicit dispatch table"))
+                out.append(
+                    _f(
+                        rel,
+                        node.lineno,
+                        "eval_exec",
+                        "error",
+                        f"call to {fn}()",
+                        "use ast.literal_eval or an explicit dispatch table",
+                    )
+                )
             elif fn == "print" and not is_test and Path(rel).name != "__main__.py":
-                out.append(_f(rel, node.lineno, "print_call", "info", "print() in library code", "use the logging module"))
+                out.append(
+                    _f(rel, node.lineno, "print_call", "info", "print() in library code", "use the logging module")
+                )
 
     if not is_init:
         imported: dict[str, int] = {}
@@ -209,19 +334,47 @@ def review_source(rel: str, source: str, *, max_function_lines: int, max_complex
                     if al.name != "*":
                         imported[al.asname or al.name] = node.lineno
         used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} | {
-            n.value.id for n in ast.walk(tree) if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)}
-        exported = {c.value for n in ast.walk(tree) if isinstance(n, ast.Assign) and any(_name(t) == "__all__" for t in n.targets)
-                    for c in ast.walk(n.value) if isinstance(c, ast.Constant) and isinstance(c.value, str)}
-        text_refs = set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", " ".join(
-            c.value for c in ast.walk(tree) if isinstance(c, ast.Constant) and isinstance(c.value, str))))
+            n.value.id for n in ast.walk(tree) if isinstance(n, ast.Attribute) and isinstance(n.value, ast.Name)
+        }
+        exported = {
+            c.value
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Assign) and any(_name(t) == "__all__" for t in n.targets)
+            for c in ast.walk(n.value)
+            if isinstance(c, ast.Constant) and isinstance(c.value, str)
+        }
+        text_refs = set(
+            re.findall(
+                r"[A-Za-z_][A-Za-z0-9_]*",
+                " ".join(c.value for c in ast.walk(tree) if isinstance(c, ast.Constant) and isinstance(c.value, str)),
+            )
+        )
         for name, line in sorted(imported.items(), key=lambda kv: kv[1]):
             if name not in used and name not in exported and name not in text_refs:
-                out.append(_f(rel, line, "unused_import", "warning", f"'{name}' is imported but never used", "remove the import"))
+                out.append(
+                    _f(
+                        rel,
+                        line,
+                        "unused_import",
+                        "warning",
+                        f"'{name}' is imported but never used",
+                        "remove the import",
+                    )
+                )
 
     for i, line in enumerate(source.splitlines(), 1):
         m = re.search(r"#\s*(TODO|FIXME|XXX)\b(.*)", line)
         if m:
-            out.append(_f(rel, i, "todo_comment", "info", f"{m.group(1)}{m.group(2).strip()[:80]}", "resolve it or link an issue"))
+            out.append(
+                _f(
+                    rel,
+                    i,
+                    "todo_comment",
+                    "info",
+                    f"{m.group(1)}{m.group(2).strip()[:80]}",
+                    "resolve it or link an issue",
+                )
+            )
     return out
 
 
@@ -230,7 +383,14 @@ def _name(node: ast.AST) -> str:
 
 
 def _f(path: str, line: int, rule: str, severity: str, message: str, suggestion: str) -> dict[str, Any]:
-    return {"path": path, "line": line, "rule": rule, "severity": severity, "message": message, "suggestion": suggestion}
+    return {
+        "path": path,
+        "line": line,
+        "rule": rule,
+        "severity": severity,
+        "message": message,
+        "suggestion": suggestion,
+    }
 
 
 def safe_path(root: Path, rel: str) -> Path | None:
@@ -283,7 +443,9 @@ class Scorer:
         self.total = sum(self.idf.values()) or 1.0
         self.avg_tokens = sum(f["tokens"] for f in files) / max(len(files), 1) or 1.0
 
-    def _score(self, counts: dict[str, int], path_stems: set[str], name_stems: set[str], tokens: int, norm: float = 1.0) -> tuple[float, list[str]]:
+    def _score(
+        self, counts: dict[str, int], path_stems: set[str], name_stems: set[str], tokens: int, norm: float = 1.0
+    ) -> tuple[float, list[str]]:
         total, hits = 0.0, []
         length = 0.25 + 0.75 * (tokens / self.avg_tokens) * norm
         for st, idf in self.idf.items():
@@ -301,7 +463,9 @@ class Scorer:
         return self._score(sym.get("terms", {}), set(), set(stems(sym["name"])), int(self.avg_tokens))
 
 
-def pick_symbols(f: dict[str, Any], scorer: Scorer, budget_tokens: int, preamble_lines: int = 25) -> tuple[list[list[int]], list[str], int] | None:
+def pick_symbols(
+    f: dict[str, Any], scorer: Scorer, budget_tokens: int, preamble_lines: int = 25
+) -> tuple[list[list[int]], list[str], int] | None:
     """Best-matching symbols of a large file as merged line ranges: (ranges, symbol names, tokens) or None."""
     scored = []
     for sym in f["symbols"]:
@@ -315,7 +479,9 @@ def pick_symbols(f: dict[str, Any], scorer: Scorer, budget_tokens: int, preamble
     for _, sym in sorted(scored, key=lambda t: (-t[0], t[1]["tokens"])):
         if any(c["line"] <= sym["line"] and sym["end_line"] <= c["end_line"] for c in chosen):
             continue  # already inside a chosen symbol
-        chosen = [c for c in chosen if not (sym["line"] <= c["line"] and c["end_line"] <= sym["end_line"])]  # swallow contained ones
+        chosen = [
+            c for c in chosen if not (sym["line"] <= c["line"] and c["end_line"] <= sym["end_line"])
+        ]  # swallow contained ones
         if used + sym["tokens"] > budget_tokens:
             continue
         chosen.append(sym)

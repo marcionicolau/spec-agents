@@ -33,15 +33,25 @@ class PythonSourceType(ArtifactType):
     def profile(self, value: str) -> PythonSourceProfile:
         return PythonSourceProfile(n_lines=value.count("\n") + 1, preview=value.strip()[:60])
 
-    def static_check(self, profile: Any, constraints: Any, params: Any, loc: tuple[str | int, ...]) -> list[ErrorDetail]:
+    def static_check(
+        self, profile: Any, constraints: Any, params: Any, loc: tuple[str | int, ...]
+    ) -> list[ErrorDetail]:
         if profile.n_lines > constraints.max_lines:
-            return [ErrorDetail(loc=loc, type="source_too_long", msg=f"{profile.n_lines} lines > {constraints.max_lines}")]
+            return [
+                ErrorDetail(loc=loc, type="source_too_long", msg=f"{profile.n_lines} lines > {constraints.max_lines}")
+            ]
         return []
 
     def runtime_check(self, value: str, constraints: Any, params: Any, loc: tuple[str | int, ...]) -> list[ErrorDetail]:
         try:
             ast.parse(value)
         except SyntaxError as exc:
-            return [ErrorDetail(loc=loc, type="python_syntax_error", msg=f"line {exc.lineno}: {exc.msg}",
-                                hint="regenerate the code from the spec; never patch generated code by hand")]
+            return [
+                ErrorDetail(
+                    loc=loc,
+                    type="python_syntax_error",
+                    msg=f"line {exc.lineno}: {exc.msg}",
+                    hint="regenerate the code from the spec; never patch generated code by hand",
+                )
+            ]
         return []

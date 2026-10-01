@@ -55,8 +55,16 @@ def score_selection(case: ContextCase, selected: list[str], tokens: int) -> Case
     ranks = [i + 1 for i, p in enumerate(selected) if p in exp]
     # 0.7 recall + 0.2 ranking (first hit at rank 1 = full credit) + 0.1 precision
     score = 0.7 * recall + 0.2 * (1 / ranks[0] if ranks else 0.0) + 0.1 * precision
-    return CaseScore(name=case.name, recall=round(recall, 3), precision=round(precision, 3), first_hit_rank=ranks[0] if ranks else None,
-                     n_selected=len(selected), tokens=tokens, missing=sorted(exp - got), score=round(score, 4))
+    return CaseScore(
+        name=case.name,
+        recall=round(recall, 3),
+        precision=round(precision, 3),
+        first_hit_rank=ranks[0] if ranks else None,
+        n_selected=len(selected),
+        tokens=tokens,
+        missing=sorted(exp - got),
+        score=round(score, 4),
+    )
 
 
 def run_cases(root: str | Path, cases: list[ContextCase], **select_params: Any) -> list[CaseScore]:
@@ -84,11 +92,16 @@ def run_cases(root: str | Path, cases: list[ContextCase], **select_params: Any) 
 
 def table(scores: list[CaseScore]) -> str:
     rows = [f"{'case':30} {'score':>5} {'recall':>6} {'prec':>5} {'rank':>4} {'files':>5} {'tokens':>6}  missing"]
-    rows += [f"{s.name:30} {s.score:5.2f} {s.recall:6.2f} {s.precision:5.2f} {s.first_hit_rank or '-'!s:>4} {s.n_selected:5d} {s.tokens:6d}  "
-             f"{', '.join(s.missing)}" for s in scores]
+    rows += [
+        f"{s.name:30} {s.score:5.2f} {s.recall:6.2f} {s.precision:5.2f} {s.first_hit_rank or '-'!s:>4} {s.n_selected:5d} {s.tokens:6d}  "
+        f"{', '.join(s.missing)}"
+        for s in scores
+    ]
     n = len(scores)
-    rows.append(f"mean score {sum(s.score for s in scores) / n:.3f}   recall {sum(s.recall for s in scores) / n:.3f}   "
-                f"precision {sum(s.precision for s in scores) / n:.3f}   tokens {sum(s.tokens for s in scores) // n}")
+    rows.append(
+        f"mean score {sum(s.score for s in scores) / n:.3f}   recall {sum(s.recall for s in scores) / n:.3f}   "
+        f"precision {sum(s.precision for s in scores) / n:.3f}   tokens {sum(s.tokens for s in scores) // n}"
+    )
     return "\n".join(rows)
 
 
@@ -100,15 +113,25 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--max-files", type=int, default=8)
     ap.add_argument("--hops", type=int, default=1)
     ap.add_argument("--cutoff", type=float, default=0.5, help="relative_cutoff passed to context_select")
-    ap.add_argument("--sweep", nargs="+", type=float, help="print the summary line for each relative_cutoff value and exit")
+    ap.add_argument(
+        "--sweep", nargs="+", type=float, help="print the summary line for each relative_cutoff value and exit"
+    )
     a = ap.parse_args(argv)
     if a.sweep:
         cases = load_cases(a.cases)
         for c in a.sweep:
-            print(f"cutoff {c:4.2f}  " + table(run_cases(a.root, cases, token_budget=a.budget, max_files=a.max_files, hops=a.hops,
-                                                          relative_cutoff=c)).splitlines()[-1])
+            print(
+                f"cutoff {c:4.2f}  "
+                + table(
+                    run_cases(
+                        a.root, cases, token_budget=a.budget, max_files=a.max_files, hops=a.hops, relative_cutoff=c
+                    )
+                ).splitlines()[-1]
+            )
         return
-    scores = run_cases(a.root, load_cases(a.cases), token_budget=a.budget, max_files=a.max_files, hops=a.hops, relative_cutoff=a.cutoff)
+    scores = run_cases(
+        a.root, load_cases(a.cases), token_budget=a.budget, max_files=a.max_files, hops=a.hops, relative_cutoff=a.cutoff
+    )
     print(table(scores))
     sys.exit(0 if all(s.recall >= c.min_recall for s, c in zip(scores, load_cases(a.cases))) else 1)
 

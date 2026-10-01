@@ -58,8 +58,10 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
     Result = TimeSeriesResult
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
-        head = (f"{r['n_periods']} periods ({r['freq']}); series is "
-                f"{'stationary' if r['stationary'] else 'non-stationary'} (ADF p={r['adf_p_value']:.3g}).")
+        head = (
+            f"{r['n_periods']} periods ({r['freq']}); series is "
+            f"{'stationary' if r['stationary'] else 'non-stationary'} (ADF p={r['adf_p_value']:.3g})."
+        )
         f = []
         if r.get("seasonal_strength") is not None:
             f.append(f"trend strength {r['trend_strength']:.2f}, seasonal strength {r['seasonal_strength']:.2f}")
@@ -85,19 +87,38 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         try:
             s, freq = self._series(df, params)
         except (ValueError, TypeError) as exc:
-            return [ErrorDetail(loc=("params", "freq"), type="bad_frequency", msg=str(exc)[:200],
-                                hint="use a pandas offset alias such as 'D', 'W', 'MS' or leave freq null")]
+            return [
+                ErrorDetail(
+                    loc=("params", "freq"),
+                    type="bad_frequency",
+                    msg=str(exc)[:200],
+                    hint="use a pandas offset alias such as 'D', 'W', 'MS' or leave freq null",
+                )
+            ]
         errors = []
         if len(s) < self.min_rows:
-            errors.append(ErrorDetail(loc=("params", "freq"), type="too_few_periods",
-                                      msg=f"only {len(s)} periods at frequency '{freq}'", hint="use a finer freq or more data"))
+            errors.append(
+                ErrorDetail(
+                    loc=("params", "freq"),
+                    type="too_few_periods",
+                    msg=f"only {len(s)} periods at frequency '{freq}'",
+                    hint="use a finer freq or more data",
+                )
+            )
         if params.period and len(s) < 2 * params.period:
-            errors.append(ErrorDetail(loc=("params", "period"), type="period_too_long",
-                                      msg=f"seasonal period {params.period} needs >= {2 * params.period} periods, have {len(s)}",
-                                      hint="lower period or set it to null"))
+            errors.append(
+                ErrorDetail(
+                    loc=("params", "period"),
+                    type="period_too_long",
+                    msg=f"seasonal period {params.period} needs >= {2 * params.period} periods, have {len(s)}",
+                    hint="lower period or set it to null",
+                )
+            )
         return errors
 
-    def compute_table(self, df: pd.DataFrame, params: TimeSeriesParams, ctx: StepContext, inputs: dict) -> TimeSeriesResult:
+    def compute_table(
+        self, df: pd.DataFrame, params: TimeSeriesParams, ctx: StepContext, inputs: dict
+    ) -> TimeSeriesResult:
         s, freq = self._series(df, params)
         warns = []
         adf_stat, adf_p = adfuller(s.values, autolag="AIC")[:2]
@@ -115,14 +136,32 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         if params.horizon:
             fc = fit.get_forecast(params.horizon)
             ci = fc.conf_int(alpha=params.alpha)
-            forecast = [ForecastPoint(time=str(idx.date() if hasattr(idx, "date") else idx), mean=m,
-                                      lower=ci.iloc[i, 0], upper=ci.iloc[i, 1])
-                        for i, (idx, m) in enumerate(fc.predicted_mean.items())]
+            forecast = [
+                ForecastPoint(
+                    time=str(idx.date() if hasattr(idx, "date") else idx),
+                    mean=m,
+                    lower=ci.iloc[i, 0],
+                    upper=ci.iloc[i, 1],
+                )
+                for i, (idx, m) in enumerate(fc.predicted_mean.items())
+            ]
         if adf_p >= 0.05 and params.order[1] == 0:
             warns.append(f"series looks non-stationary (ADF p={adf_p:.3g}) but order has d=0")
         if seas_str is not None and seas_str > 0.6:
             warns.append(f"strong seasonality (Fs={seas_str:.2f}); plain ARIMA ignores it, consider SARIMA/ETS")
-        return TimeSeriesResult(n_used=len(s), start=str(s.index.min()), end=str(s.index.max()), freq=str(freq),
-                                n_periods=len(s), adf_statistic=adf_stat, adf_p_value=adf_p, stationary=bool(adf_p < 0.05),
-                                trend_strength=trend_str, seasonal_strength=seas_str, arima_order=params.order,
-                                arima_aic=fit.aic, forecast=forecast, warnings=warns)
+        return TimeSeriesResult(
+            n_used=len(s),
+            start=str(s.index.min()),
+            end=str(s.index.max()),
+            freq=str(freq),
+            n_periods=len(s),
+            adf_statistic=adf_stat,
+            adf_p_value=adf_p,
+            stationary=bool(adf_p < 0.05),
+            trend_strength=trend_str,
+            seasonal_strength=seas_str,
+            arima_order=params.order,
+            arima_aic=fit.aic,
+            forecast=forecast,
+            warnings=warns,
+        )

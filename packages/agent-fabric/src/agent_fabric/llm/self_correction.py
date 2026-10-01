@@ -30,8 +30,10 @@ _TRAILING_COMMA = re.compile(r",\s*([}\]])")
 def extract_json(text: str) -> Any:
     """Return the first JSON object/array found in ``text`` or raise ``LLMOutputError``."""
     if not text or not text.strip():
-        raise LLMOutputError("Empty model output", [ErrorDetail(type="empty_output", msg="the answer was empty",
-                                                                hint="answer with a single JSON object")])
+        raise LLMOutputError(
+            "Empty model output",
+            [ErrorDetail(type="empty_output", msg="the answer was empty", hint="answer with a single JSON object")],
+        )
     candidates = [m.group(1) for m in _FENCE.finditer(text)] + [text]
     last_err: json.JSONDecodeError | None = None
     for cand in candidates:
@@ -45,12 +47,26 @@ def extract_json(text: str) -> Any:
             except json.JSONDecodeError as exc:
                 last_err = exc
     if last_err is None:
-        raise LLMOutputError("No JSON object in model output",
-                             [ErrorDetail(type="no_json", msg="could not find '{' in the answer",
-                                          hint="reply with only a JSON object, no prose")])
-    raise LLMOutputError("Model output is not valid JSON",
-                         [ErrorDetail(type="json_decode", msg=f"{last_err.msg} at line {last_err.lineno} column {last_err.colno}",
-                                      hint="use double quotes, no comments, no trailing commas")])
+        raise LLMOutputError(
+            "No JSON object in model output",
+            [
+                ErrorDetail(
+                    type="no_json",
+                    msg="could not find '{' in the answer",
+                    hint="reply with only a JSON object, no prose",
+                )
+            ],
+        )
+    raise LLMOutputError(
+        "Model output is not valid JSON",
+        [
+            ErrorDetail(
+                type="json_decode",
+                msg=f"{last_err.msg} at line {last_err.lineno} column {last_err.colno}",
+                hint="use double quotes, no comments, no trailing commas",
+            )
+        ],
+    )
 
 
 def extract_text(text: str) -> str:
@@ -78,7 +94,7 @@ def _balanced(s: str, start: int) -> str:
         elif ch in "}]":
             depth -= 1
             if depth == 0:
-                return s[start:i + 1]
+                return s[start : i + 1]
     return s[start:]  # unbalanced: let json.loads report the precise error
 
 
