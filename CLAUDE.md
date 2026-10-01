@@ -126,8 +126,8 @@ examples/evals/                  planner_cases.yaml (regression cases); run_eval
 ```bash
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
-uv run ruff check .                         # pyflakes (F) + pyupgrade (UP); see [tool.ruff.lint]
-# CI (.github/workflows/ci.yml) runs: pytest, ruff, the three lint commands below, and run_evals --mode rules (informational)
+uv run ruff check .                         # see [tool.ruff.lint] for the rule set
+# CI (.github/workflows/ci.yml) runs: pytest, ruff (rules F UP E I B SIM RUF PT), the lint commands below, and run_evals --mode rules (informational)
 python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \
        --agents config --schemas stat_fabric.schemas:SCHEMAS --strict
 python -m agent_fabric.lint --domains lake_fabric.domain:register --agents config/lakehouse \
@@ -393,11 +393,15 @@ rejects duplicate names). Keep YAML only for legacy packs.
 
 - Dependencies are managed with `uv` in a workspace: add with `uv add --package <dist> <dep>` (dist names =
   `agent-fabric`/`statistics`/`lakehouse`/`coworker`), never `pip install` (it desyncs `uv.lock`).
-- **Commits are conventional with package scopes**: `feat(statistics): …`, `fix(agent-fabric): …` — the
-  scope decides which package python-semantic-release bumps (`<pkg>-vX.Y.Z` tags + CHANGELOG.md, pushed
-  by the release workflow on main; no matching scope = no bump). Cross-cutting changes: no scope/`chore`.
+- **Commits are conventional with package scopes**: `feat(statistics): …`, `fix(agent-fabric): …`. PR titles are linted
+  (`pr-title` workflow) and, squash-merged, become the commit that **release-please** reads: it keeps one release PR per
+  package (`release-please-config.json`, `.release-please-manifest.json`); merging it tags `<pkg>-vX.Y.Z`, writes
+  `packages/<pkg>/CHANGELOG.md`, bumps `pyproject.toml` and `uv.lock`. A path outside `packages/<pkg>/` triggers no bump;
+  cross-cutting changes use `chore`/`ci`/`docs`. Pre-1.0 packages bump minor on breaking changes.
 - Package versions bump automatically per package; **SKILL.md `version:` fields stay manual** — they mark
   contract changes (minor = new optional field, major = breaking), not releases.
+- Packs depend on the core with a bounded range (`agent-fabric>=0.2,<1`); widen it deliberately when the core makes a
+  breaking change. License: MIT (root `LICENSE`, copied into each package).
 - Python ≥ 3.12, `from __future__ import annotations`, type hints, ruff line length 120. Generics use PEP 695 syntax
   (`class Component[P: ComponentParams, R: ComponentResult]`, `def f[T](...)`, `type X = ...`), not `TypeVar`/`Generic`.
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.

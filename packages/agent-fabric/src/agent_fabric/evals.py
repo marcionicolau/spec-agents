@@ -12,9 +12,9 @@ The same score is the DSPy optimisation metric (``integrations.dspy.plan_metric`
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-from collections.abc import Iterable
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field

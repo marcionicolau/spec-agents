@@ -156,7 +156,7 @@ def main() -> None:
     if args.mode == "crew":
         from agent_fabric.integrations.crewai import build_crew
 
-        crew, ctx = build_crew(fabric, QUESTION, inputs)
+        crew, _ctx = build_crew(fabric, QUESTION, inputs)
         print(crew.kickoff())
         return
 

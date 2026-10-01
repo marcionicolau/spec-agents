@@ -8,7 +8,7 @@ session ids (``<session>/<agent path>``) so each agent in a tree has its own mem
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field

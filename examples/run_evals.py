@@ -23,7 +23,6 @@ from agent_fabric.pipeline import PipelineInputs  # noqa: E402
 from examples.run_demo import make_data  # noqa: E402
 from stat_fabric.rules import StatsRulePlanner  # noqa: E402
 
-
 DOMAINS = {  # name -> (register callable path, agents dir, planner agent, cases file)
     "statistics": ("stat_fabric.domain", "config", "statistician", "planner_cases.yaml"),
     "lakehouse": ("lake_fabric.domain", "config/lakehouse", "dag_engineer", "lakehouse_cases.yaml"),

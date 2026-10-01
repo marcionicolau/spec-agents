@@ -13,10 +13,11 @@ Extension points (no call-site changes):
 
 from __future__ import annotations
 
+import contextlib
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable
 
 from pydantic import BaseModel
 
@@ -152,10 +153,8 @@ class AgentFabric:
             for backend in (a.backend, a.fallback):
                 mod = self._LAZY.get((a.kind, backend or ""))
                 if mod and (a.kind, backend) not in self._builders:
-                    try:
+                    with contextlib.suppress(ImportError):
                         importlib.import_module(mod)
-                    except ImportError:
-                        pass
 
     def validate(self) -> list[ErrorDetail]:
         self._load_lazy_backends()

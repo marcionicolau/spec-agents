@@ -19,7 +19,7 @@ STATS_PIPELINES = {"exploratory_analysis", "experiment_analysis", "full_study"}
 
 def test_domains_and_components(registry):
     assert set(registry.domains()) == {"statistics", "text"}
-    assert STATS | STATS_PIPELINES <= set(registry.names(["statistics"]))
+    assert set(registry.names(["statistics"])) >= STATS | STATS_PIPELINES
     assert set(registry.names(["text"])) == {"text_stats", "keywords", "document_digest"}
     assert set(registry.pipelines()) == STATS_PIPELINES | {"document_digest"}
 

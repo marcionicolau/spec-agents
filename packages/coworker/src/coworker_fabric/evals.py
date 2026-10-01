@@ -84,7 +84,7 @@ def run_cases(root: str | Path, cases: list[ContextCase], **select_params: Any) 
 
 def table(scores: list[CaseScore]) -> str:
     rows = [f"{'case':30} {'score':>5} {'recall':>6} {'prec':>5} {'rank':>4} {'files':>5} {'tokens':>6}  missing"]
-    rows += [f"{s.name:30} {s.score:5.2f} {s.recall:6.2f} {s.precision:5.2f} {str(s.first_hit_rank or '-'):>4} {s.n_selected:5d} {s.tokens:6d}  "
+    rows += [f"{s.name:30} {s.score:5.2f} {s.recall:6.2f} {s.precision:5.2f} {s.first_hit_rank or '-'!s:>4} {s.n_selected:5d} {s.tokens:6d}  "
              f"{', '.join(s.missing)}" for s in scores]
     n = len(scores)
     rows.append(f"mean score {sum(s.score for s in scores) / n:.3f}   recall {sum(s.recall for s in scores) / n:.3f}   "

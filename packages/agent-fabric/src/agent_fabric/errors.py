@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import difflib
 import json
+from collections.abc import Iterable, Sequence
 from enum import StrEnum
 from typing import Any, ClassVar
-from collections.abc import Iterable, Sequence
 
 from pydantic import BaseModel, Field, ValidationError
 

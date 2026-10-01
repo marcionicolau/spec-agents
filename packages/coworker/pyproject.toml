@@ -3,8 +3,10 @@ name = "coworker"
 version = "1.0.0"
 description = "Coworker domain pack for agent-fabric: repo_index, context_select, context_pack, code_review, patch_propose"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
-  "agent-fabric",
+  "agent-fabric>=0.2,<1",
 ]
 
 [project.entry-points."agent_fabric.domains"]
@@ -25,10 +27,3 @@ package = true
 
 [tool.uv.sources]
 agent-fabric = { workspace = true }
-
-[tool.semantic_release]
-version_toml = ["packages/coworker/pyproject.toml:project.version"]
-tag_format = "coworker-v{version}"
-commit_scope = "coworker"
-changelog_file = "packages/coworker/CHANGELOG.md"
-build_command = ""

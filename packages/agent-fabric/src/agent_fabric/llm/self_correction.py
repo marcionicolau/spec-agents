@@ -14,15 +14,14 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
-from collections.abc import Callable
 
 from pydantic import ValidationError
 
 from ..errors import ErrorDetail, ErrorReport, FabricError, LLMOutputError, details_from_pydantic
 from .backends import LLMBackend, Message
-
 
 _FENCE = re.compile(r"```(?:json|JSON)?\s*(.*?)```", re.S)
 _TRAILING_COMMA = re.compile(r",\s*([}\]])")
