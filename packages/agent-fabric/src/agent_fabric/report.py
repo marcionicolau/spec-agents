@@ -38,6 +38,7 @@ def _agent_section(r: AgentResult, level: int) -> list[str]:
 
 
 def render_markdown(report: AgentRunReport, trace: bool = True) -> str:
+    """Render an `AgentRunReport` as Markdown: instruction, usage, agent tree, per-agent sections and (optionally) the event trace."""
     lines = [f"# {report.instruction}", "", f"usage: {report.usage}", "", "```", report.result.tree(), "```", ""]
     lines += _agent_section(report.result, 2)
     if trace:

@@ -29,6 +29,7 @@ def _require() -> None:
 
 
 def configure_dspy(settings: LLMSettings | None = None, model: str | None = None) -> Any:
+    """Point DSPy at the LiteLLM proxy using the planner model of ``settings`` (or ``model``); returns the ``dspy.LM``."""
     _require()
     s = settings or LLMSettings()
     lm = dspy.LM(
@@ -99,6 +100,11 @@ def plan_metric(example: Any, pred: Any, trace: Any = None) -> float:
 
 
 def optimize_planner(program: Any, trainset: list[Any], max_demos: int = 3) -> Any:
+    """Optimise a DSPy planning program with ``BootstrapFewShot``.
+
+    The plan validators are the metric (`plan_metric`), so the selected demonstrations are the ones that make the local model emit valid
+    plans. ``trainset`` is a list of DSPy examples; returns the compiled program.
+    """
     _require()
     return dspy.BootstrapFewShot(
         metric=plan_metric, max_bootstrapped_demos=max_demos, max_labeled_demos=max_demos
@@ -106,6 +112,12 @@ def optimize_planner(program: Any, trainset: list[Any], max_demos: int = 3) -> A
 
 
 class DSPyPlanner:
+    """Planner backed by a DSPy program (planner backend ``dspy``).
+
+    Validates every proposed plan with the same validators as the other planners, retrying up to ``max_attempts``. Requires the ``dspy``
+    extra.
+    """
+
     name = "dspy"
 
     def __init__(

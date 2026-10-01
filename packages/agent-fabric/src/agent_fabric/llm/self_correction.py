@@ -70,6 +70,7 @@ def extract_json(text: str) -> Any:
 
 
 def extract_text(text: str) -> str:
+    """Return the model answer stripped of surrounding whitespace; an empty answer raises `LLMOutputError`."""
     if not text or not text.strip():
         raise LLMOutputError("Empty model output", [ErrorDetail(type="empty_output", msg="the answer was empty")])
     return text.strip()

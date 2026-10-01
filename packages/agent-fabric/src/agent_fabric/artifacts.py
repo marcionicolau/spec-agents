@@ -23,6 +23,13 @@ class NoConstraints(BaseModel):
 
 
 class ArtifactType:
+    """Base class of artifact types: what a value is, how it is profiled and which constraints a port can declare.
+
+    The base type (``any``) accepts every Python object. Subclasses set ``name``, ``python_types`` and ``specificity`` (higher wins when the
+    type of a raw value is inferred), define a ``Constraints`` model and override `profile`, ``static_check`` (plan time, profile only) and
+    ``runtime_check`` (execution time, real value). Register instances in a `TypeRegistry`.
+    """
+
     name: ClassVar[str] = "any"
     Constraints: ClassVar[type[BaseModel]] = NoConstraints
     python_types: ClassVar[tuple[type, ...]] = (object,)
@@ -63,6 +70,8 @@ class ArtifactType:
 
 
 class JsonType(ArtifactType):
+    """Artifact type ``json``: a ``dict`` or ``list`` of JSON-like data."""
+
     name = "json"
     python_types = (dict, list)
     specificity = 1
@@ -84,6 +93,12 @@ class TextProfile(BaseModel):
 
 
 class TextType(ArtifactType):
+    """Artifact type ``text``: a ``str``, profiled by character and word counts.
+
+    Port constraints (`TextConstraints`): ``min_chars`` (default 1) and ``max_chars``; violations are reported as ``text_too_short`` and
+    ``text_too_long`` at plan time.
+    """
+
     name = "text"
     Constraints = TextConstraints
     python_types = (str,)
@@ -111,6 +126,8 @@ class TextType(ArtifactType):
 
 
 class NumberType(ArtifactType):
+    """Artifact type ``number``: an ``int`` or ``float`` (booleans are rejected)."""
+
     name = "number"
     python_types = (int, float)
     specificity = 1
@@ -120,6 +137,12 @@ class NumberType(ArtifactType):
 
 
 class TypeRegistry:
+    """Registry of artifact types by name; starts with ``any``, ``json``, ``text`` and ``number``.
+
+    `register` adds or replaces a type (domain packs add theirs, e.g. ``dataframe``); ``get`` raises a `SpecError` with a suggestion for unknown
+    names; the registry can also infer the type of a raw value (most specific match wins).
+    """
+
     def __init__(self) -> None:
         self._types: dict[str, ArtifactType] = {}
         for t in (ArtifactType(), JsonType(), TextType(), NumberType()):

@@ -41,6 +41,7 @@ REF_RE = re.compile(r"^(\$inputs|\$params|[a-z][a-z0-9_]*)\.[a-z][a-z0-9_]*$")
 
 
 def types_compatible(src: str, dst: str) -> bool:
+    """Whether an artifact of type ``src`` can feed a port of type ``dst`` (equal types, or either side ``any``)."""
     return dst == "any" or src == "any" or src == dst
 
 
@@ -149,6 +150,10 @@ class PipelineInputs:
 
 
 def resolve_bindings(step: PipelineStep, comp: Component, inputs: PipelineInputs | None) -> dict[str, str]:
+    """Return the final ``port -> reference`` bindings of a step.
+
+    Explicit bindings win; unbound ports auto-bind to a same-named pipeline input or, for a required port, to the only type-compatible input.
+    """
     bindings = dict(step.inputs)
     if inputs is None:
         return bindings
@@ -184,6 +189,11 @@ def _has_param_ref(v: Any) -> bool:
 def semantic_errors(
     plan: PipelinePlan, registry: Any, inputs: PipelineInputs | None, allow_param_refs: bool = False
 ) -> list[ErrorDetail]:
+    """Check a parsed plan against the registry and the input profiles; returns every problem found.
+
+    Covers unknown components, unbound or mistyped ports, bad references, unknown params and static constraints. With ``allow_param_refs``
+    ``$params.*`` references are accepted (pipeline templates).
+    """
     errors: list[ErrorDetail] = []
     by_id = {s.id: s for s in plan.steps}
     for i, step in enumerate(plan.steps):
@@ -329,6 +339,7 @@ def parse_plan(
 
 
 def validate_pipeline_spec(pspec: PipelineSpec, registry: Any) -> None:
+    """Validate a `PipelineSpec` against the registry at registration time; raises a `SpecError` with every problem found."""
     raw = {"objective": pspec.title, "steps": [s.model_dump() for s in pspec.steps], "outputs": pspec.outputs}
     try:
         parse_plan(raw, registry, PipelineInputs(pspec.inputs, None, registry.types), allow_param_refs=True)

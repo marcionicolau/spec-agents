@@ -137,6 +137,30 @@ jobs:
         env:
           PACKAGE: ${{ matrix.package }}
 
+  docs:
+    # the documentation site must build strictly (broken references, bad docstring markup); kept as an artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # version comes from git tags
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.19"
+          enable-cache: true
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.58.0"
+      - run: just sync
+      - run: just docs
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: docs-site
+          path: build/site/
+          retention-days: 7
+
   extras:
     # every optional framework installed: the adapter tests must run (no skips) and coverage is enforced
     needs: changes
@@ -210,7 +234,7 @@ jobs:
   ci-ok:
     # the only status check branch protection needs to require
     if: always()
-    needs: [changes, lint, specs, test, extras, build, lowest]
+    needs: [changes, lint, specs, test, extras, build, docs, lowest]
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:

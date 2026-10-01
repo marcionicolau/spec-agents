@@ -188,6 +188,10 @@ def _preview(value: Any, limit: int = 80) -> Any:
 
 
 def details_from_pydantic(exc: ValidationError, prefix: Iterable[str | int] = ()) -> list[ErrorDetail]:
+    """Convert a Pydantic ``ValidationError`` into located `ErrorDetail` entries.
+
+    ``prefix`` is prepended to every ``loc``. Adds actionable hints for the common cases (extra field, missing field).
+    """
     prefix = tuple(prefix)
     out: list[ErrorDetail] = []
     for err in exc.errors(include_url=False):

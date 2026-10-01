@@ -298,6 +298,11 @@ TASKS = ("ensure_tables", "load_bronze", "quality_gate", "bronze_to_silver", "re
 
 
 def render_dag(config: dict[str, Any]) -> str:
+    """Render the Airflow DAG source for a validated ingestion config.
+
+    Only ``pprint``-ed validated values are interpolated into a static template; no value reaches code or SQL text. The result should be
+    checked with the ``dag_check`` component before use.
+    """
     kind = config["source"]["type"]
     needs_hook = kind in ("api", "mcp")
     text = HEAD.format(

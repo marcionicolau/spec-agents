@@ -86,6 +86,10 @@ def grounding_errors_texts(texts: list[tuple[tuple[str | int, ...], str]], *sour
 
 
 def grounding_errors(interp: Interpretation, *sources: Any) -> list[ErrorDetail]:
+    """Return an `ErrorDetail` for every number in the interpretation that does not appear in ``sources``.
+
+    Used to reject invented numbers in headlines, findings and caveats. Small integers are not policed.
+    """
     texts: list[tuple[tuple[str | int, ...], str]] = [(("headline",), interp.headline)]
     texts += [(("findings", i), t) for i, t in enumerate(interp.findings)]
     texts += [(("caveats", i), t) for i, t in enumerate(interp.caveats)]
@@ -94,6 +98,12 @@ def grounding_errors(interp: Interpretation, *sources: Any) -> list[ErrorDetail]
 
 # ------------------------------------------------------------------ interpreters
 class LLMInterpreter:
+    """Interprets a step result with an LLM, then checks the answer is grounded.
+
+    Sends the compacted result and the skill's interpretation guide to the model and parses an `Interpretation`. With ``check_grounding``,
+    numbers in the text must appear in the result; violations are fed back for self-correction. Returns ``None`` for steps without a result.
+    """
+
     def __init__(self, backend: LLMBackend, settings: LLMSettings | None = None, check_grounding: bool = True) -> None:
         self.backend, self.s, self.check_grounding = backend, settings or LLMSettings(), check_grounding
 

@@ -39,6 +39,12 @@ DEFAULT_CONFIG = AgentsConfig(
 
 
 class StatisticalAnalysisFabric:
+    """Facade over the generic fabric for statistical analysis.
+
+    ``from_config(path, domains=...)`` loads an agent tree (default: one ``statistician`` planner with a rules fallback); ``analyze(df, question)``
+    runs it on a DataFrame and returns an `AgentRunReport`.
+    """
+
     def __init__(
         self,
         config: AgentsConfig | None = None,

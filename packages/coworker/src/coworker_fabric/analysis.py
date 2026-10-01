@@ -58,6 +58,7 @@ STOPWORDS = {
 
 
 def token_estimate(text: str) -> int:
+    """Cheap token estimate for a text: about one token per four characters."""
     return (len(text) + 3) // 4
 
 

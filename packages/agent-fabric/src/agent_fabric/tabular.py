@@ -76,6 +76,7 @@ def _looks_datetime(s: pd.Series) -> bool:
 
 
 def infer_kind(s: pd.Series) -> ColumnKind:
+    """Classify a column as numeric, categorical, datetime, boolean or text (`ColumnKind`)."""
     if ptypes.is_bool_dtype(s):
         return ColumnKind.BOOLEAN
     if ptypes.is_numeric_dtype(s):
@@ -91,6 +92,7 @@ def infer_kind(s: pd.Series) -> ColumnKind:
 
 
 def profile_dataframe(df: pd.DataFrame) -> DatasetProfile:
+    """Profile a DataFrame: per-column kind, missing values and summary statistics, as a `DatasetProfile`."""
     cols, n = [], len(df)
     for name in df.columns:
         s = df[name]
@@ -110,6 +112,7 @@ def profile_dataframe(df: pd.DataFrame) -> DatasetProfile:
 
 
 def coerce_datetime(s: pd.Series) -> pd.Series:
+    """Return the series parsed as datetimes when it looks like dates (unparseable values become ``NaT``), else unchanged."""
     if infer_kind(s) == ColumnKind.DATETIME and not ptypes.is_datetime64_any_dtype(s):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -154,6 +157,7 @@ def _kind_ok(kind: ColumnKind, required: str) -> bool:
 
 
 def role_columns(params: BaseModel, role: ColumnRole) -> list[str]:
+    """Columns named by the parameter that carries a column role, as a list (empty when the parameter is unset)."""
     value = getattr(params, role.param, None)
     if value is None:
         return []
@@ -161,6 +165,7 @@ def role_columns(params: BaseModel, role: ColumnRole) -> list[str]:
 
 
 def used_columns(params: BaseModel, constraints: TableConstraints) -> list[str]:
+    """All distinct columns a component's parameters reference through the declared column roles, in order."""
     cols: list[str] = []
     for role in constraints.roles:
         cols += [c for c in role_columns(params, role) if c not in cols]
@@ -168,6 +173,8 @@ def used_columns(params: BaseModel, constraints: TableConstraints) -> list[str]:
 
 
 class DataFrameType(ArtifactType):
+    """Artifact type ``dataframe`` (pandas ``DataFrame``), with column-role constraints (`TableConstraints`)."""
+
     name = "dataframe"
     Constraints = TableConstraints
     python_types = (pd.DataFrame,)
@@ -304,6 +311,8 @@ class SeriesProfile(BaseModel):
 
 
 class SeriesType(ArtifactType):
+    """Artifact type ``series`` (pandas ``Series``), profiled by name, length and dtype."""
+
     name = "series"
     python_types = (pd.Series,)
     specificity = 2
@@ -315,6 +324,7 @@ class SeriesType(ArtifactType):
 
 
 def register_tabular_types(types: Any) -> None:
+    """Register the ``dataframe`` and ``series`` artifact types in a `TypeRegistry` (called when pandas is installed)."""
     types.register(DataFrameType())
     types.register(SeriesType())
 

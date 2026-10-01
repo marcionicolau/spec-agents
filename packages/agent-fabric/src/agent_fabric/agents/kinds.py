@@ -299,6 +299,12 @@ class DelegationPlan(BaseModel):
 
 
 def delegation_errors(plan: DelegationPlan, children: list[str], keys: list[str], max_n: int) -> list[ErrorDetail]:
+    """Validate a router's `DelegationPlan` and return every problem found.
+
+    Checks the number of delegations against ``max_n``, duplicate ids, unknown agents (``children`` are the allowed sub-agents),
+    unknown inputs (``keys`` are the blackboard keys, or ``@<delegation_id>``) and dependency cycles. An empty list means the plan is valid;
+    the errors are fed back to the model for self-correction.
+    """
     errors: list[ErrorDetail] = []
     ids = [d.id for d in plan.delegations]
     if len(ids) > max_n:

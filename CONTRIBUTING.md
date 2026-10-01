@@ -10,6 +10,10 @@ uv run ruff check . && uv run ruff format --check .
 ```
 `just check` runs everything CI runs (`just` lists recipes; see CLAUDE.md section 3 for the raw commands).
 
+## Documentation
+`just docs` builds the site (guides in `docs/` + API reference generated from docstrings, Google style); `just docs-serve` previews it.
+Public names must be in `__all__` and have a docstring (`tests/test_public_api.py`); the build fails on broken references.
+
 ## Issues and labels
 Every issue gets one of each: `pkg:*` (package or area), `stage:*` (triage → needs-design → ready → in-progress → needs-review → released;
 `blocked` and `needs-eval` as needed) and a type (`bug`, `enhancement`, `documentation`, `type:*`). Issue forms apply `stage:triage` and the `pkg:` label

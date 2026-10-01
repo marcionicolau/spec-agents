@@ -248,6 +248,10 @@ def _validate(raw: dict[str, Any], where: str) -> AnySpec:
 
 
 def load_spec(path: str | Path) -> AnySpec:
+    """Load one spec file (``SKILL.md`` or legacy YAML) as a `ComponentSpec` or `PipelineSpec`.
+
+    Raises a `SpecError` with located details when the file is invalid or the skill folder and ``name`` differ.
+    """
     path = Path(path)
     if path.suffix.lower() == ".md":
         doc = read_markdown(path)

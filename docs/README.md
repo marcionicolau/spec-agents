@@ -1,5 +1,11 @@
 # Documentation
 
+This folder is also the source of the documentation site (mkdocs-material + mkdocstrings): `just docs` builds it into `build/site`
+(warnings fail the build), `just docs-serve` previews it. The **API reference** pages are generated from the code at build time
+(`docs/gen_reference.py`): one page per package, listing only the names in each module's `__all__`, rendered from the docstrings
+(Google style). CI builds the site on every PR and keeps it as the `docs-site` artifact; it is not published (no GitHub Pages on a
+private repo on the free plan).
+
 | Document                                  | Contents                                                                                           |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
 | [architecture.md](architecture.md)        | Stack, run flow, patterns, full directory map                                                      |
@@ -9,6 +15,6 @@
 | [maintenance.md](maintenance.md)          | What to run when you change a contract, prose or a model alias; lint and eval rules; pack rules   |
 | [releasing.md](releasing.md)              | Versions from git tags, release-please flow, labels and issue stages, CI gate                      |
 
-Rules for contributors and coding agents: [../CLAUDE.md](../CLAUDE.md). Contribution workflow: [../CONTRIBUTING.md](../CONTRIBUTING.md).
-Package READMEs: [agent-fabric](../packages/agent-fabric/README.md), [statistics](../packages/statistics/README.md),
-[lakehouse](../packages/lakehouse/README.md), [coworker](../packages/coworker/README.md), [text-pack](../packages/text-pack/README.md).
+Rules for contributors and coding agents: [../CLAUDE.md](https://github.com/marcionicolau/spec-agents/blob/main/CLAUDE.md). Contribution workflow: [../CONTRIBUTING.md](https://github.com/marcionicolau/spec-agents/blob/main/CONTRIBUTING.md).
+Package READMEs: [agent-fabric](https://github.com/marcionicolau/spec-agents/blob/main/packages/agent-fabric/README.md), [statistics](https://github.com/marcionicolau/spec-agents/blob/main/packages/statistics/README.md),
+[lakehouse](https://github.com/marcionicolau/spec-agents/blob/main/packages/lakehouse/README.md), [coworker](https://github.com/marcionicolau/spec-agents/blob/main/packages/coworker/README.md), [text-pack](https://github.com/marcionicolau/spec-agents/blob/main/packages/text-pack/README.md).

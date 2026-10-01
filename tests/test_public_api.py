@@ -1,6 +1,7 @@
 """The public API surface: what each module exports in ``__all__`` must exist and (ratchet) be documented.
 
-Docstring debt is tracked in ``tests/public_api_undocumented.txt``: it may only shrink. Documenting a name means
+Docstring debt (module-level classes/functions and the public methods of exported classes) is tracked in
+``tests/public_api_undocumented.txt``: it may only shrink. Documenting a name means
 removing it from the file (the test fails on stale entries); adding a new public name without a docstring fails.
 Refresh the file after writing docstrings with ``python tests/test_public_api.py --update``.
 """
@@ -51,6 +52,24 @@ def undocumented() -> set[str]:
     return missing
 
 
+def undocumented_methods() -> set[str]:
+    """Public methods defined by an exported class itself (not inherited, not dunder) that have no docstring."""
+    missing = set()
+    for name, names in exported().items():
+        mod = importlib.import_module(name)
+        for n in names:
+            cls = getattr(mod, n)
+            if not (inspect.isclass(cls) and cls.__module__ == name):
+                continue
+            for attr, member in vars(cls).items():
+                fn = member.fget if isinstance(member, property) else getattr(member, "__func__", member)
+                if attr.startswith("_") or not inspect.isfunction(fn):
+                    continue
+                if not inspect.getdoc(fn):
+                    missing.add(f"{name}.{n}.{attr}")
+    return missing
+
+
 def debt() -> set[str]:
     return {line.strip() for line in DEBT_FILE.read_text().splitlines() if line.strip() and not line.startswith("#")}
 
@@ -76,7 +95,7 @@ def test_version_comes_from_the_installed_distribution():
 
 
 def test_docstring_debt_only_shrinks():
-    missing, allowed = undocumented(), debt()
+    missing, allowed = undocumented() | undocumented_methods(), debt()
     new = sorted(missing - allowed)
     stale = sorted(allowed - missing)
     assert not new, f"public names without a docstring (write one): {new}"
@@ -88,7 +107,9 @@ def test_docstring_debt_only_shrinks():
 if __name__ == "__main__":
     if "--update" in sys.argv:
         header = (
-            "# Public names (in __all__) still without a docstring. May only shrink; see tests/test_public_api.py.\n"
+            "# Public names (in __all__) and public methods still without a docstring.\n"
+            "# May only shrink; see tests/test_public_api.py.\n"
         )
-        DEBT_FILE.write_text(header + "".join(f"{n}\n" for n in sorted(undocumented())))
-        print(f"{len(undocumented())} undocumented public names written to {DEBT_FILE.name}")
+        debt_now = undocumented() | undocumented_methods()
+        DEBT_FILE.write_text(header + "".join(f"{n}\n" for n in sorted(debt_now)))
+        print(f"{len(debt_now)} undocumented public names/methods written to {DEBT_FILE.name}")

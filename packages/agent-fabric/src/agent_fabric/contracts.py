@@ -113,6 +113,10 @@ def _semver(v: str) -> tuple[int, int, int]:
 
 
 def bump_level(old: str, new: str) -> Level | Literal["down"]:
+    """Classify the version change between two ``X.Y.Z`` strings.
+
+    Returns ``"none"`` (patch or same), ``"minor"``, ``"major"``, or ``"down"`` when the new version is lower than the old one.
+    """
     o, n = _semver(old), _semver(new)
     if n < o:
         return "down"
@@ -164,6 +168,11 @@ def _load(path: Path) -> ComponentSpec | PipelineSpec | None:
 
 
 def check(root: str | Path, base: str) -> list[ContractIssue]:
+    """Compare every ``SKILL.md`` under ``root`` with the same file at git revision ``base``.
+
+    Returns one `ContractIssue` per skill whose contract changed without the matching ``version:`` bump (``error``) and per removed skill
+    (``notice``). Specs that do not parse are skipped; the drift lint reports them.
+    """
     root = Path(root).resolve()
     issues: list[ContractIssue] = []
     head = {p: root / p for p in skill_paths(root, None) if (root / p).exists()}

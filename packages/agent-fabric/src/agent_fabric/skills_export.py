@@ -32,10 +32,12 @@ _KEBAB = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
 def export_name(name: str) -> str:
+    """Agent Skills name for a fabric skill name (``_`` becomes ``-``)."""
     return name.replace("_", "-")
 
 
 def export_description(spec: ComponentSpec | PipelineSpec) -> str:
+    """Description of the exported skill: the spec description plus ``When to use: ...``, at most 1024 characters."""
     desc = " ".join(spec.description.split())
     when = spec.when_to_use
     if when and when != spec.description and when not in desc:
@@ -178,6 +180,7 @@ def validate_skill_dir(path: str | Path) -> list[str]:
 
 
 def validate_tree(root: str | Path) -> list[str]:
+    """Validate every skill directory under ``root`` and return all problems found."""
     return [e for d in sorted(Path(root).iterdir()) if d.is_dir() for e in validate_skill_dir(d)]
 
 

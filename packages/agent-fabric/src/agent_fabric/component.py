@@ -74,6 +74,13 @@ class ArtifactStore:
 
 
 class StepContext:
+    """What a component can see and do while it executes one pipeline step.
+
+    ``emit(name, value)`` stores a declared extra output in the `ArtifactStore` (undeclared names or wrong types raise a `SpecError`).
+    ``llm``, ``llm_settings`` and ``objective`` are provided for ``runtime: prompt`` components (``llm`` is ``None`` when the run has no
+    backend); ``on_step`` is propagated to nested pipelines.
+    """
+
     def __init__(
         self,
         store: ArtifactStore,

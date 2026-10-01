@@ -1,0 +1,71 @@
+site_name: agent-fabric
+site_description: Spec-driven pipelines and hierarchical agents; domain packs for statistics, lakehouse, coworker and text.
+repo_url: https://github.com/marcionicolau/spec-agents
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: build/site
+strict: true
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+validation:
+  links:
+    # docs link to files outside docs/ (CLAUDE.md, package READMEs): fine on GitHub, not part of the site
+    not_found: warn
+    unrecognized_links: ignore
+  anchors: warn
+
+plugins:
+  - search
+  - gen-files:
+      scripts:
+        - docs/gen_reference.py
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - packages/agent-fabric/src
+            - packages/statistics/src
+            - packages/lakehouse/src
+            - packages/coworker/src
+            - packages/text-pack/src
+          options:
+            docstring_style: google
+            filters: public
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            merge_init_into_class: true
+            show_if_no_docstring: false
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: README.md
+  - Guides:
+      - Architecture: architecture.md
+      - Extending: extending.md
+      - Agents: agents.md
+      - Error model: error-model.md
+      - Maintenance: maintenance.md
+      - Releasing: releasing.md
+  - API reference:
+      - Overview: reference/index.md
+      - agent-fabric: reference/agent-fabric.md
+      - statistics: reference/statistics.md
+      - lakehouse: reference/lakehouse.md
+      - coworker: reference/coworker.md
+      - text-pack: reference/text-pack.md

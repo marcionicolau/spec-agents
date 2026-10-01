@@ -112,6 +112,12 @@ def build_layout(
     gold_group_by: list[str],
     gold_measures: list[str],
 ) -> dict[str, Any]:
+    """Design the bronze, silver and gold layers of a table and the SQL that loads them.
+
+    Returns a JSON-serialisable layout: fully qualified table names, column types (inferred from the sample or given), the Trino/Iceberg DDL
+    and the bronze insert/reset/count, silver load (insert or merge on the business keys) and gold refresh statements. Identifiers are
+    validated and quoted; values are never interpolated into SQL.
+    """
     tables = {
         layer: fqn(catalog, schemas[layer], table if layer != "gold" else f"{table}_summary")
         for layer in ("bronze", "silver", "gold")
