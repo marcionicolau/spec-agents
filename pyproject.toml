@@ -10,6 +10,7 @@ dev = [
     "pytest>=8",
     "pytest-cov>=7.1.0",
     "ruff>=0.5",
+    "ty==0.0.84",
 ]
 
 [tool.pytest.ini_options]
@@ -45,3 +46,19 @@ omit = ["*/tests/*"]
 fail_under = 85
 show_missing = false
 skip_covered = true
+
+# ty is pre-1.0 (pinned in the dev group). Scope grows package by package; start with the core.
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+include = ["packages/agent-fabric/src"]
+
+[[tool.ty.overrides]]
+# dspy is an optional, dynamically typed dependency imported behind `try/except ImportError` (`dspy = None` fallback)
+include = ["packages/agent-fabric/src/agent_fabric/integrations/dspy.py"]
+
+[tool.ty.overrides.rules]
+unresolved-attribute = "ignore"
+call-non-callable = "ignore"
+invalid-argument-type = "ignore"

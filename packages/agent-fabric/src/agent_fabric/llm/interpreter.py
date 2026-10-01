@@ -86,7 +86,7 @@ def grounding_errors_texts(texts: list[tuple[tuple[str | int, ...], str]], *sour
 
 
 def grounding_errors(interp: Interpretation, *sources: Any) -> list[ErrorDetail]:
-    texts = [(("headline",), interp.headline)]
+    texts: list[tuple[tuple[str | int, ...], str]] = [(("headline",), interp.headline)]
     texts += [(("findings", i), t) for i, t in enumerate(interp.findings)]
     texts += [(("caveats", i), t) for i, t in enumerate(interp.caveats)]
     return grounding_errors_texts(texts, *sources)

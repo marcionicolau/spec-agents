@@ -176,12 +176,12 @@ class DataFrameType(ArtifactType):
     def profile(self, value: pd.DataFrame) -> DatasetProfile:
         return profile_dataframe(value)
 
-    def static_check(
-        self, profile: DatasetProfile, c: TableConstraints, params: BaseModel, loc: tuple[str | int, ...]
+    def static_check(  # ty: ignore[invalid-method-override]  # narrower profile/constraints types than the generic base
+        self, profile: DatasetProfile, constraints: TableConstraints, params: BaseModel, loc: tuple[str | int, ...]
     ) -> list[ErrorDetail]:
         errors: list[ErrorDetail] = []
         seen: dict[str, str] = {}
-        for role in c.roles:
+        for role in constraints.roles:
             cols = role_columns(params, role)
             ploc = ("params", role.param)
             if not cols:
@@ -245,7 +245,7 @@ class DataFrameType(ArtifactType):
                             msg=f"column '{col}' has {cp.n_unique} levels (max {role.max_levels})",
                         )
                     )
-                if c.distinct_roles and col in seen and seen[col] != role.role:
+                if constraints.distinct_roles and col in seen and seen[col] != role.role:
                     errors.append(
                         ErrorDetail(
                             loc=ploc,
@@ -255,27 +255,29 @@ class DataFrameType(ArtifactType):
                         )
                     )
                 seen.setdefault(col, role.role)
-        if profile.n_rows < c.min_rows:
+        if profile.n_rows < constraints.min_rows:
             errors.append(
-                ErrorDetail(loc=loc, type="too_few_rows", msg=f"{profile.n_rows} rows, at least {c.min_rows} required")
+                ErrorDetail(
+                    loc=loc, type="too_few_rows", msg=f"{profile.n_rows} rows, at least {constraints.min_rows} required"
+                )
             )
         return errors
 
-    def runtime_check(
-        self, value: pd.DataFrame, c: TableConstraints, params: BaseModel, loc: tuple[str | int, ...]
+    def runtime_check(  # ty: ignore[invalid-method-override]
+        self, value: pd.DataFrame, constraints: TableConstraints, params: BaseModel, loc: tuple[str | int, ...]
     ) -> list[ErrorDetail]:
         errors: list[ErrorDetail] = []
-        used = used_columns(params, c)
+        used = used_columns(params, constraints)
         complete = value[used].dropna() if used else value
-        if used and len(complete) < c.min_rows:
+        if used and len(complete) < constraints.min_rows:
             errors.append(
                 ErrorDetail(
                     loc=loc,
                     type="too_few_complete_rows",
-                    msg=f"only {len(complete)} complete rows for columns {used}; need {c.min_rows}",
+                    msg=f"only {len(complete)} complete rows for columns {used}; need {constraints.min_rows}",
                 )
             )
-        for role in c.roles:
+        for role in constraints.roles:
             if role.allow_constant or role.dtype != "numeric":
                 continue
             for col in role_columns(params, role):

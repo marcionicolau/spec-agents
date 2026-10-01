@@ -97,3 +97,22 @@ def test_load_input_missing():
 
     with pytest.raises(DependencyError):
         _load_input("x=/does/not/exist.txt")
+
+
+# ------------------------------------------------------------------ live view
+def test_live_view_renders_agents_steps_and_events():
+    """Regression: the board crashed with TypeError (invalid Table.grid kwarg) once an agent or event existed."""
+    from types import SimpleNamespace
+
+    from agent_fabric.cli.live import RunView
+
+    view = RunView("Digest this")
+    view.on_event(SimpleNamespace(event="start", path="note_taker", detail=""))
+    view.on_event(SimpleNamespace(event="llm_call", path="note_taker", detail="local-fast"))
+    view.on_step(SimpleNamespace(step_id="s1", component="summarize_notes", status="ok", duration_s=0.12))
+    view.on_event(SimpleNamespace(event="end", path="note_taker", detail="ok"))
+    console = cap()
+    console.print(view.renderable())
+    text = out(console)
+    for needle in ("note_taker", "agents", "pipeline steps", "events", "summarize_notes"):
+        assert needle in text

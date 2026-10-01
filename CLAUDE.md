@@ -130,6 +130,7 @@ justfile                         task runner: sync, fmt, lint, specs, test [pkg]
 
 ```bash
 just check                                  # everything CI runs (lint, specs, tests, wheels); `just` lists recipes
+just types                                  # ty type check (core only for now; needs --all-extras to resolve optional imports)
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
 uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
@@ -417,6 +418,9 @@ rejects duplicate names). Keep YAML only for legacy packs.
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.
 - `extra="forbid"` on every model an LLM (or YAML author) can produce.
 - Prompt _templates_ live in `llm/prompts.py`; domain wording lives in SKILL.md/AGENT.md bodies, never in code.
+- Types: every package ships `py.typed`; `ty` (pinned, pre-1.0) checks `packages/agent-fabric/src` in CI. Suppress with
+  `# ty: ignore[rule]` plus a reason, never a bare `# type: ignore`. `tests/test_boundaries.py` enforces rules 3 and 7
+  (no domain-pack imports in the core; optional frameworks only lazily or behind `try/except ImportError`).
 - Use `compact()` before sending results to a model.
 - Library warnings are captured per step into `result.warnings` as `[library] …`.
 - Don't: parse model prose beyond `extract_json`/`extract_text`; catch bare `Exception` outside the

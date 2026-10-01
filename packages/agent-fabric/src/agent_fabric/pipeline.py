@@ -355,7 +355,7 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
     @classmethod
     def from_spec(cls, pspec: PipelineSpec, registry: Any) -> PipelineComponent:
         fields = {k: (Any, ... if p.required else p.default) for k, p in pspec.params.items()}
-        params_model = create_model(f"{pspec.name}_params", __base__=ComponentParams, **fields)
+        params_model = create_model(f"{pspec.name}_params", __base__=ComponentParams, **fields)  # ty: ignore[no-matching-overload]
         by_id = {s.id: s for s in pspec.steps}
         outputs = {}
         for name, ref in pspec.outputs.items():

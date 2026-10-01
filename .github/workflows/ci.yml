@@ -134,6 +134,8 @@ jobs:
           enable-cache: true
       - uses: extractions/setup-just@v4
       - run: just sync --all-extras
+      - name: Type check (ty, optional frameworks resolved)
+        run: uv run ty check
       - name: Full suite with coverage, no skipped tests
         run: |
           uv run pytest -q -rs --cov --cov-report=term | tee pytest.log

@@ -45,7 +45,7 @@ class LangChainMemory:
     def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]:
         role_of = {"human": "user", "ai": "assistant", "system": "system"}
         msgs = [m for m in self._store(session_id).messages if m.additional_kwargs.get("kind") != KIND]
-        return [(role_of.get(m.type, "assistant"), str(m.content)) for m in msgs[-min(last_n, self.window) :]]
+        return [(role_of.get(m.type, "assistant"), str(m.content)) for m in msgs[-min(last_n, self.window) :]]  # ty: ignore[invalid-return-type]
 
     def remember_run(self, session_id: str, summary: RunSummary) -> None:
         self._store(session_id).add_message(

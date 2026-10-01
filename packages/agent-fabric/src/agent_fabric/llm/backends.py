@@ -110,7 +110,7 @@ class ScriptedBackend:
     """Deterministic backend for tests/demos: replays responses (strings or callables) in order."""
 
     def __init__(self, responses: Iterable[str | Callable[[list[Message]], str]]) -> None:
-        self.responses = deque(responses)
+        self.responses: deque[str | Callable[[list[Message]], str]] = deque(responses)
         self.calls: list[dict[str, Any]] = []
 
     def complete(
@@ -125,4 +125,4 @@ class ScriptedBackend:
         if not self.responses:
             raise AssertionError("ScriptedBackend ran out of responses")
         nxt = self.responses.popleft()
-        return nxt(messages) if callable(nxt) else nxt
+        return nxt if isinstance(nxt, str) else nxt(messages)

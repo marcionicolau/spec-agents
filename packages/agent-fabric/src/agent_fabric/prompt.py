@@ -126,7 +126,7 @@ class PromptComponent(Component[ComponentParams, PromptResult]):
         if errors:
             raise SpecError(f"Prompt spec '{spec.name}' is invalid", errors, component=spec.name)
         fields = {k: (Any, ... if p.required else p.default) for k, p in spec.params.items()}
-        params_model = create_model(f"{spec.name}_params", __base__=ComponentParams, **fields)
+        params_model = create_model(f"{spec.name}_params", __base__=ComponentParams, **fields)  # ty: ignore[no-matching-overload]
         sub = type(
             f"Prompt_{spec.name}", (cls,), {"Params": params_model, "spec_name": spec.name, "template": template}
         )
@@ -185,7 +185,9 @@ class PromptComponent(Component[ComponentParams, PromptResult]):
                     out[name] = data[name]
             extra = sorted(set(data) - set(declared))
             if not errors and (opts is None or opts.grounding):
-                texts = [(("outputs", n), v) for n, v in out.items() if isinstance(v, str)]
+                texts: list[tuple[tuple[str | int, ...], str]] = [
+                    (("outputs", n), v) for n, v in out.items() if isinstance(v, str)
+                ]
                 errors += self._grounding_errors(texts, inputs, params)
             if errors:
                 raise LLMOutputError(f"Prompt output has {len(errors)} problem(s)", errors)

@@ -150,7 +150,7 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
     # ------------------------------------------------------------------ params
     def parse_params(self, raw: dict[str, Any] | None) -> P:
         try:
-            return self.Params.model_validate(raw or {})  # type: ignore[return-value]
+            return self.Params.model_validate(raw or {})  # ty: ignore[invalid-return-type]
         except ValidationError as exc:
             raise ParamsValidationError(
                 f"Invalid parameters for '{self.spec.name}'",
@@ -229,7 +229,7 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
             result = self.Result.model_validate(result.model_dump())
             result.warnings.extend(f"[library] {m}" for m in lib)
             ctx.store.put(f"{ctx.step_id}.{RESULT_PORT}", result.model_dump(mode="json"))
-            return result  # type: ignore[return-value]
+            return result  # ty: ignore[invalid-return-type]
         except FabricError as exc:
             raise exc.with_context(component=self.spec.name, step_id=ctx.step_id) from None
         except ValidationError as exc:
