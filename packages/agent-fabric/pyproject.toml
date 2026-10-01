@@ -1,6 +1,6 @@
 [project]
 name = "agent-fabric"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy"
 requires-python = ">=3.12"
 license = "MIT"
@@ -25,11 +25,22 @@ pydantic-ai = ["pydantic-ai-slim[openai]>=1.0"]
 tabular = ["pandas>=2.1"]
 
 [build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]
+requires = ["hatchling", "uv-dynamic-versioning>=0.14"]
+build-backend = "hatchling.build"
 
 [tool.uv]
 package = true
+
+# version = latest "agent-fabric-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agent_fabric"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+pattern-prefix = "agent-fabric-"
+fallback-version = "0.0.0"
