@@ -18,7 +18,15 @@ line-length = 120
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["F", "UP"]
+select = ["F", "UP", "E", "I", "B", "SIM", "RUF", "PT"]
+# E501: line length is left to the formatter; the others are style-only and noisy in this codebase
+ignore = ["E501", "PT018", "RUF005", "RUF012", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E731", "PT006", "PT011", "B017", "RUF015"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "examples", "tests"]
 
 [tool.uv]
 package = false

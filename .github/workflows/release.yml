@@ -3,40 +3,25 @@ name: release
 on:
   push:
     branches: [main]
-  workflow_dispatch:
 
-# needs contents:write to push the version-bump commit and the <package>-v* tag
+# release-please opens/updates one release PR per package; merging it tags and creates the GitHub Release.
+# Use a PAT or GitHub App token (RELEASE_PLEASE_TOKEN) if the release PR must trigger CI; GITHUB_TOKEN-created
+# PRs do not start other workflows.
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
+  release-please:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        package: [agent-fabric, statistics, lakehouse, coworker]
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4.4.0
+      - uses: googleapis/release-please-action@v4
         with:
-          fetch-depth: 0 # semantic-release needs full history to diff tags
-      - uses: astral-sh/setup-uv@v10.2.0
-      - name: Release ${{ matrix.package }}
-        # conventional commits scoped to the package name drive bumps; no-op when
-        # nothing matching since the last <package>-v* tag
-        run: >-
-          uvx python-semantic-release
-          --config packages/${{ matrix.package }}/pyproject.toml
-          version --commit --tag --push --skip-build
-        env:
-          GIT_COMMITTER_NAME: github-actions[bot]
-          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json

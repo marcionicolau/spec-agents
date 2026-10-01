@@ -11,8 +11,8 @@ so they travel with the same backend and can be filtered out of chat history.
 
 from __future__ import annotations
 
-from typing import Any
 from collections.abc import Callable
+from typing import Any
 
 from ..errors import MissingOptionalDependency
 from .base import Role, RunSummary

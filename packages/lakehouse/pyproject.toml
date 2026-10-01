@@ -3,8 +3,10 @@ name = "lakehouse"
 version = "0.2.0"
 description = "Lakehouse domain pack for agent-fabric: source_inspect, medallion_plan, airflow_dag_render, dag_check"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
-  "agent-fabric",
+  "agent-fabric>=0.2,<1",
   "openpyxl>=3.1",
   "requests>=2.31",
 ]
@@ -27,10 +29,3 @@ package = true
 
 [tool.uv.sources]
 agent-fabric = { workspace = true }
-
-[tool.semantic_release]
-version_toml = ["packages/lakehouse/pyproject.toml:project.version"]
-tag_format = "lakehouse-v{version}"
-commit_scope = "lakehouse"
-changelog_file = "packages/lakehouse/CHANGELOG.md"
-build_command = ""

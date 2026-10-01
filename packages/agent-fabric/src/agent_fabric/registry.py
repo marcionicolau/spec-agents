@@ -8,10 +8,10 @@ A *domain pack* (statistics, text, ...) is a spec directory + component classes
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from importlib import metadata
 from pathlib import Path
 from typing import Any
-from collections.abc import Callable, Iterable
 
 from .artifacts import TypeRegistry
 from .errors import ErrorDetail, SpecError, suggest

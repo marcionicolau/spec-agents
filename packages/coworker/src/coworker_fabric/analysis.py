@@ -312,7 +312,7 @@ def pick_symbols(f: dict[str, Any], scorer: Scorer, budget_tokens: int, preamble
         return None
     head = min(max(f["symbols"][0]["line"] - 1, 0), preamble_lines) if f["symbols"] else 0
     used, chosen = head * 12, []
-    for sc, sym in sorted(scored, key=lambda t: (-t[0], t[1]["tokens"])):
+    for _, sym in sorted(scored, key=lambda t: (-t[0], t[1]["tokens"])):
         if any(c["line"] <= sym["line"] and sym["end_line"] <= c["end_line"] for c in chosen):
             continue  # already inside a chosen symbol
         chosen = [c for c in chosen if not (sym["line"] <= c["line"] and c["end_line"] <= sym["end_line"])]  # swallow contained ones

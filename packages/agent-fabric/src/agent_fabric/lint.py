@@ -22,9 +22,9 @@ import argparse
 import importlib
 import re
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, Literal
-from collections.abc import Iterable
 
 from pydantic import BaseModel
 

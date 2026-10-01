@@ -11,8 +11,8 @@ All planners return plans that passed ``parse_plan`` and are scoped to their dom
 from __future__ import annotations
 
 import json
-from typing import Any, Protocol
 from collections.abc import Callable, Iterable
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import math
 import re
-from typing import Any, Literal, Protocol
 from collections.abc import Iterable
+from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
@@ -64,10 +64,7 @@ def _grounded(token: str, pool: list[float]) -> bool:
     tol = 0.5 * 10 ** (-decimals) * 1.001
     if abs(x) <= 10 and decimals == 0 and not pct:
         return True  # small integers ("2 clusters", "3 groups") are not policed
-    for v in pool:
-        if abs(abs(v) - abs(x)) <= tol or (pct and abs(v * 100 - abs(x)) <= tol):
-            return True
-    return False
+    return any(abs(abs(v) - abs(x)) <= tol or (pct and abs(v * 100 - abs(x)) <= tol) for v in pool)
 
 
 def grounding_errors_texts(texts: list[tuple[tuple[str | int, ...], str]], *sources: Any) -> list[ErrorDetail]:

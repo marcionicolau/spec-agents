@@ -242,7 +242,7 @@ class MedallionPlan(Component[MedallionPlanParams, MedallionPlanResult]):
         if params.load_mode == "merge" and not params.business_keys:
             errs.append(ErrorDetail(loc=("params", "business_keys"), type="keys_required",
                                     msg="merge needs at least one business key", hint="set business_keys or use load_mode 'append'"))
-        clash = [c for c in cols if c in ("row_count",) or c.startswith(("avg_", "min_", "max_")) and c[4:] in params.gold_measures]
+        clash = [c for c in cols if c in ("row_count",) or (c.startswith(("avg_", "min_", "max_")) and c[4:] in params.gold_measures)]
         if clash and params.gold_measures:
             errs.append(ErrorDetail(loc=("params", "gold_measures"), type="gold_name_clash",
                                     msg=f"gold aggregate names clash with source columns {clash}", hint="rename the source columns"))

@@ -3,6 +3,8 @@ name = "agent-fabric"
 version = "0.2.0"
 description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
 dependencies = [
   "numpy>=1.26",
   "pydantic>=2.7",
@@ -25,13 +27,6 @@ tabular = ["pandas>=2.1"]
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
-
-[tool.semantic_release]
-version_toml = ["packages/agent-fabric/pyproject.toml:project.version"]
-tag_format = "agent-fabric-v{version}"
-commit_scope = "agent-fabric"
-changelog_file = "packages/agent-fabric/CHANGELOG.md"
-build_command = ""
 
 [tool.setuptools.packages.find]
 where = ["src"]
