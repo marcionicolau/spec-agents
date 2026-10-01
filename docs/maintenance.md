@@ -9,7 +9,7 @@
 | New skill / agent                                  | `scaffold` → fill sections → `lint --strict` → tests for its checks                                                                                                                                     |
 
 Lint rules (`agent_fabric/lint.py`): unknown backticked identifiers, missing canonical sections, broken
-relative links (error), description > 200 chars, skill body > 6000 / agent body > 4000 chars, router bodies
+relative links (error), description > 200 or < 20 chars, description style (`description_filler`: not "This component…"/"A…"; `description_first_person`; `description_no_trigger`: neither the description nor the first paragraph of `## When to use` says when it applies; `description_duplicate`: two skills with the same text), skill body > 6000 / agent body > 4000 chars, router bodies
 that never mention a sub-agent, bodies mentioning agents that are not sub-agents, plus full tree validation.
 Evals (`agent_fabric/evals.py`): cases name expected/forbidden components; score = 0.7 valid + 0.1 first try
 

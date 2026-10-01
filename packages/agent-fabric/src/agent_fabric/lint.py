@@ -29,13 +29,18 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 from .errors import FabricError
-from .markdown import PROCEDURE, WHEN_TO_USE
+from .markdown import PROCEDURE, WHEN_TO_USE, first_paragraph
 
 DESCRIPTION_MAX = 200
+DESCRIPTION_MIN = 20
 SKILL_BODY_MAX = 6000
 AGENT_BODY_MAX = 4000
 _TICK = re.compile(r"`([a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)?)`")
 _LINK = re.compile(r"\]\(([^)#\s]+)\)")
+# description style: say what the skill does (not "This component..."), in the third person, and make clear when it applies
+_FILLER = re.compile(r"^\s*(this|a|an|the)\b|^\s*(component|skill|pipeline|step)\s+(that|which|to)\b", re.I)
+_PERSON = re.compile(r"\b(i|we|you|your|our|my)\b", re.I)
+_TRIGGER = re.compile(r"\b(when|use|used|using|if)\b", re.I)
 # snake_case words that commonly appear in prose and are not identifiers
 ALLOW = {
     "p_value",
@@ -101,8 +106,39 @@ def _result_fields(comp: Any) -> set[str]:
     return names
 
 
+def _description_issues(spec: Any, where: str) -> list[LintIssue]:
+    """Style of the one-line description that every planner catalogue shows: what it does and when it applies."""
+    desc = " ".join(spec.description.split())
+    out: list[LintIssue] = []
+
+    def warn(code: str, msg: str, hint: str) -> None:
+        out.append(LintIssue(severity="warning", code=code, where=where, msg=msg, hint=hint))
+
+    if len(desc) < DESCRIPTION_MIN:
+        warn(
+            "description_too_short", f"{len(desc)} chars (min {DESCRIPTION_MIN})", "say what the skill does and on what"
+        )
+    if _FILLER.search(desc):
+        warn(
+            "description_filler",
+            f"starts with filler: '{desc[:30]}'",
+            "start with what it does, e.g. 'Standardised PCA with ...'",
+        )
+    if _PERSON.search(desc):
+        warn("description_first_person", "uses first or second person", "describe the skill in the third person")
+    when = first_paragraph(spec.guidance.section(WHEN_TO_USE)) if spec.guidance.body else ""
+    if not when and not _TRIGGER.search(desc):
+        warn(
+            "description_no_trigger",
+            "neither the description nor a '## When to use' paragraph says when to use it",
+            "add a '## When to use' first paragraph (catalogued with the description) or a 'when ...' clause",
+        )
+    return out
+
+
 def lint_skills(registry: Any) -> list[LintIssue]:
     issues: list[LintIssue] = []
+    seen: dict[str, str] = {}
     known_global = set(registry.names()) | set(registry.pipelines()) | set(registry.types.names())
     for name in registry.names():
         comp = registry.get(name)
@@ -119,6 +155,19 @@ def lint_skills(registry: Any) -> list[LintIssue]:
                     hint="the description is sent in every planner catalogue; move detail to the body",
                 )
             )
+        issues += _description_issues(spec, where)
+        key = " ".join(spec.description.lower().split())
+        if key in seen:
+            issues.append(
+                LintIssue(
+                    severity="warning",
+                    code="description_duplicate",
+                    where=where,
+                    msg=f"same description as '{seen[key]}'",
+                    hint="planners choose components by description; make each one distinguishable",
+                )
+            )
+        seen.setdefault(key, name)
         body = spec.guidance.body
         if not body:
             if spec.llm is None:
