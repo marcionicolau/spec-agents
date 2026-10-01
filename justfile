@@ -43,6 +43,10 @@ build:
 cov:
     uv run pytest -q --cov --cov-report=term
 
+# SKILL.md contract changes vs. the base branch must carry a version bump (CI runs this on PRs)
+contracts base="origin/main":
+    uv run python -m agent_fabric.contracts --base {{base}}
+
 # type check (ty) with every optional framework installed so their imports resolve
 types:
     uv run --all-extras ty check

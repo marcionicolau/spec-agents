@@ -111,7 +111,8 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
   `uv.lock` never pins a workspace version. Consequences: checkouts need full history and tags (`fetch-depth: 0` in CI), and
   never create or move `<pkg>-v*` tags by hand — release-please owns them (baseline: all packages at `0.0.1`).
 - **SKILL.md `version:` fields stay manual** — they mark
-  contract changes (minor = new optional field, major = breaking), not releases.
+  contract changes (minor = new optional field, major = breaking), not releases. `agent_fabric.contracts` (CI on PRs,
+  `just contracts`) fails a PR whose contract diff (params, ports, outputs, defaults) lacks the matching bump.
 - Packs depend on the core with a bounded range (`agent-fabric>=0.0.1,<1`); widen it deliberately when the core makes a
   breaking change. License: MIT (root `LICENSE`, copied into each package).
 - Python ≥ 3.12, `from __future__ import annotations`, type hints, ruff line length 120. Generics use PEP 695 syntax
