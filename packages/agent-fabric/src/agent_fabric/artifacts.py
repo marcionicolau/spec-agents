@@ -153,3 +153,15 @@ class TypeRegistry:
     def infer(self, value: Any) -> ArtifactType:
         matches = [t for t in self._types.values() if t.accepts(value)]
         return max(matches, key=lambda t: t.specificity)
+
+
+__all__ = [
+    "ArtifactType",
+    "JsonType",
+    "NoConstraints",
+    "NumberType",
+    "TextConstraints",
+    "TextProfile",
+    "TextType",
+    "TypeRegistry",
+]

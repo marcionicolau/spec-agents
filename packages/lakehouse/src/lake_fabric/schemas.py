@@ -16,3 +16,9 @@ class DagReview(BaseModel):
 
 
 SCHEMAS = {"DagReview": DagReview}
+
+
+__all__ = [
+    "SCHEMAS",
+    "DagReview",
+]

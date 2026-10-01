@@ -368,3 +368,16 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
             tukey=tukey,
             warnings=warns,
         )
+
+
+__all__ = [
+    "Anova",
+    "AnovaParams",
+    "AnovaResult",
+    "AnovaRow",
+    "Coefficient",
+    "LinearModel",
+    "LinearModelParams",
+    "LinearModelResult",
+    "TukeyComparison",
+]

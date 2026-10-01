@@ -104,3 +104,12 @@ class Summary(TableComponent[SummaryParams, SummaryResult]):
         return SummaryResult(
             n_rows=len(df), n_used=len(df), numeric=numeric, categorical=categorical, correlations=corr, warnings=warns
         )
+
+
+__all__ = [
+    "CategoricalSummary",
+    "NumericSummary",
+    "Summary",
+    "SummaryParams",
+    "SummaryResult",
+]

@@ -16,3 +16,9 @@ class Review(BaseModel):
 
 
 SCHEMAS = {"Review": Review}
+
+
+__all__ = [
+    "SCHEMAS",
+    "Review",
+]

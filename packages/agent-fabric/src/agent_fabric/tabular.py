@@ -317,3 +317,22 @@ class SeriesType(ArtifactType):
 def register_tabular_types(types: Any) -> None:
     types.register(DataFrameType())
     types.register(SeriesType())
+
+
+__all__ = [
+    "ColumnKind",
+    "ColumnProfile",
+    "ColumnRole",
+    "DType",
+    "DataFrameType",
+    "DatasetProfile",
+    "SeriesProfile",
+    "SeriesType",
+    "TableConstraints",
+    "coerce_datetime",
+    "infer_kind",
+    "profile_dataframe",
+    "register_tabular_types",
+    "role_columns",
+    "used_columns",
+]

@@ -196,3 +196,12 @@ class PipelineExecutor:
                 history.append(report)
                 params = new
         raise AssertionError("unreachable")  # pragma: no cover
+
+
+__all__ = [
+    "ParamRepairer",
+    "PipelineExecutor",
+    "PipelineReport",
+    "StepOutcome",
+    "StepStatus",
+]

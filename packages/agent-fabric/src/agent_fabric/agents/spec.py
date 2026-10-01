@@ -228,3 +228,9 @@ class AgentsConfig(BaseModel):
 
     def by_kind(self, kind: str) -> list[str]:
         return [n for n, a in self.agents.items() if a.kind == kind]
+
+
+__all__ = [
+    "AgentSpec",
+    "AgentsConfig",
+]

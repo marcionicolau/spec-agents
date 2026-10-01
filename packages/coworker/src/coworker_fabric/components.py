@@ -734,3 +734,27 @@ class PatchPropose(Component[PatchProposeParams, PatchProposeResult]):
             f"Patch touches {len(r['files'])} file(s): +{r['additions']} -{r['deletions']} (not applied).",
             [f"{f['path']}: +{f['additions']} -{f['deletions']}" for f in r["files"]],
         )
+
+
+__all__ = [
+    "CodeReview",
+    "CodeReviewParams",
+    "CodeReviewResult",
+    "ContextPack",
+    "ContextPackParams",
+    "ContextPackResult",
+    "ContextSelect",
+    "ContextSelectParams",
+    "ContextSelectResult",
+    "Edit",
+    "FilePatch",
+    "Finding",
+    "LargeFile",
+    "PatchPropose",
+    "PatchProposeParams",
+    "PatchProposeResult",
+    "RepoIndex",
+    "RepoIndexParams",
+    "RepoIndexResult",
+    "SelectedFile",
+]

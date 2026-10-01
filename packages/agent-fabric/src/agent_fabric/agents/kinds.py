@@ -620,3 +620,16 @@ class PydanticAISupervisor(SupervisorAgent):
             children=children_results,
             artifacts=[ctx.put(path, output)],
         )
+
+
+__all__ = [
+    "Delegation",
+    "DelegationPlan",
+    "FunctionAgent",
+    "LLMWorkerAgent",
+    "PipelineAgent",
+    "PlannerAgent",
+    "PydanticAISupervisor",
+    "SupervisorAgent",
+    "delegation_errors",
+]

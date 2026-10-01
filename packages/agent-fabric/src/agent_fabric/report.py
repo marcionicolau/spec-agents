@@ -44,3 +44,8 @@ def render_markdown(report: AgentRunReport, trace: bool = True) -> str:
         lines += ["## Trace", "", "| t (s) | agent | event | detail |", "|---|---|---|---|"]
         lines += [f"| {e.at:.3f} | {e.path} | {e.event} | {e.detail.replace('|', '/')} |" for e in report.trace]
     return "\n".join(lines)
+
+
+__all__ = [
+    "render_markdown",
+]

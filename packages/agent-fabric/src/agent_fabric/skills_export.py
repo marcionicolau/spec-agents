@@ -179,3 +179,13 @@ def validate_skill_dir(path: str | Path) -> list[str]:
 
 def validate_tree(root: str | Path) -> list[str]:
     return [e for d in sorted(Path(root).iterdir()) if d.is_dir() for e in validate_skill_dir(d)]
+
+
+__all__ = [
+    "export_description",
+    "export_name",
+    "export_registry",
+    "export_skill",
+    "validate_skill_dir",
+    "validate_tree",
+]

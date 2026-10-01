@@ -8,6 +8,14 @@
 | Coworker scorer / `context_select` change          | `python -m coworker_fabric.evals --root .` (deterministic, labeled cases in `examples/evals/context_cases.yaml`; also asserted in `packages/coworker/tests/test_coworker.py`); add a case for every retrieval bug you fix |
 | New skill / agent                                  | `scaffold` → fill sections → `lint --strict` → tests for its checks                                                                                                                                     |
 
+## Public API surface
+A name is public only if it is in the `__all__` of its module (and of the package `__init__` when re-exported). Internal helpers,
+prompt templates, regexes and constants stay out. `tests/test_public_api.py` checks that every `__all__` name exists and is unique, that
+`agent_fabric.__version__` matches the installed distribution, and that no public class/function lacks a docstring beyond the
+shrinking debt list `tests/public_api_undocumented.txt`. Pack packages export `register` lazily (`stat_fabric.register`) so
+`import stat_fabric` does not import pandas/scipy. Changing what is exported is an API change: breaking removals follow the
+pre-1.0 rule (minor bump) and are noted in the PR title scope.
+
 ## Eval baselines
 `examples/evals/baselines.json` stores the scores of the deterministic suites: the statistics rules planner (per case and mean;
 `treatment_effect` fails on purpose) and coworker context selection (means). `just evals-check` (CI, `specs` job) fails when a

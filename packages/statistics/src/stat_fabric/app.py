@@ -68,3 +68,8 @@ class StatisticalAnalysisFabric:
         extra_inputs: dict[str, Any] | None = None,
     ) -> AgentRunReport:
         return self.agents.run(objective, {"data": df, **(extra_inputs or {})}, root=root, session_id=session_id)
+
+
+__all__ = [
+    "StatisticalAnalysisFabric",
+]

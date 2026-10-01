@@ -16,3 +16,9 @@ def register(registry: Registry) -> list[str]:
 
     classes = [c for c in declared_components() if c.__module__.startswith("coworker_fabric.")]
     return registry.load_domain(SPEC_DIR, classes)
+
+
+__all__ = [
+    "SPEC_DIR",
+    "register",
+]

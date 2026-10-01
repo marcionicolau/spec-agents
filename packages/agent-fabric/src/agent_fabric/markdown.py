@@ -134,3 +134,19 @@ def guidance_from(doc: MarkdownDoc) -> Guidance:
     refs_dir = doc.path.parent / "references"
     refs = sorted(p.name for p in refs_dir.glob("*.md")) if refs_dir.is_dir() else []
     return Guidance(body=doc.body, sections=doc.sections, source=str(doc.path), references=refs)
+
+
+__all__ = [
+    "COMMON_MISTAKES",
+    "INSTRUCTIONS",
+    "INTERPRETING",
+    "PROCEDURE",
+    "WHEN_NOT_TO_USE",
+    "WHEN_TO_USE",
+    "Guidance",
+    "MarkdownDoc",
+    "first_paragraph",
+    "guidance_from",
+    "read_markdown",
+    "split_sections",
+]
