@@ -126,7 +126,7 @@ examples/evals/                  planner_cases.yaml (regression cases); run_eval
 ```bash
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
-uv run ruff check .                         # see [tool.ruff.lint] for the rule set
+uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
 # CI (.github/workflows/ci.yml) runs: pytest, ruff (rules F UP E I B SIM RUF PT), the lint commands below, and run_evals --mode rules (informational)
 python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \
        --agents config --schemas stat_fabric.schemas:SCHEMAS --strict

@@ -34,7 +34,7 @@ jobs:
       - name: Tests
         run: uv run pytest -q
       - name: Ruff
-        run: uv run ruff check .
+        run: uv run ruff check . && uv run ruff format --check .
       - name: Lint specs (statistics and text)
         run: >-
           uv run python -m agent_fabric.lint --strict
