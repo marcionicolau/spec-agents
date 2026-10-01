@@ -1,6 +1,6 @@
 [project]
 name = "coworker"
-version = "0.2.0"
+version = "1.0.0"
 description = "Coworker domain pack for agent-fabric: repo_index, context_select, context_pack, code_review, patch_propose"
 requires-python = ">=3.12"
 dependencies = [
