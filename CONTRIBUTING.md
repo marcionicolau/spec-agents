@@ -1,6 +1,6 @@
 # Contributing
 
-Agent-specific rules and the exact procedures (new component, pipeline, agent) are in [CLAUDE.md](CLAUDE.md); read section 1 first.
+Agent-specific rules and the exact procedures (new component, pipeline, agent) are in [CLAUDE.md](CLAUDE.md) (rules) and [docs/](docs/README.md) (procedures).
 
 ## Setup
 ```bash
@@ -8,7 +8,7 @@ uv sync --all-packages --group dev      # add --all-extras for pydantic-ai/dspy/
 uv run pytest -q
 uv run ruff check . && uv run ruff format --check .
 ```
-See CLAUDE.md section 4 for the spec-lint commands per pack.
+`just check` runs everything CI runs (`just` lists recipes; see CLAUDE.md section 3 for the raw commands).
 
 ## Issues and labels
 Every issue gets one of each: `pkg:*` (package or area), `stage:*` (triage → needs-design → ready → in-progress → needs-review → released;

@@ -5,12 +5,31 @@ description = "Text domain pack for agent-fabric (text_stats, keywords, document
 requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
+readme = "README.md"
+authors = [{ name = "Marcio Nicolau" }]
+keywords = ["text", "nlp", "agents"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Typing :: Typed",
+]
 dependencies = [
   "agent-fabric>=0.0.1,<1",
 ]
 
 [project.entry-points."agent_fabric.domains"]
 text = "text_pack:register"
+
+[project.urls]
+Homepage = "https://github.com/marcionicolau/spec-agents"
+Repository = "https://github.com/marcionicolau/spec-agents"
+Issues = "https://github.com/marcionicolau/spec-agents/issues"
+Changelog = "https://github.com/marcionicolau/spec-agents/blob/main/packages/text-pack/CHANGELOG.md"
+Documentation = "https://github.com/marcionicolau/spec-agents/tree/main/docs"
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.14"]
