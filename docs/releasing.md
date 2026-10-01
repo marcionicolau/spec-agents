@@ -28,6 +28,11 @@ The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so re
 (skills, LICENSE, `py.typed`), an all-extras job (no skipped tests, coverage floor, `ty` type check) and a lowest-versions job.
 Branch protection should require the single gate job **`ci-ok`** and the PR-title check **`conventional-title`**. Locally: `just check`.
 
+## Workflow hardening
+Every `uses:` is pinned to a commit SHA with the tag in a trailing comment; dependabot (weekly, 7-day cooldown) bumps both. `zizmor` and
+`actionlint` run in the lint job; tools installed by actions (`uv`, `just`) are pinned by version. Workflows use least-privilege
+`permissions` per job and avoid `pull_request_target`.
+
 ## Issues and labels
 Every issue gets a `pkg:*` label (package or area), one `stage:*` label and a type (`bug`, `enhancement`, `documentation`, `type:*`);
 issue forms apply `pkg:` and `stage:triage`, PRs get `pkg:` labels from the files they touch. Labels are defined in `.github/labels.yml`.
