@@ -26,4 +26,5 @@ jobs:
             deps
             docs
             text-pack
+            main # release-please titles: chore(main): release <pkg> <version>
           requireScope: false
