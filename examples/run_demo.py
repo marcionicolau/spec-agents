@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
+sys.path.insert(0, str(ROOT))  # workspace packages are installed; this exposes examples.domains.text_pack
 
 from agent_fabric import build_registry  # noqa: E402
 from agent_fabric.agents import AgentFabric, AgentsConfig  # noqa: E402

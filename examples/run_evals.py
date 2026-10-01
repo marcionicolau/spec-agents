@@ -1,9 +1,9 @@
 """Planner regression evals (see agent_fabric.evals).
 
-    python examples/run_evals.py --mode rules   # deterministic baseline (stats_rules), no LLM
-    python examples/run_evals.py --mode live    # the 'statistician' agent's planner via the LiteLLM proxy
-    python examples/run_evals.py --domain lakehouse --mode live   # 'dag_engineer' (config/lakehouse)
-    python examples/run_evals.py --domain coworker --mode live    # 'context_scout' (config/coworker)
+python examples/run_evals.py --mode rules   # deterministic baseline (stats_rules), no LLM
+python examples/run_evals.py --mode live    # the 'statistician' agent's planner via the LiteLLM proxy
+python examples/run_evals.py --domain lakehouse --mode live   # 'dag_engineer' (config/lakehouse)
+python examples/run_evals.py --domain coworker --mode live    # 'context_scout' (config/coworker)
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT / "src"), str(ROOT)]
+sys.path.insert(0, str(ROOT))  # workspace packages are installed; this exposes examples.domains
 
 from agent_fabric import build_registry  # noqa: E402
 from agent_fabric.agents import AgentsConfig  # noqa: E402
@@ -49,8 +49,10 @@ def main() -> None:
     if args.domain == "statistics":
         inputs = {"trial": PipelineInputs.from_values({"data": make_data()}, types)}
     else:
-        inputs = {"none": PipelineInputs.from_values({}, types),
-                  "records": PipelineInputs.from_values({"sample": [{"id": i, "name": f"n{i}"} for i in range(25)]}, types)}
+        inputs = {
+            "none": PipelineInputs.from_values({}, types),
+            "records": PipelineInputs.from_values({"sample": [{"id": i, "name": f"n{i}"} for i in range(25)]}, types),
+        }
     if args.mode == "live":
         cfg = AgentsConfig.load(ROOT / agents_dir)
         planner = LLMPlanner(LiteLLMProxyBackend(cfg.llm), registry, cfg.llm, cfg.agents[agent].domains)

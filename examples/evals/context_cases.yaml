@@ -4,57 +4,57 @@
 cases:
   - name: executor_skip_dependents
     task: skip the dependents of a failed step in the pipeline executor
-    expected: [src/agent_fabric/executor.py]
+    expected: [packages/agent-fabric/src/agent_fabric/executor.py]
   - name: planner_self_correction
     task: retry the planner with validation feedback when the model output is rejected
-    expected: [src/agent_fabric/llm/self_correction.py, src/agent_fabric/llm/planner.py]
+    expected: [packages/agent-fabric/src/agent_fabric/llm/self_correction.py, packages/agent-fabric/src/agent_fabric/llm/planner.py]
   - name: budget_stops_delegation
     task: once the run budget is exhausted supervisors must stop delegating
-    expected: [src/agent_fabric/agents/runtime.py, src/agent_fabric/agents/kinds.py]
+    expected: [packages/agent-fabric/src/agent_fabric/agents/runtime.py, packages/agent-fabric/src/agent_fabric/agents/kinds.py]
   - name: router_plan_validation
     task: validate the router delegation plan and report unknown agents
-    expected: [src/agent_fabric/agents/kinds.py]
+    expected: [packages/agent-fabric/src/agent_fabric/agents/kinds.py]
   - name: lint_identifiers
     task: lint should report unknown backticked identifiers in skill bodies
-    expected: [src/agent_fabric/lint.py]
+    expected: [packages/agent-fabric/src/agent_fabric/lint.py]
   - name: markdown_frontmatter
     task: parse the yaml frontmatter and the body sections of a markdown spec
-    expected: [src/agent_fabric/markdown.py]
+    expected: [packages/agent-fabric/src/agent_fabric/markdown.py]
   - name: registry_domains
     task: load domain packs and discover entry points in the registry
-    expected: [src/agent_fabric/registry.py]
+    expected: [packages/agent-fabric/src/agent_fabric/registry.py]
   - name: dataframe_roles
     task: check column roles and dtypes of a dataframe port
-    expected: [src/agent_fabric/tabular.py]
+    expected: [packages/agent-fabric/src/agent_fabric/tabular.py]
   - name: component_execute
     task: component execute validates params then inputs then computes
-    expected: [src/agent_fabric/component.py]
+    expected: [packages/agent-fabric/src/agent_fabric/component.py]
   - name: error_hints
     task: suggest the closest name in the hint of a located error
-    expected: [src/agent_fabric/errors.py]
+    expected: [packages/agent-fabric/src/agent_fabric/errors.py]
   - name: grounding_numbers
     task: reject interpretations that cite numbers missing from the results
-    expected: [src/agent_fabric/llm/interpreter.py]
+    expected: [packages/agent-fabric/src/agent_fabric/llm/interpreter.py]
   - name: scaffold_templates
     task: templates that scaffold a new skill or agent file
-    expected: [src/agent_fabric/scaffold.py]
+    expected: [packages/agent-fabric/src/agent_fabric/scaffold.py]
   - name: dag_render
     task: render the airflow dag source from the validated config
-    expected: [src/lake_fabric/render.py, src/lake_fabric/components.py]
+    expected: [packages/lakehouse/src/lake_fabric/render.py, packages/lakehouse/src/lake_fabric/components.py]
   - name: silver_merge_sql
     task: build the merge sql that promotes bronze rows to silver
-    expected: [src/lake_fabric/medallion.py]
+    expected: [packages/lakehouse/src/lake_fabric/medallion.py]
   - name: relative_imports
     task: resolve relative imports into the import graph
-    expected: [src/coworker_fabric/analysis.py, src/coworker_fabric/components.py]
+    expected: [packages/coworker/src/coworker_fabric/analysis.py, packages/coworker/src/coworker_fabric/components.py]
   - name: patch_validation
     task: patch proposals must apply exactly once and keep valid python
-    expected: [src/coworker_fabric/components.py]
+    expected: [packages/coworker/src/coworker_fabric/components.py]
   - name: executor_with_focus
     task: change how failed steps are reported
-    focus_files: [src/agent_fabric/executor.py]
-    expected: [src/agent_fabric/executor.py, src/agent_fabric/pipeline.py, tests/test_pipeline.py]
+    focus_files: [packages/agent-fabric/src/agent_fabric/executor.py]
+    expected: [packages/agent-fabric/src/agent_fabric/executor.py, packages/agent-fabric/src/agent_fabric/pipeline.py, tests/test_pipeline.py]
   - name: runtime_with_focus
     task: count llm calls against the budget
-    focus_files: [src/agent_fabric/agents/runtime.py]
-    expected: [src/agent_fabric/agents/runtime.py, src/agent_fabric/agents/kinds.py]
+    focus_files: [packages/agent-fabric/src/agent_fabric/agents/runtime.py]
+    expected: [packages/agent-fabric/src/agent_fabric/agents/runtime.py, packages/agent-fabric/src/agent_fabric/agents/kinds.py]

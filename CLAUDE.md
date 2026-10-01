@@ -18,8 +18,9 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
      widen the contract: limits, allowed values and names live only in frontmatter/code.
    - Components & pipelines: `skills/<name>/SKILL.md`; agents: `config/agents/<name>/AGENT.md`;
      run-wide settings: `config/fabric.md`. Legacy `*.yaml` specs load into the same models.
-3. **The core (`src/agent_fabric`) is domain-agnostic.** Domain knowledge lives in _domain packs_
-   (`src/stat_fabric`, `examples/domains/text_pack`). Never import a domain pack from the core.
+3. **The core (`packages/agent-fabric`) is domain-agnostic.** Domain knowledge lives in _domain packs_
+   (`packages/statistics`, `packages/lakehouse`, `packages/coworker`, `examples/domains/text_pack`).
+   Never import a domain pack from the core.
 4. **Every failure is a typed `FabricError`** with a located `ErrorReport` (`category`, `loc`, `type`,
    `msg`, `hint`, `recoverable`). Validators collect _all_ errors before raising. No bare exceptions,
    no error strings.
@@ -77,44 +78,45 @@ Facade (`StatisticalAnalysisFabric`), graceful degradation (`fallback` backends,
 ### Directory map
 
 ```
-src/agent_fabric/            GENERIC CORE
-  errors.py                  taxonomy: spec plan params data execution llm_output dependency agent budget
-  artifacts.py               ArtifactType + TypeRegistry (any, json, text, number)
-  tabular.py                 dataframe/series types, DatasetProfile, TableConstraints (column roles)
-  markdown.py                frontmatter/body parser, canonical sections, Guidance (references on demand)
-  spec.py                    ComponentSpec, PortSpec, PipelineSpec (+instantiate), SKILL.md/YAML loaders
-  component.py               Component base, ArtifactStore, StepContext, Num
-  registry.py                Registry: types, components, pipelines, domains, catalog; @component
-  pipeline.py                PipelinePlan/Step, refs, auto-binding, validation, PipelineComponent
-  executor.py                PipelineExecutor, PipelineReport, ParamRepairer protocol
-  llm/                       backends, self_correction, prompts, planner, interpreter, repair
-  agents/                    spec (AgentSpec/AgentsConfig), runtime, base, kinds, fabric (builders)
-  memory/                    MemoryPort, InMemoryMemory, LangChainMemory
-  integrations/              dspy.py, crewai.py
-  report.py                  render_markdown(AgentRunReport)
-  lint.py                    drift lint + CLI (python -m agent_fabric.lint); collect_issues() shared with cli/
-  prompt.py                  PromptComponent: code-free `runtime: prompt` components (self-correction, grounding)
-  evals.py                   planner regression evals (score shared with DSPy metric)
-  scaffold.py                templates for SKILL.md / AGENT.md (python -m agent_fabric.scaffold)
-  cli/                       agent-fabric CLI (rich): run (live view), lint, catalog, agents, scaffold
-src/stat_fabric/             STATISTICS DOMAIN PACK
-  components/                summary, linear_model, anova, time_series, pca, clustering (code)
-  skills/<name>/SKILL.md     contracts + guidance for the 6 components and 3 pipelines
-                             (exploratory_analysis, experiment_analysis, full_study); pca/references/
-  rules.py                   StatsRulePlanner (planner backend 'stats_rules');  schemas.py (Review)
-  domain.py                  register(registry)  (entry point agent_fabric.domains:statistics)
-  app.py                     StatisticalAnalysisFabric facade
-src/lake_fabric/             LAKEHOUSE DOMAIN PACK: source_inspect, medallion_plan, airflow_dag_render, dag_check
-                             (+ python_source type, medallion.py SQL builders, render.py, generate.py CLI);
-                             pipelines ingest_to_lakehouse, medallion_design
-src/coworker_fabric/         COWORKER DOMAIN PACK: repo_index, context_select, context_pack, code_review,
-                             patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
-examples/domains/text_pack/  second domain (text_stats, keywords, document_digest) – proves genericity
-config/                      litellm_config.yaml, fabric.md (root/budget/llm), agents/<name>/AGENT.md (research team)
-config/lakehouse/            fabric.md + agents: lakehouse_team, dag_engineer, dag_reviewer, schema_designer
-config/coworker/             fabric.md + agents: pair_programmer, context_scout, code_critic, patch_author
-config/notes/                code-free demo domain: fabric.md (`skill_dirs`), note_taker planner, 3 prompt skills
-examples/evals/              planner_cases.yaml (regression cases); run_evals.py
+packages/<domain>/             uv workspace members; dist name = spec `domain:`, import module unchanged
+  agent-fabric/src/agent_fabric/   GENERIC CORE
+    errors.py                  taxonomy: spec plan params data execution llm_output dependency agent budget
+    artifacts.py               ArtifactType + TypeRegistry (any, json, text, number)
+    tabular.py                 dataframe/series types, DatasetProfile, TableConstraints (column roles)
+    markdown.py                frontmatter/body parser, canonical sections, Guidance (references on demand)
+    spec.py                    ComponentSpec, PortSpec, PipelineSpec (+instantiate), SKILL.md/YAML loaders
+    component.py               Component base, ArtifactStore, StepContext, Num
+    registry.py                Registry: types, components, pipelines, domains, catalog; @component
+    pipeline.py                PipelinePlan/Step, refs, auto-binding, validation, PipelineComponent
+    executor.py                PipelineExecutor, PipelineReport, ParamRepairer protocol
+    llm/                       backends, self_correction, prompts, planner, interpreter, repair
+    agents/                    spec (AgentSpec/AgentsConfig), runtime, base, kinds, fabric (builders)
+    memory/                    MemoryPort, InMemoryMemory, LangChainMemory
+    integrations/              dspy.py, crewai.py
+    report.py                  render_markdown(AgentRunReport)
+    lint.py                    drift lint + CLI (python -m agent_fabric.lint); collect_issues() shared with cli/
+    prompt.py                  PromptComponent: code-free `runtime: prompt` components (self-correction, grounding)
+    evals.py                   planner regression evals (score shared with DSPy metric)
+    scaffold.py                templates for SKILL.md / AGENT.md (python -m agent_fabric.scaffold)
+    cli/                       agent-fabric CLI (rich): run (live view), lint, catalog, agents, scaffold
+  statistics/src/stat_fabric/    STATISTICS PACK (dist 'statistics')
+    components/                summary, linear_model, anova, time_series, pca, clustering (code)
+    skills/<name>/SKILL.md       contracts + guidance for the 6 components and 3 pipelines
+                                 (exploratory_analysis, experiment_analysis, full_study); pca/references/
+    rules.py                   StatsRulePlanner (planner backend 'stats_rules');  schemas.py (Review)
+    domain.py                  register(registry)  (entry point agent_fabric.domains:statistics)
+    app.py                     StatisticalAnalysisFabric facade
+  lakehouse/src/lake_fabric/     LAKEHOUSE PACK (dist 'lakehouse'): source_inspect, medallion_plan,
+                               airflow_dag_render, dag_check (+ python_source type, medallion.py SQL
+                               builders, render.py, generate.py CLI); pipelines ingest_to_lakehouse, medallion_design
+  coworker/src/coworker_fabric/  COWORKER PACK (dist 'coworker'): repo_index, context_select, context_pack,
+                               code_review, patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
+examples/domains/text_pack/      second domain (text_stats, keywords, document_digest) – proves genericity
+config/                          litellm_config.yaml, fabric.md (root/budget/llm), agents/<name>/AGENT.md (research team)
+config/lakehouse/                fabric.md + agents: lakehouse_team, dag_engineer, dag_reviewer, schema_designer
+config/coworker/                 fabric.md + agents: pair_programmer, context_scout, code_critic, patch_author
+config/notes/                    code-free demo domain: fabric.md (`skill_dirs`), note_taker planner, 3 prompt skills
+examples/evals/                  planner_cases.yaml (regression cases); run_evals.py
 ```
 
 ---
@@ -122,9 +124,9 @@ examples/evals/              planner_cases.yaml (regression cases); run_evals.py
 ## 4. Commands
 
 ```bash
-uv sync --extra all --extra dev             # env from uv.lock (commit uv.lock; `uv lock` after changing dependencies)
+uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
-uv run ruff check src tests examples        # pyflakes (F) + pyupgrade (UP); see [tool.ruff.lint]
+uv run ruff check .                         # pyflakes (F) + pyupgrade (UP); see [tool.ruff.lint]
 # CI (.github/workflows/ci.yml) runs: pytest, ruff, the three lint commands below, and run_evals --mode rules (informational)
 python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \
        --agents config --schemas stat_fabric.schemas:SCHEMAS --strict
@@ -133,7 +135,7 @@ python -m agent_fabric.lint --domains lake_fabric.domain:register --agents confi
 python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents config/coworker \
        --schemas coworker_fabric.schemas:SCHEMAS --strict
 python -m lake_fabric.generate params.json --sample records.json --out dags   # DAG file, no LLM involved
-python -m agent_fabric.scaffold skill my_step --dir src/stat_fabric/skills --domain statistics
+python -m agent_fabric.scaffold skill my_step --dir packages/statistics/src/stat_fabric/skills --domain statistics
 python -m agent_fabric.scaffold prompt my_step --dir config/notes/skills --domain notes   # code-free skill
 python examples/run_evals.py --mode live    # before merging guidance/model changes
 
@@ -155,7 +157,8 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
 
 ## 5. Adding a component (any domain)
 
-1. **Skill** `<pack>/skills/<name>/SKILL.md` (start from `python -m agent_fabric.scaffold skill <name> ...`):
+1. **Skill** `<pack>/skills/<name>/SKILL.md`, where `<pack>` = `packages/<domain>/src/<module>`
+   (start from `python -m agent_fabric.scaffold skill <name> ...`):
 
    ```markdown
    ---
@@ -388,7 +391,13 @@ rejects duplicate names). Keep YAML only for legacy packs.
 
 ## 11. Conventions
 
-- Dependencies are managed with `uv`: add with `uv add`, never `pip install` into the project env (it desyncs `uv.lock`).
+- Dependencies are managed with `uv` in a workspace: add with `uv add --package <dist> <dep>` (dist names =
+  `agent-fabric`/`statistics`/`lakehouse`/`coworker`), never `pip install` (it desyncs `uv.lock`).
+- **Commits are conventional with package scopes**: `feat(statistics): …`, `fix(agent-fabric): …` — the
+  scope decides which package python-semantic-release bumps (`<pkg>-vX.Y.Z` tags + CHANGELOG.md, pushed
+  by the release workflow on main; no matching scope = no bump). Cross-cutting changes: no scope/`chore`.
+- Package versions bump automatically per package; **SKILL.md `version:` fields stay manual** — they mark
+  contract changes (minor = new optional field, major = breaking), not releases.
 - Python ≥ 3.12, `from __future__ import annotations`, type hints, ruff line length 120. Generics use PEP 695 syntax
   (`class Component[P: ComponentParams, R: ComponentResult]`, `def f[T](...)`, `type X = ...`), not `TypeVar`/`Generic`.
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.
