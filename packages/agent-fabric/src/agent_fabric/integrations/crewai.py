@@ -30,6 +30,11 @@ def _crewai() -> Any:
 def build_crew(
     fabric: Any, instruction: str, inputs: dict[str, Any] | None = None, root: str | None = None
 ) -> tuple[Any, Any]:
+    """Map an agent tree onto a hierarchical CrewAI crew.
+
+    Each worker agent's tool runs the corresponding *fabric* agent, so results still come from deterministic components. Returns
+    ``(crew, run_context)``. Requires the ``crewai`` extra.
+    """
     crewai = _crewai()
     from crewai.tools import BaseTool
 

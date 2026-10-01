@@ -68,6 +68,10 @@ def split_sections(body: str) -> dict[str, str]:
 
 
 def read_markdown(path: str | Path) -> MarkdownDoc:
+    """Parse a Markdown file with YAML frontmatter into a `MarkdownDoc`.
+
+    A missing or invalid frontmatter block raises a `SpecError` that names the file.
+    """
     path = Path(path)
     text = path.read_text(encoding="utf-8")
     m = _FM.match(text)
@@ -100,6 +104,7 @@ def read_markdown(path: str | Path) -> MarkdownDoc:
 
 
 def first_paragraph(text: str, max_chars: int = 300) -> str:
+    """Return the first paragraph of ``text`` on one line, truncated to ``max_chars`` with an ellipsis."""
     para = next((p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()), "")
     para = re.sub(r"\s+", " ", para)
     return para if len(para) <= max_chars else para[: max_chars - 1].rsplit(" ", 1)[0] + "…"
@@ -131,6 +136,7 @@ class Guidance(BaseModel):
 
 
 def guidance_from(doc: MarkdownDoc) -> Guidance:
+    """Build the `Guidance` of a spec from its Markdown body, canonical sections and ``references/*.md`` file names."""
     refs_dir = doc.path.parent / "references"
     refs = sorted(p.name for p in refs_dir.glob("*.md")) if refs_dir.is_dir() else []
     return Guidance(body=doc.body, sections=doc.sections, source=str(doc.path), references=refs)

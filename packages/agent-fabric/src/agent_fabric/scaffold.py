@@ -121,6 +121,11 @@ _EXTRA = {
 
 
 def scaffold(what: str, name: str, directory: str | Path, domain: str = "core", kind: str = "llm") -> Path:
+    """Create a spec skeleton with the canonical sections and return its path.
+
+    ``what`` is ``"skill"``, ``"prompt"``, ``"pipeline"`` or ``"agent"``; ``name`` must be snake_case. Writes ``<directory>/<name>/SKILL.md`` (or
+    ``<directory>/agents/<name>/AGENT.md``).
+    """
     if not re.match(r"^[a-z][a-z0-9_]{0,39}$", name):
         raise ValueError(f"name must be snake_case: {name!r}")
     title = name.replace("_", " ").capitalize()

@@ -49,6 +49,14 @@ skills-export:
     rm -rf build/skills
     uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
 
+# build the documentation site (guides + generated API reference) into build/site; strict: warnings fail
+docs:
+    DISABLE_MKDOCS_2_WARNING=true uv run mkdocs build
+
+# live-reloading preview at http://127.0.0.1:8000
+docs-serve:
+    DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve
+
 # SKILL.md contract changes vs. the base branch must carry a version bump (CI runs this on PRs)
 contracts base="origin/main":
     uv run python -m agent_fabric.contracts --base {{base}}

@@ -43,11 +43,16 @@ class CaseScore(BaseModel):
 
 
 def load_cases(path: str | Path) -> list[ContextCase]:
+    """Load labelled context-selection cases from a YAML file (a list, or a mapping with a ``cases`` key)."""
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or []
     return [ContextCase.model_validate(c) for c in (raw.get("cases", []) if isinstance(raw, dict) else raw)]
 
 
 def score_selection(case: ContextCase, selected: list[str], tokens: int) -> CaseScore:
+    """Score one context selection against its case.
+
+    ``0.7 * recall + 0.2 * (1 / rank of the first expected file) + 0.1 * precision``; also reports the missing files and the tokens used.
+    """
     exp, got = set(case.expected), set(selected)
     hits = exp & got
     recall = len(hits) / len(exp)

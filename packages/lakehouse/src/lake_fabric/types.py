@@ -25,6 +25,8 @@ class PythonSourceProfile(BaseModel):
 
 
 class PythonSourceType(ArtifactType):
+    """Artifact type ``python_source`` for generated Python code (reached only through declared ports; a plain ``str`` is ``text``)."""
+
     name = "python_source"
     Constraints = PythonSourceConstraints
     python_types = (str,)

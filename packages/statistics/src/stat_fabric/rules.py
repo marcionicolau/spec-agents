@@ -85,6 +85,7 @@ class StatsRulePlanner:
 
 
 def register_planner_backend() -> None:
+    """Register the ``stats_rules`` planner backend (no LLM; used as the fallback of the ``statistician`` agent)."""
     from agent_fabric.agents.fabric import planner_builder
 
     planner_builder("stats_rules", lambda f, spec, backend: StatsRulePlanner(f.registry, spec.options.get("hints")))

@@ -1,12 +1,14 @@
 """Unified command line for agent_fabric (rich-powered).
 
+```text
 agent-fabric run <config_dir> [--input name=path ...] "instruction"
 agent-fabric lint [--domains ref|dir ...] [--agents dir] [--schemas mod:MAP ...] [--strict]
 agent-fabric catalog [--domains ref|dir ...] [--skills dir ...]
 agent-fabric agents <config_dir>
 agent-fabric export-skills --out DIR [--domains ref|dir ...] [--skills dir ...]
+```
 
-python -m agent_fabric.cli <same>
+`python -m agent_fabric.cli` accepts the same subcommands.
 """
 
 from __future__ import annotations
@@ -26,6 +28,11 @@ def _common(p: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the ``agent-fabric`` argument parser.
+
+    Subcommands: ``run``, ``lint``, ``catalog``, ``agents`` and ``export-skills``. Returned separately from `main` so it can be tested and
+    used to generate the CLI reference.
+    """
     ap = argparse.ArgumentParser(prog="agent-fabric", description="Spec-driven pipelines and agents over LiteLLM.")
     sub = ap.add_subparsers(dest="command", required=True)
 
@@ -67,6 +74,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Entry point of the ``agent-fabric`` command; returns the process exit code.
+
+    Parses ``argv`` (default ``sys.argv``), picks plain or rich output depending on ``--plain`` and whether stdout is a terminal, and
+    reports a `FabricError` as a located error instead of a traceback.
+    """
     from rich.console import Console
 
     from . import commands

@@ -39,6 +39,13 @@ class BuilderInfo:
 
 
 class AgentFabric:
+    """Builds and runs an agent tree from an `AgentsConfig` over a registry of components.
+
+    Validates the tree (references, cycles, depth, capabilities) before the first run, builds one `BaseAgent` per node through the
+    builder registry (one builder per ``(kind, backend)``) and runs the root agent with a bounded `RunContext`. Models, schemas and
+    functions are referenced by name from the config and registered here. Use `run` to execute and `validate` to check without running.
+    """
+
     _builders: dict[tuple[str, str], BuilderInfo] = {}
 
     def __init__(

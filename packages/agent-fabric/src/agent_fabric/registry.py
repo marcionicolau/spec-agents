@@ -35,10 +35,18 @@ def component[C: type](spec_name: str) -> Callable[[C], C]:
 
 
 def declared_components() -> list[type]:
+    """Return every class decorated with `component` so far, in declaration order."""
     return list(_DECLARED)
 
 
 class Registry:
+    """Catalogue of artifact types, components, pipelines and domains.
+
+    Domain packs register through ``load_domain(spec_dir, classes)``, which binds each ``SKILL.md`` contract to its implementation class
+    (``runtime: prompt`` skills need no class); registration fails when spec and class disagree. Pipelines become components, so they nest.
+    Query with ``get``, ``spec``, ``names``, ``pipelines`` and ``catalog`` (the compact list planners read).
+    """
+
     def __init__(self, types: TypeRegistry | None = None) -> None:
         self.types = types or TypeRegistry()
         try:

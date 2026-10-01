@@ -78,6 +78,12 @@ class BudgetSettings(BaseModel):
 
 
 class Budget:
+    """Per-run counters for agent runs, delegations and LLM calls, bounded by a `BudgetSettings`.
+
+    ``charge_run``, ``charge_delegation`` and ``charge_llm`` raise `BudgetExceeded` once their limit is reached and remember the first limit
+    hit in ``exhausted`` so supervisors stop delegating. ``usage`` returns the current counts.
+    """
+
     def __init__(self, s: BudgetSettings) -> None:
         self.s = s
         self.agent_runs = self.delegations = self.llm_calls = 0

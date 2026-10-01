@@ -78,12 +78,19 @@ def score_plan(
 
 
 def load_cases(path: str | Path) -> list[PlannerCase]:
+    """Load planner regression cases from a YAML file (a list, or a mapping with a ``cases`` key)."""
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or []
     items = raw.get("cases", []) if isinstance(raw, dict) else raw
     return [PlannerCase.model_validate(c) for c in items]
 
 
 def evaluate_planner(planner: Any, cases: list[PlannerCase], inputs: dict[str, Any]) -> EvalReport:
+    """Run a planner over regression cases and score each resulting plan.
+
+    ``cases`` come from `load_cases`; ``inputs`` maps each case's ``inputs`` name to `PipelineInputs`. The score rewards valid plans, a
+    valid first attempt and expected components, and penalises forbidden ones (the same score is the DSPy metric). Planner errors are
+    recorded per case instead of aborting the run. Returns an `EvalReport`.
+    """
     results = []
     for case in cases:
         try:
@@ -117,11 +124,13 @@ class BaselineIssue(BaseModel):
 
 
 def load_baselines(path: str | Path) -> dict[str, Any]:
+    """Read the eval baseline file (JSON); a missing file yields an empty baseline with the default tolerance."""
     p = Path(path)
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"tolerance": DEFAULT_TOLERANCE, "suites": {}}
 
 
 def save_baselines(path: str | Path, data: dict[str, Any]) -> None:
+    """Write the eval baseline file as stable, sorted JSON so diffs stay reviewable."""
     Path(path).write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 

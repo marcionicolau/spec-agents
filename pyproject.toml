@@ -7,6 +7,9 @@ dependencies = []
 
 [dependency-groups]
 dev = [
+    "mkdocs-gen-files>=0.6.1",
+    "mkdocs-material>=9.7.7",
+    "mkdocstrings-python>=2.0.9",
     "pytest>=8",
     "pytest-cov>=7.1.0",
     "ruff>=0.5",

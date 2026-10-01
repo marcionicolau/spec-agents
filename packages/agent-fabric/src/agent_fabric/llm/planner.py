@@ -89,6 +89,13 @@ def planner_prompts(
 
 
 class LLMPlanner:
+    """Plans a pipeline with an LLM, validating and self-correcting the proposal.
+
+    The model sees a catalogue of the components of the allowed ``domains``; its JSON plan is validated (structure, registry, ports, types,
+    static constraints) and rejected plans are returned to it with located errors until a plan is valid or the attempts run out.
+    `plan` returns a `PlanningOutcome`.
+    """
+
     name = "llm"
 
     def __init__(

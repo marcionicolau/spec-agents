@@ -139,6 +139,7 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
 
 
 def register(registry: Registry) -> list[str]:
+    """Register the text domain (``text_stats``, ``keywords`` and the ``document_digest`` pipeline); returns the names registered."""
     return registry.load_domain(SPEC_DIR, [TextStats, Keywords])
 
 

@@ -13,6 +13,12 @@ from .self_correction import CorrectionExhausted, structured_completion
 
 
 class LLMParamRepairer:
+    """Asks an LLM to fix the parameters of a step that failed validation (implements `ParamRepairer`).
+
+    The model sees the located error, the bound inputs' profiles and the component's parameter contract; its answer is validated before
+    it is used. Returns ``None`` when no valid repair is produced.
+    """
+
     def __init__(self, backend: LLMBackend, registry: Any, settings: LLMSettings | None = None) -> None:
         self.backend, self.registry, self.s = backend, registry, settings or LLMSettings()
 

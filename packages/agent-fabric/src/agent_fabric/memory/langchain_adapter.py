@@ -21,6 +21,12 @@ KIND = "run_summary"
 
 
 class LangChainMemory:
+    """`MemoryPort` over any LangChain ``BaseChatMessageHistory``.
+
+    ``history_factory(session_id)`` returns the history store (default: in-memory); ``window`` caps the messages kept. Requires the
+    ``langchain`` extra.
+    """
+
     def __init__(self, history_factory: Callable[[str], Any] | None = None, window: int = 50) -> None:
         try:
             from langchain_core import messages as lc_messages

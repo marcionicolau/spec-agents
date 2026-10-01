@@ -137,6 +137,11 @@ def _description_issues(spec: Any, where: str) -> list[LintIssue]:
 
 
 def lint_skills(registry: Any) -> list[LintIssue]:
+    """Lint every skill of a registry for drift between text and contract.
+
+    Reports unknown backticked identifiers, missing canonical sections, broken relative links (errors), over-long descriptions and bodies,
+    description style problems and duplicate descriptions (warnings).
+    """
     issues: list[LintIssue] = []
     seen: dict[str, str] = {}
     known_global = set(registry.names()) | set(registry.pipelines()) | set(registry.types.names())
@@ -229,6 +234,11 @@ def lint_skills(registry: Any) -> list[LintIssue]:
 
 
 def lint_agents(fabric: Any) -> list[LintIssue]:
+    """Lint an `AgentFabric`: full tree validation plus agent-body drift.
+
+    Tree errors become ``error`` issues; bodies that mention agents or components that do not exist, routers that never mention a
+    sub-agent, over-long bodies and similar drift become warnings.
+    """
     issues = [
         LintIssue(severity="error", code=d.type, where=".".join(map(str, d.loc)), msg=d.msg, hint=d.hint)
         for d in fabric.validate()

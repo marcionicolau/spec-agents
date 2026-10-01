@@ -73,6 +73,14 @@ REPAIRABLE = {ErrorCategory.PARAMS, ErrorCategory.DATA}
 
 
 class PipelineExecutor:
+    """Runs a validated `PipelinePlan` step by step in topological order.
+
+    Each step executes through `Component.execute`; results go to an `ArtifactStore`. A failed step skips its dependents; with
+    ``fail_policy="fail_fast"`` the run stops at the first failure. When a `ParamRepairer` is given, parameter and data errors are repaired
+    up to ``max_repairs`` times. ``llm`` and ``llm_settings`` are forwarded to ``runtime: prompt`` steps and ``on_step`` is called after
+    each step. `run` returns a `PipelineReport`.
+    """
+
     def __init__(
         self,
         registry: Any,
