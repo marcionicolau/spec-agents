@@ -1,0 +1,36 @@
+[project]
+name = "lakehouse"
+version = "0.2.0"
+description = "Lakehouse domain pack for agent-fabric: source_inspect, medallion_plan, airflow_dag_render, dag_check"
+requires-python = ">=3.12"
+dependencies = [
+  "agent-fabric",
+  "openpyxl>=3.1",
+  "requests>=2.31",
+]
+
+[project.entry-points."agent_fabric.domains"]
+lakehouse = "lake_fabric.domain:register"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+lake_fabric = ["skills/**/*.md"]
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+agent-fabric = { workspace = true }
+
+[tool.semantic_release]
+version_toml = ["packages/lakehouse/pyproject.toml:project.version"]
+tag_format = "lakehouse-v{version}"
+commit_scope = "lakehouse"
+changelog_file = "packages/lakehouse/CHANGELOG.md"
+build_command = ""
