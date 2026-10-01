@@ -75,7 +75,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'all'", specifier = ">=1.0" },
     { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
-    { name = "pyyaml", specifier = ">=6" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "rich", specifier = ">=13.7.1" },
 ]
 provides-extras = ["all", "crewai", "dspy", "langchain", "proxy", "pydantic-ai", "tabular"]
@@ -4142,8 +4142,8 @@ requires-dist = [
     { name = "agent-fabric", editable = "packages/agent-fabric" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "scikit-learn", specifier = ">=1.4" },
-    { name = "scipy", specifier = ">=1.11.2" },
-    { name = "statsmodels", specifier = ">=0.14.1" },
+    { name = "scipy", specifier = ">=1.12" },
+    { name = "statsmodels", specifier = ">=0.14.2" },
 ]
 
 [[package]]
