@@ -104,10 +104,9 @@ jobs:
         run: |
           # full-history checkout already has origin/<base>; no credentials are persisted for another fetch
           uv run python -m agent_fabric.contracts --base "origin/$BASE_REF"
-      - name: Planner baseline (informational)
-        # the rules baseline intentionally fails treatment_effect (docs/maintenance.md); live evals need the proxy
-        run: just evals rules
-        continue-on-error: true
+      - name: Eval baselines (deterministic suites must not regress)
+        # planner rules baseline (treatment_effect fails on purpose) + coworker context selection; live evals stay manual
+        run: just evals-check
 
   test:
     needs: changes

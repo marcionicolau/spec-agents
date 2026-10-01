@@ -1,0 +1,16 @@
+{
+  "suites": {
+    "context": {
+      "mean_recall": 0.9815,
+      "mean_score": 0.9304
+    },
+    "planner_rules": {
+      "case:plot_types": 1.0,
+      "case:seasonal_trend": 1.0,
+      "case:treatment_effect": 0.7,
+      "case:yield_drivers": 1.0,
+      "mean_score": 0.925
+    }
+  },
+  "tolerance": 0.02
+}

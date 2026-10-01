@@ -30,34 +30,39 @@ DOMAINS = {  # name -> (register callable path, agents dir, planner agent, cases
 }
 
 
-def main() -> None:
+def evaluate(domain: str = "statistics", mode: str = "rules"):
+    """Run one planner eval suite; ``rules`` needs no LLM (statistics only)."""
     import importlib
 
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--mode", choices=["rules", "live"], default="rules")
-    ap.add_argument("--domain", choices=list(DOMAINS), default="statistics")
-    args = ap.parse_args()
-    module, agents_dir, agent, cases_file = DOMAINS[args.domain]
-    if args.domain != "statistics" and args.mode != "live":
-        sys.exit(f"the {args.domain} domain has no rules planner; use --mode live")
+    module, agents_dir, agent, cases_file = DOMAINS[domain]
+    if domain != "statistics" and mode != "live":
+        sys.exit(f"the {domain} domain has no rules planner; use --mode live")
     registry = build_registry([importlib.import_module(module).register])
     cases = load_cases(ROOT / "examples" / "evals" / cases_file)
     for c in cases:
         c.objective = c.objective.replace("{root}", str(ROOT))
     types = registry.types
-    if args.domain == "statistics":
+    if domain == "statistics":
         inputs = {"trial": PipelineInputs.from_values({"data": make_data()}, types)}
     else:
         inputs = {
             "none": PipelineInputs.from_values({}, types),
             "records": PipelineInputs.from_values({"sample": [{"id": i, "name": f"n{i}"} for i in range(25)]}, types),
         }
-    if args.mode == "live":
+    if mode == "live":
         cfg = AgentsConfig.load(ROOT / agents_dir)
         planner = LLMPlanner(LiteLLMProxyBackend(cfg.llm), registry, cfg.llm, cfg.agents[agent].domains)
     else:
         planner = StatsRulePlanner(registry)
-    report = evaluate_planner(planner, cases, inputs)
+    return evaluate_planner(planner, cases, inputs)
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mode", choices=["rules", "live"], default="rules")
+    ap.add_argument("--domain", choices=list(DOMAINS), default="statistics")
+    args = ap.parse_args()
+    report = evaluate(args.domain, args.mode)
     print(report.table())
     sys.exit(0 if report.passed else 1)
 
