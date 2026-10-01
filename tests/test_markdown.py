@@ -57,6 +57,7 @@ def write_skill(root: Path, name: str = "demo", folder: str | None = None) -> Pa
 
 # ------------------------------------------------------------------ markdown & specs
 
+
 def test_sections_and_aliases():
     s = split_sections("# T\n\n## When to use\nA\n\n## Avoid when\nB\n## Pitfalls ##\nC")
     assert s == {"when to use": "A", "when not to use": "B", "common mistakes": "C"}
@@ -86,8 +87,10 @@ def test_skill_guidance_accessors(tmp_path):
 def test_skill_and_yaml_produce_the_same_contract(tmp_path):
     md = load_spec(write_skill(tmp_path))
     y = tmp_path / "demo.yaml"
-    y.write_text("name: demo\nversion: 1.0.0\ndomain: demo\ndescription: Demo component for tests.\ntitle: Demo\n"
-                 "params: {top_k: {description: how many}}\ninputs: {text: {type: text}}\n")
+    y.write_text(
+        "name: demo\nversion: 1.0.0\ndomain: demo\ndescription: Demo component for tests.\ntitle: Demo\n"
+        "params: {top_k: {description: how many}}\ninputs: {text: {type: text}}\n"
+    )
     legacy = load_spec(y)
     drop = {"guidance", "llm"}
     assert md.model_dump(exclude=drop) == legacy.model_dump(exclude=drop)
@@ -96,9 +99,10 @@ def test_skill_and_yaml_produce_the_same_contract(tmp_path):
 
 def test_folder_must_match_name_and_errors_are_aggregated(tmp_path):
     write_skill(tmp_path, "demo", folder="other")
-    (tmp_path / "broken" ).mkdir()
+    (tmp_path / "broken").mkdir()
     (tmp_path / "broken" / "SKILL.md").write_text("no frontmatter")
     from agent_fabric.spec import load_spec_dir
+
     with pytest.raises(SpecError) as ei:
         load_spec_dir(tmp_path)
     assert {d.type for d in ei.value.details} == {"name_mismatch", "missing_frontmatter"}
@@ -121,6 +125,7 @@ def test_catalogue_uses_skill_guidance(registry):
 
 # ------------------------------------------------------------------ guidance reaches the prompts
 
+
 def test_interpreter_prompt_contains_interpreting_section(registry, pin, good_plan):
     o = PipelineExecutor(registry).run(parse_plan(good_plan, registry, pin), pin).by_id("pca")
     backend = ScriptedBackend([json.dumps({"headline": "PCA done", "findings": ["ok"], "confidence": "high"})])
@@ -129,8 +134,15 @@ def test_interpreter_prompt_contains_interpreting_section(registry, pin, good_pl
 
 
 def test_repair_and_planner_feedback_include_common_mistakes(registry, pin, good_plan):
-    plan = parse_plan({"objective": "repair", "steps": [
-        {"id": "lm", "component": "linear_model", "params": {"response": "Yield", "predictors": ["nitrogen"]}}]}, registry)
+    plan = parse_plan(
+        {
+            "objective": "repair",
+            "steps": [
+                {"id": "lm", "component": "linear_model", "params": {"response": "Yield", "predictors": ["nitrogen"]}}
+            ],
+        },
+        registry,
+    )
     backend = ScriptedBackend(['{"params": {"response": "yield_t_ha", "predictors": ["nitrogen"]}}'])
     PipelineExecutor(registry, repairer=LLMParamRepairer(backend, registry, S)).run(plan, pin)
     assert "Known pitfalls for this component" in backend.calls[0]["messages"][1]["content"]
@@ -144,6 +156,7 @@ def test_repair_and_planner_feedback_include_common_mistakes(registry, pin, good
 
 
 # ------------------------------------------------------------------ AGENT.md
+
 
 def test_agent_dir_loads_and_bodies_become_system_prompts(registry, df, note):
     cfg = AgentsConfig.load(ROOT / "config")
@@ -189,6 +202,7 @@ def test_legacy_yaml_config_still_loads(tmp_path):
 
 # ------------------------------------------------------------------ lint
 
+
 def test_lint_skill_drift(tmp_path):
     from agent_fabric.component import Component, ComponentParams, ComponentResult
 
@@ -206,8 +220,8 @@ def test_lint_skill_drift(tmp_path):
 
     reg.load_domain(tmp_path, [Demo])
     issues = {(i.code, i.severity) for i in lint_skills(reg)}
-    assert ("unknown_identifier", "warning") in issues   # `unknown_thing`
-    assert ("broken_link", "error") in issues            # references/more.md missing
+    assert ("unknown_identifier", "warning") in issues  # `unknown_thing`
+    assert ("broken_link", "error") in issues  # references/more.md missing
 
 
 def test_lint_agents_and_cli(registry, tmp_path, capsys):
@@ -217,13 +231,21 @@ def test_lint_agents_and_cli(registry, tmp_path, capsys):
     fabric.register_schema("Review", Review)
     codes = {i.code for i in lint_agents(fabric)}
     assert "undocumented_sub_agent" in codes  # profile_runner never mentioned by the router
-    assert run(["stat_fabric.domain:register", "examples.domains.text_pack:register"], str(ROOT / "config"),
-               strict=True, schemas=["stat_fabric.schemas:SCHEMAS"]) == 0
+    assert (
+        run(
+            ["stat_fabric.domain:register", "examples.domains.text_pack:register"],
+            str(ROOT / "config"),
+            strict=True,
+            schemas=["stat_fabric.schemas:SCHEMAS"],
+        )
+        == 0
+    )
     assert run(["stat_fabric.domain:register"], str(ROOT / "config")) == 1  # document_digest missing -> error
     assert "unknown_pipeline" in capsys.readouterr().out
 
 
 # ------------------------------------------------------------------ evals
+
 
 def test_score_plan():
     assert score_plan(None, 0) == 0.0
@@ -235,8 +257,11 @@ def test_score_plan():
 def test_evaluate_planner(registry, pin, good_plan):
     cases = load_cases(ROOT / "examples" / "evals" / "planner_cases.yaml")
     assert [c.name for c in cases][:2] == ["treatment_effect", "yield_drivers"]
-    template = TemplatePlanner(registry, "experiment_analysis",
-                               {"response": "yield_t_ha", "factors": ["treatment"], "predictors": ["nitrogen"]})
+    template = TemplatePlanner(
+        registry,
+        "experiment_analysis",
+        {"response": "yield_t_ha", "factors": ["treatment"], "predictors": ["nitrogen"]},
+    )
     rep = evaluate_planner(template, cases[:2], {"trial": pin})
     assert rep.passed and rep.mean_score == 1.0
     llm = LLMPlanner(ScriptedBackend(["not json"] * 3), registry, S)

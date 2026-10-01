@@ -18,8 +18,41 @@ from agent_fabric.registry import Registry, component
 
 SPEC_DIR = Path(__file__).parent / "skills"
 _WORD = re.compile(r"[A-Za-zÀ-ÿ]+(?:-[A-Za-zÀ-ÿ]+)*")
-STOPWORDS = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "was", "were", "with", "by",
-             "de", "da", "do", "das", "dos", "e", "o", "os", "as", "em", "no", "na", "para", "com", "que", "um", "uma"}
+STOPWORDS = {
+    "the",
+    "a",
+    "an",
+    "and",
+    "or",
+    "of",
+    "to",
+    "in",
+    "on",
+    "for",
+    "is",
+    "are",
+    "was",
+    "were",
+    "with",
+    "by",
+    "de",
+    "da",
+    "do",
+    "das",
+    "dos",
+    "e",
+    "o",
+    "os",
+    "as",
+    "em",
+    "no",
+    "na",
+    "para",
+    "com",
+    "que",
+    "um",
+    "uma",
+}
 
 
 class TextStatsParams(ComponentParams):
@@ -43,13 +76,19 @@ class TextStats(Component[TextStatsParams, TextStatsResult]):
         words = [w.lower() if params.lowercase else w for w in _WORD.findall(text)]
         sentences = [s for s in re.split(r"[.!?]+\s", text) if s.strip()]
         warns = ["very short text; statistics are unstable"] if len(words) < 50 else []
-        return TextStatsResult(n_words=len(words), n_sentences=len(sentences),
-                               avg_word_length=sum(map(len, words)) / len(words) if words else None,
-                               lexical_diversity=len(set(words)) / len(words) if words else None, warnings=warns)
+        return TextStatsResult(
+            n_words=len(words),
+            n_sentences=len(sentences),
+            avg_word_length=sum(map(len, words)) / len(words) if words else None,
+            lexical_diversity=len(set(words)) / len(words) if words else None,
+            warnings=warns,
+        )
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
-        return (f"{r['n_words']} words in {r['n_sentences']} sentences.",
-                [f"lexical diversity {r['lexical_diversity']:.2f}", f"average word length {r['avg_word_length']:.2f}"])
+        return (
+            f"{r['n_words']} words in {r['n_sentences']} sentences.",
+            [f"lexical diversity {r['lexical_diversity']:.2f}", f"average word length {r['avg_word_length']:.2f}"],
+        )
 
 
 class KeywordsParams(ComponentParams):
@@ -75,13 +114,21 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
     def extra_checks(self, inputs: dict, params: KeywordsParams) -> list[ErrorDetail]:
         n = len([w for w in _WORD.findall(inputs["text"]) if len(w) >= params.min_length])
         if n == 0:
-            return [ErrorDetail(loc=("params", "min_length"), type="no_candidates",
-                                msg=f"no words with >= {params.min_length} letters", hint="lower min_length")]
+            return [
+                ErrorDetail(
+                    loc=("params", "min_length"),
+                    type="no_candidates",
+                    msg=f"no words with >= {params.min_length} letters",
+                    hint="lower min_length",
+                )
+            ]
         return []
 
     def compute(self, inputs: dict, params: KeywordsParams, ctx: StepContext) -> KeywordsResult:
         stop = STOPWORDS | {w.lower() for w in params.extra_stopwords}
-        words = [w.lower() for w in _WORD.findall(inputs["text"]) if len(w) >= params.min_length and w.lower() not in stop]
+        words = [
+            w.lower() for w in _WORD.findall(inputs["text"]) if len(w) >= params.min_length and w.lower() not in stop
+        ]
         top = Counter(words).most_common(params.top_k)
         ctx.emit("terms", [t for t, _ in top])
         return KeywordsResult(keywords=[Keyword(term=t, count=c) for t, c in top])

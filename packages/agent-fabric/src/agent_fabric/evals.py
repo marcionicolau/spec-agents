@@ -55,14 +55,18 @@ class EvalReport(BaseModel):
 
     def table(self) -> str:
         rows = [f"{'case':28} {'score':>5}  ok  attempts  components"]
-        rows += [f"{r.name:28} {r.score:5.2f}  {'✔' if r.passed else '✘'}   {r.attempts:>8}  "
-                 f"{', '.join(r.components) or r.error or ''}" for r in self.results]
+        rows += [
+            f"{r.name:28} {r.score:5.2f}  {'✔' if r.passed else '✘'}   {r.attempts:>8}  "
+            f"{', '.join(r.components) or r.error or ''}"
+            for r in self.results
+        ]
         rows.append(f"mean {self.mean_score:.3f}")
         return "\n".join(rows)
 
 
-def score_plan(components: Iterable[str] | None, n_rejected: int, expected: Iterable[str] = (),
-               forbidden: Iterable[str] = ()) -> float:
+def score_plan(
+    components: Iterable[str] | None, n_rejected: int, expected: Iterable[str] = (), forbidden: Iterable[str] = ()
+) -> float:
     """0 if no valid plan; 0.7 valid + 0.1 first try + 0.2 x expected coverage; -0.3 per forbidden hit."""
     if components is None:
         return 0.0
@@ -85,8 +89,13 @@ def evaluate_planner(planner: Any, cases: list[PlannerCase], inputs: dict[str, A
             out = planner.plan(case.objective, inputs[case.inputs])
             comps = [s.component for s in out.plan.steps]
             score = score_plan(comps, len(out.rejected), case.expected_components, case.forbidden_components)
-            results.append(CaseResult(name=case.name, score=score, passed=score >= case.min_score,
-                                      attempts=out.attempts, components=comps))
+            results.append(
+                CaseResult(
+                    name=case.name, score=score, passed=score >= case.min_score, attempts=out.attempts, components=comps
+                )
+            )
         except FabricError as exc:
-            results.append(CaseResult(name=case.name, score=0.0, passed=False, error=f"{exc.category.value}: {exc.message}"))
+            results.append(
+                CaseResult(name=case.name, score=0.0, passed=False, error=f"{exc.category.value}: {exc.message}")
+            )
     return EvalReport(results=results)

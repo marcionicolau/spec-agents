@@ -22,13 +22,16 @@ from agent_fabric.pipeline import parse_plan
 S = LLMSettings(max_correction_attempts=3)
 
 
-@pytest.mark.parametrize("text", [
-    '{"a": 1}',
-    'Sure!\n```json\n{"a": 1}\n```\nHope it helps',
-    'prefix {"a": 1, } suffix',
-    '{"a": 1} and then {"b": 2}',
-    '{"s": "brace } inside \\" string", "a": 1}',
-])
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"a": 1}',
+        'Sure!\n```json\n{"a": 1}\n```\nHope it helps',
+        'prefix {"a": 1, } suffix',
+        '{"a": 1} and then {"b": 2}',
+        '{"s": "brace } inside \\" string", "a": 1}',
+    ],
+)
 def test_extract_json_tolerant(text):
     assert extract_json(text)["a"] == 1
 
@@ -54,7 +57,10 @@ def test_planner_self_corrects(registry, pin, good_plan):
 
 
 def test_planner_domain_scope_enforced(registry, pin):
-    plan = {"objective": "out of scope", "steps": [{"id": "k", "component": "keywords", "inputs": {"text": "$inputs.data"}}]}
+    plan = {
+        "objective": "out of scope",
+        "steps": [{"id": "k", "component": "keywords", "inputs": {"text": "$inputs.data"}}],
+    }
     backend = ScriptedBackend([json.dumps(plan)] * 2)
     with pytest.raises(CorrectionExhausted) as ei:
         LLMPlanner(backend, registry, LLMSettings(max_correction_attempts=2), domains=["statistics"]).plan("x", pin)
@@ -62,12 +68,16 @@ def test_planner_domain_scope_enforced(registry, pin):
 
 
 def test_template_planner(registry, pin):
-    out = TemplatePlanner(registry, "experiment_analysis",
-                          {"response": "yield_t_ha", "factors": ["treatment"], "predictors": ["nitrogen"]}).plan("trial", pin)
+    out = TemplatePlanner(
+        registry,
+        "experiment_analysis",
+        {"response": "yield_t_ha", "factors": ["treatment"], "predictors": ["nitrogen"]},
+    ).plan("trial", pin)
     assert [s.id for s in out.plan.steps] == ["summary", "anova", "model"]
     with pytest.raises(PlanValidationError):
-        TemplatePlanner(registry, "experiment_analysis",
-                        {"response": "yield", "factors": ["treatment"], "predictors": ["nitrogen"]}).plan("trial", pin)
+        TemplatePlanner(
+            registry, "experiment_analysis", {"response": "yield", "factors": ["treatment"], "predictors": ["nitrogen"]}
+        ).plan("trial", pin)
 
 
 def _outcome(registry, pin, good_plan, step):
@@ -88,15 +98,28 @@ def test_interpreter_grounding_loop(registry, pin, good_plan):
 def test_grounding_accepts_percent_and_rounding(registry, pin, good_plan):
     o = _outcome(registry, pin, good_plan, "pca")
     pc1 = o.result["components"]["PC1"]["explained_variance_ratio"]
-    it = Interpretation(step_id="pca", headline="PCA", confidence="high", findings=[f"PC1 {pc1:.1%}", f"ratio {pc1:.3f}"])
+    it = Interpretation(
+        step_id="pca", headline="PCA", confidence="high", findings=[f"PC1 {pc1:.1%}", f"ratio {pc1:.3f}"]
+    )
     assert grounding_errors(it, o.result) == []
 
 
 def test_param_repair(registry, pin):
-    plan = parse_plan({"objective": "repair", "steps": [
-        {"id": "lm", "component": "linear_model", "params": {"response": "Yield", "predictors": ["nitrogen"]}}]}, registry)
-    backend = ScriptedBackend(['{"params": {"response": "yield", "predictors": ["nitrogen"]}}',
-                               '{"params": {"response": "yield_t_ha", "predictors": ["nitrogen"]}}'])
+    plan = parse_plan(
+        {
+            "objective": "repair",
+            "steps": [
+                {"id": "lm", "component": "linear_model", "params": {"response": "Yield", "predictors": ["nitrogen"]}}
+            ],
+        },
+        registry,
+    )
+    backend = ScriptedBackend(
+        [
+            '{"params": {"response": "yield", "predictors": ["nitrogen"]}}',
+            '{"params": {"response": "yield_t_ha", "predictors": ["nitrogen"]}}',
+        ]
+    )
     o = PipelineExecutor(registry, repairer=LLMParamRepairer(backend, registry, S)).run(plan, pin).by_id("lm")
     assert o.status == StepStatus.REPAIRED and o.params["response"] == "yield_t_ha"
     assert o.repair_history[0].details[0].type == "column_not_found"
@@ -131,7 +154,9 @@ def test_dspy_planner(registry, pin, good_plan):
 
     bad = json.loads(json.dumps(good_plan))
     bad["steps"][0]["component"] = "describe"
-    dspy.configure(lm=DummyLM([{"reasoning": "r", "plan": json.dumps(bad)}, {"reasoning": "r", "plan": json.dumps(good_plan)}]))
+    dspy.configure(
+        lm=DummyLM([{"reasoning": "r", "plan": json.dumps(bad)}, {"reasoning": "r", "plan": json.dumps(good_plan)}])
+    )
     out = DSPyPlanner(registry, domains=["statistics"]).plan("yield", pin)
     assert out.planner == "dspy" and out.attempts == 2 and out.rejected[0].details[0].type == "unknown_component"
     pred = dspy.Prediction(plan=out.plan, rejected=out.rejected, valid=True)

@@ -20,8 +20,9 @@ if TYPE_CHECKING:  # pragma: no cover
 class BaseAgent(ABC):
     accepts_sub_agents: bool = False
 
-    def __init__(self, name: str, spec: AgentSpec, fabric: AgentFabric,
-                 children: dict[str, BaseAgent] | None = None) -> None:
+    def __init__(
+        self, name: str, spec: AgentSpec, fabric: AgentFabric, children: dict[str, BaseAgent] | None = None
+    ) -> None:
         self.name, self.spec, self.fabric = name, spec, fabric
         self.children: dict[str, BaseAgent] = children or {}
         self.fallback_agent: BaseAgent | None = None
@@ -44,19 +45,30 @@ class BaseAgent(ABC):
                 ctx.event(path, "fallback", self.fallback_agent.spec.backend)
                 try:
                     res = self.fallback_agent._run(task, ctx, path, depth)
-                    res.notes.append(f"fell back to backend '{self.fallback_agent.spec.backend}' after "
-                                     f"{exc.category.value} error: {exc.message}")
+                    res.notes.append(
+                        f"fell back to backend '{self.fallback_agent.spec.backend}' after "
+                        f"{exc.category.value} error: {exc.message}"
+                    )
                 except FabricError as exc2:
-                    res = self.result(path, "failed", error=exc2.report, summary=exc2.message,
-                                      notes=[f"primary failed: {exc.message}"])
+                    res = self.result(
+                        path,
+                        "failed",
+                        error=exc2.report,
+                        summary=exc2.message,
+                        notes=[f"primary failed: {exc.message}"],
+                    )
         res.llm_calls = ctx.llm_calls_by_path.get(path, 0)
         res.duration_s = round(time.perf_counter() - t0, 4)
         ctx.event(path, "end", res.status)
         if ctx.memory is not None:
             ctx.memory.add_message(namespaced(ctx.session_id, path), "user", task.instruction)
             ctx.memory.add_message(namespaced(ctx.session_id, path), "assistant", res.summary or res.status)
-            ctx.memory.remember_run(namespaced(ctx.session_id, path), RunSummary(
-                objective=task.instruction, agent=path, status={path: res.status}, headlines=[res.summary[:200]]))
+            ctx.memory.remember_run(
+                namespaced(ctx.session_id, path),
+                RunSummary(
+                    objective=task.instruction, agent=path, status={path: res.status}, headlines=[res.summary[:200]]
+                ),
+            )
         return res
 
     @abstractmethod
@@ -86,8 +98,11 @@ class BaseAgent(ABC):
         s = self.spec
         parts = []
         if s.role or s.goal:
-            parts.append(AGENT_SYSTEM.format(role=s.role or self.name.replace("_", " "), goal=s.goal or s.card,
-                                             backstory=s.backstory).strip())
+            parts.append(
+                AGENT_SYSTEM.format(
+                    role=s.role or self.name.replace("_", " "), goal=s.goal or s.card, backstory=s.backstory
+                ).strip()
+            )
         if s.instructions:
             parts.append(s.instructions)
         return "\n\n".join(parts) or f"You are the '{self.name}' agent."
@@ -110,5 +125,10 @@ class BaseAgent(ABC):
         return memory_context(ctx.memory, namespaced(ctx.session_id, path))
 
     def card(self) -> dict[str, Any]:
-        return {"name": self.name, "kind": self.kind, "role": self.spec.role, "does": self.spec.card,
-                **({"sub_agents": sorted(self.children)} if self.children else {})}
+        return {
+            "name": self.name,
+            "kind": self.kind,
+            "role": self.spec.role,
+            "does": self.spec.card,
+            **({"sub_agents": sorted(self.children)} if self.children else {}),
+        }

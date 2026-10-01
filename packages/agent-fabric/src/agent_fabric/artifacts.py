@@ -45,13 +45,15 @@ class ArtifactType:
         except ValidationError as exc:
             raise SpecError(f"Invalid constraints for type '{self.name}'", details_from_pydantic(exc, loc)) from exc
 
-    def static_check(self, profile: BaseModel, constraints: BaseModel, params: BaseModel,
-                     loc: tuple[str | int, ...]) -> list[ErrorDetail]:
+    def static_check(
+        self, profile: BaseModel, constraints: BaseModel, params: BaseModel, loc: tuple[str | int, ...]
+    ) -> list[ErrorDetail]:
         """Checks that only need the profile (plan time, before any data is touched)."""
         return []
 
-    def runtime_check(self, value: Any, constraints: BaseModel, params: BaseModel,
-                      loc: tuple[str | int, ...]) -> list[ErrorDetail]:
+    def runtime_check(
+        self, value: Any, constraints: BaseModel, params: BaseModel, loc: tuple[str | int, ...]
+    ) -> list[ErrorDetail]:
         """Checks that need the real value (after static checks passed)."""
         return []
 
@@ -92,10 +94,18 @@ class TextType(ArtifactType):
     def static_check(self, profile, constraints, params, loc):
         errs = []
         if profile.n_chars < constraints.min_chars:
-            errs.append(ErrorDetail(loc=loc, type="text_too_short", msg=f"{profile.n_chars} chars < {constraints.min_chars}"))
+            errs.append(
+                ErrorDetail(loc=loc, type="text_too_short", msg=f"{profile.n_chars} chars < {constraints.min_chars}")
+            )
         if constraints.max_chars and profile.n_chars > constraints.max_chars:
-            errs.append(ErrorDetail(loc=loc, type="text_too_long", msg=f"{profile.n_chars} chars > {constraints.max_chars}",
-                                    hint="split the text or raise max_chars"))
+            errs.append(
+                ErrorDetail(
+                    loc=loc,
+                    type="text_too_long",
+                    msg=f"{profile.n_chars} chars > {constraints.max_chars}",
+                    hint="split the text or raise max_chars",
+                )
+            )
         return errs
 
 
@@ -121,9 +131,17 @@ class TypeRegistry:
         try:
             return self._types[name]
         except KeyError:
-            raise SpecError(f"Unknown artifact type '{name}'",
-                            [ErrorDetail(type="unknown_type", msg=f"'{name}' is not registered", input=name,
-                                         hint=suggest(name, self._types) or f"available: {sorted(self._types)}")]) from None
+            raise SpecError(
+                f"Unknown artifact type '{name}'",
+                [
+                    ErrorDetail(
+                        type="unknown_type",
+                        msg=f"'{name}' is not registered",
+                        input=name,
+                        hint=suggest(name, self._types) or f"available: {sorted(self._types)}",
+                    )
+                ],
+            ) from None
 
     def has(self, name: str) -> bool:
         return name in self._types

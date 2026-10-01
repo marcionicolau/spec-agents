@@ -12,8 +12,14 @@ from typing import Any
 
 IDENT = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
 META_COLUMNS = ("_batch_id", "_source", "_ingested_at")
-TRINO_TYPE = {"varchar": "VARCHAR", "bigint": "BIGINT", "double": "DOUBLE", "boolean": "BOOLEAN",
-              "date": "DATE", "timestamp": "TIMESTAMP(6)"}
+TRINO_TYPE = {
+    "varchar": "VARCHAR",
+    "bigint": "BIGINT",
+    "double": "DOUBLE",
+    "boolean": "BOOLEAN",
+    "date": "DATE",
+    "timestamp": "TIMESTAMP(6)",
+}
 NUMERIC = {"bigint", "double"}
 
 _INT = re.compile(r"^[+-]?(0|[1-9]\d*)$")
@@ -91,43 +97,63 @@ def fqn(catalog: str, schema: str, table: str) -> str:
 
 def _cast(col: dict[str, str]) -> str:
     t = col["type"]
-    return q(col["name"]) if t == "varchar" else f'TRY_CAST({q(col["name"])} AS {TRINO_TYPE[t]}) AS {q(col["name"])}'
+    return q(col["name"]) if t == "varchar" else f"TRY_CAST({q(col['name'])} AS {TRINO_TYPE[t]}) AS {q(col['name'])}"
 
 
-def build_layout(*, catalog: str, table: str, schemas: dict[str, str], columns: list[dict[str, str]],
-                 business_keys: list[str], load_mode: str, partition_column: str | None,
-                 gold_group_by: list[str], gold_measures: list[str]) -> dict[str, Any]:
-    tables = {layer: fqn(catalog, schemas[layer], table if layer != "gold" else f"{table}_summary")
-              for layer in ("bronze", "silver", "gold")}
+def build_layout(
+    *,
+    catalog: str,
+    table: str,
+    schemas: dict[str, str],
+    columns: list[dict[str, str]],
+    business_keys: list[str],
+    load_mode: str,
+    partition_column: str | None,
+    gold_group_by: list[str],
+    gold_measures: list[str],
+) -> dict[str, Any]:
+    tables = {
+        layer: fqn(catalog, schemas[layer], table if layer != "gold" else f"{table}_summary")
+        for layer in ("bronze", "silver", "gold")
+    }
     names = [c["name"] for c in columns]
     silver_cols = [q(n) for n in names] + [q("_batch_id"), q("_ingested_at")]
 
-    bronze_ddl = (f"CREATE TABLE IF NOT EXISTS {tables['bronze']} ("
-                  + ", ".join(f"{q(n)} VARCHAR" for n in names + list(META_COLUMNS)) + ") WITH (format = 'PARQUET')")
+    bronze_ddl = (
+        f"CREATE TABLE IF NOT EXISTS {tables['bronze']} ("
+        + ", ".join(f"{q(n)} VARCHAR" for n in names + list(META_COLUMNS))
+        + ") WITH (format = 'PARQUET')"
+    )
     props = "format = 'PARQUET'"
     if partition_column:
         props += f", partitioning = ARRAY['day({partition_column})']"
-    silver_ddl = (f"CREATE TABLE IF NOT EXISTS {tables['silver']} ("
-                  + ", ".join(f"{q(c['name'])} {TRINO_TYPE[c['type']]}" for c in columns)
-                  + f", {q('_batch_id')} VARCHAR, {q('_ingested_at')} TIMESTAMP(6)) WITH ({props})")
+    silver_ddl = (
+        f"CREATE TABLE IF NOT EXISTS {tables['silver']} ("
+        + ", ".join(f"{q(c['name'])} {TRINO_TYPE[c['type']]}" for c in columns)
+        + f", {q('_batch_id')} VARCHAR, {q('_ingested_at')} TIMESTAMP(6)) WITH ({props})"
+    )
     ddl = [f"CREATE SCHEMA IF NOT EXISTS {q(catalog)}.{q(schemas[layer])}" for layer in ("bronze", "silver", "gold")]
     ddl += [bronze_ddl, silver_ddl]
 
     casts = ", ".join(_cast(c) for c in columns)
-    meta = f'{q("_batch_id")}, TRY_CAST({q("_ingested_at")} AS TIMESTAMP(6)) AS {q("_ingested_at")}'
+    meta = f"{q('_batch_id')}, TRY_CAST({q('_ingested_at')} AS TIMESTAMP(6)) AS {q('_ingested_at')}"
     if business_keys:
         keys = ", ".join(q(k) for k in business_keys)
-        source = (f"SELECT {casts}, {meta} FROM (SELECT *, row_number() OVER (PARTITION BY {keys} "
-                  f"ORDER BY {q('_ingested_at')} DESC) AS {q('_rn')} FROM {tables['bronze']} WHERE {q('_batch_id')} = ?) WHERE {q('_rn')} = 1")
+        source = (
+            f"SELECT {casts}, {meta} FROM (SELECT *, row_number() OVER (PARTITION BY {keys} "
+            f"ORDER BY {q('_ingested_at')} DESC) AS {q('_rn')} FROM {tables['bronze']} WHERE {q('_batch_id')} = ?) WHERE {q('_rn')} = 1"
+        )
     else:
         source = f"SELECT {casts}, {meta} FROM {tables['bronze']} WHERE {q('_batch_id')} = ?"
 
     if load_mode == "merge":
         on = " AND ".join(f"t.{q(k)} = s.{q(k)}" for k in business_keys)
         updates = ", ".join(f"{c} = s.{c}" for c in silver_cols if c.strip('"') not in business_keys)
-        silver_load = [f"MERGE INTO {tables['silver']} AS t USING ({source}) AS s ON {on} "
-                       f"WHEN MATCHED THEN UPDATE SET {updates} "
-                       f"WHEN NOT MATCHED THEN INSERT ({', '.join(silver_cols)}) VALUES ({', '.join('s.' + c for c in silver_cols)})"]
+        silver_load = [
+            f"MERGE INTO {tables['silver']} AS t USING ({source}) AS s ON {on} "
+            f"WHEN MATCHED THEN UPDATE SET {updates} "
+            f"WHEN NOT MATCHED THEN INSERT ({', '.join(silver_cols)}) VALUES ({', '.join('s.' + c for c in silver_cols)})"
+        ]
     else:
         silver_load = [f"INSERT INTO {tables['silver']} ({', '.join(silver_cols)}) {source}"]
         if load_mode == "overwrite":
@@ -138,20 +164,31 @@ def build_layout(*, catalog: str, table: str, schemas: dict[str, str], columns: 
     group = [q(g) for g in gold_group_by]
     aggs = ["count(*) AS row_count"]
     for m in gold_measures:
-        aggs += [f"avg({q(m)}) AS {q('avg_' + m)}", f"min({q(m)}) AS {q('min_' + m)}", f"max({q(m)}) AS {q('max_' + m)}"]
-    gold = (f"CREATE OR REPLACE TABLE {tables['gold']} AS SELECT {', '.join(group + aggs)} FROM {tables['silver']}"
-            + (f" GROUP BY {', '.join(group)}" if group else ""))
+        aggs += [
+            f"avg({q(m)}) AS {q('avg_' + m)}",
+            f"min({q(m)}) AS {q('min_' + m)}",
+            f"max({q(m)}) AS {q('max_' + m)}",
+        ]
+    gold = f"CREATE OR REPLACE TABLE {tables['gold']} AS SELECT {', '.join(group + aggs)} FROM {tables['silver']}" + (
+        f" GROUP BY {', '.join(group)}" if group else ""
+    )
 
     return {
-        "catalog": catalog, "load_mode": load_mode, "business_keys": business_keys,
-        "tables": tables, "columns": columns, "bronze_columns": names + list(META_COLUMNS),
+        "catalog": catalog,
+        "load_mode": load_mode,
+        "business_keys": business_keys,
+        "tables": tables,
+        "columns": columns,
+        "bronze_columns": names + list(META_COLUMNS),
         "sql": {
             "ddl": ddl,
             "bronze_insert": f"INSERT INTO {tables['bronze']} ({', '.join(q(n) for n in names + list(META_COLUMNS))}) VALUES ",
             "bronze_reset": f"DELETE FROM {tables['bronze']} WHERE {q('_batch_id')} = ?",
             "bronze_count": f"SELECT count(*) FROM {tables['bronze']} WHERE {q('_batch_id')} = ?",
-            "bronze_null_keys": {k: f"SELECT count(*) FROM {tables['bronze']} WHERE {q('_batch_id')} = ? AND {q(k)} IS NULL"
-                                 for k in business_keys},
+            "bronze_null_keys": {
+                k: f"SELECT count(*) FROM {tables['bronze']} WHERE {q('_batch_id')} = ? AND {q(k)} IS NULL"
+                for k in business_keys
+            },
             "silver_load": silver_load,
             "gold_refresh": gold,
         },

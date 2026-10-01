@@ -38,10 +38,17 @@ def parse_scoped(raw: Any, registry: Any, inputs: PipelineInputs, domains: Itera
     plan = parse_plan(raw, registry, inputs)
     if domains:
         allowed = registry.names(domains)
-        errs = [ErrorDetail(loc=("steps", i, "component"), type="component_out_of_scope", input=s.component,
-                            msg=f"'{s.component}' is outside this planner's domains {sorted(domains)}",
-                            hint=suggest(s.component, allowed) or f"use one of {allowed}")
-                for i, s in enumerate(plan.steps) if s.component not in allowed]
+        errs = [
+            ErrorDetail(
+                loc=("steps", i, "component"),
+                type="component_out_of_scope",
+                input=s.component,
+                msg=f"'{s.component}' is outside this planner's domains {sorted(domains)}",
+                hint=suggest(s.component, allowed) or f"use one of {allowed}",
+            )
+            for i, s in enumerate(plan.steps)
+            if s.component not in allowed
+        ]
         if errs:
             raise PlanValidationError("Plan uses components outside the allowed domains", errs)
     return plan
@@ -58,38 +65,61 @@ def pitfalls_for_plan(registry: Any, max_components: int = 3) -> Callable[[Error
                 comp = steps[d.loc[1]].get("component") if isinstance(steps[d.loc[1]], dict) else None
                 if comp and registry.has(comp) and comp not in names:
                     names.append(comp)
-        blocks = [f"[{n}]\n{registry.spec(n).common_mistakes}" for n in names[:max_components]
-                  if registry.spec(n).common_mistakes]
+        blocks = [
+            f"[{n}]\n{registry.spec(n).common_mistakes}"
+            for n in names[:max_components]
+            if registry.spec(n).common_mistakes
+        ]
         return ("Known pitfalls of the components involved:\n" + "\n\n".join(blocks)) if blocks else ""
 
     return extra
 
 
-def planner_prompts(objective: str, inputs: PipelineInputs, registry: Any, domains: Iterable[str] | None,
-                    memory_context: str) -> tuple[str, str]:
+def planner_prompts(
+    objective: str, inputs: PipelineInputs, registry: Any, domains: Iterable[str] | None, memory_context: str
+) -> tuple[str, str]:
     memory = f"\nPrevious runs in this session (context only):\n{memory_context}" if memory_context else ""
-    user = PLANNER_USER.format(objective=objective, inputs=inputs.to_prompt(),
-                               catalog=json.dumps(registry.catalog(domains), ensure_ascii=False), memory=memory)
+    user = PLANNER_USER.format(
+        objective=objective,
+        inputs=inputs.to_prompt(),
+        catalog=json.dumps(registry.catalog(domains), ensure_ascii=False),
+        memory=memory,
+    )
     return PLANNER_SYSTEM.format(max_steps=MAX_STEPS), user
 
 
 class LLMPlanner:
     name = "llm"
 
-    def __init__(self, backend: LLMBackend, registry: Any, settings: LLMSettings | None = None,
-                 domains: Iterable[str] | None = None) -> None:
+    def __init__(
+        self,
+        backend: LLMBackend,
+        registry: Any,
+        settings: LLMSettings | None = None,
+        domains: Iterable[str] | None = None,
+    ) -> None:
         self.backend, self.registry, self.s = backend, registry, settings or LLMSettings()
         self.domains = list(domains) if domains else None
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
         system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context)
-        res = structured_completion(self.backend, system, user,
-                                    lambda d: parse_scoped(d, self.registry, inputs, self.domains),
-                                    model=self.s.planner_model, max_attempts=self.s.max_correction_attempts,
-                                    json_mode=self.s.json_mode, temperature=self.s.temperature,
-                                    feedback_extra=pitfalls_for_plan(self.registry))
-        return PlanningOutcome(plan=res.value, planner=self.name, attempts=res.n_attempts,
-                               rejected=[a.error for a in res.attempts if a.error])
+        res = structured_completion(
+            self.backend,
+            system,
+            user,
+            lambda d: parse_scoped(d, self.registry, inputs, self.domains),
+            model=self.s.planner_model,
+            max_attempts=self.s.max_correction_attempts,
+            json_mode=self.s.json_mode,
+            temperature=self.s.temperature,
+            feedback_extra=pitfalls_for_plan(self.registry),
+        )
+        return PlanningOutcome(
+            plan=res.value,
+            planner=self.name,
+            attempts=res.n_attempts,
+            rejected=[a.error for a in res.attempts if a.error],
+        )
 
 
 class PydanticAIPlanner:
@@ -97,8 +127,13 @@ class PydanticAIPlanner:
 
     name = "pydantic_ai"
 
-    def __init__(self, registry: Any, settings: LLMSettings | None = None, model: Any = None,
-                 domains: Iterable[str] | None = None) -> None:
+    def __init__(
+        self,
+        registry: Any,
+        settings: LLMSettings | None = None,
+        model: Any = None,
+        domains: Iterable[str] | None = None,
+    ) -> None:
         try:
             import pydantic_ai  # noqa: F401
         except ImportError as exc:  # pragma: no cover
@@ -111,7 +146,10 @@ class PydanticAIPlanner:
             return self._model
         from pydantic_ai.models.openai import OpenAIChatModel
         from pydantic_ai.providers.openai import OpenAIProvider
-        return OpenAIChatModel(self.s.planner_model, provider=OpenAIProvider(base_url=self.s.base_url, api_key=self.s.api_key))
+
+        return OpenAIChatModel(
+            self.s.planner_model, provider=OpenAIProvider(base_url=self.s.base_url, api_key=self.s.api_key)
+        )
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
         from pydantic_ai import Agent, ModelRetry, RunContext
@@ -119,9 +157,14 @@ class PydanticAIPlanner:
 
         system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context)
         wrap = {"prompted": PromptedOutput, "tool": ToolOutput, "native": NativeOutput}[self.s.pydantic_ai_output_mode]
-        agent = Agent(self.build_model(), output_type=wrap(PipelinePlan), instructions=system,
-                      deps_type=PipelineInputs, retries=self.s.max_correction_attempts,
-                      model_settings={"temperature": self.s.temperature})
+        agent = Agent(
+            self.build_model(),
+            output_type=wrap(PipelinePlan),
+            instructions=system,
+            deps_type=PipelineInputs,
+            retries=self.s.max_correction_attempts,
+            model_settings={"temperature": self.s.temperature},
+        )
         rejected: list[ErrorReport] = []
 
         @agent.output_validator

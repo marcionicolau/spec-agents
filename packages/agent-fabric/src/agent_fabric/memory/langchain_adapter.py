@@ -45,16 +45,21 @@ class LangChainMemory:
     def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]:
         role_of = {"human": "user", "ai": "assistant", "system": "system"}
         msgs = [m for m in self._store(session_id).messages if m.additional_kwargs.get("kind") != KIND]
-        return [(role_of.get(m.type, "assistant"), str(m.content)) for m in msgs[-min(last_n, self.window):]]
+        return [(role_of.get(m.type, "assistant"), str(m.content)) for m in msgs[-min(last_n, self.window) :]]
 
     def remember_run(self, session_id: str, summary: RunSummary) -> None:
         self._store(session_id).add_message(
-            self._lc.AIMessage(content=summary.to_text(),
-                               additional_kwargs={"kind": KIND, "payload": summary.model_dump()}))
+            self._lc.AIMessage(
+                content=summary.to_text(), additional_kwargs={"kind": KIND, "payload": summary.model_dump()}
+            )
+        )
 
     def recent_runs(self, session_id: str, last_n: int = 3) -> list[RunSummary]:
-        runs = [RunSummary.model_validate(m.additional_kwargs["payload"])
-                for m in self._store(session_id).messages if m.additional_kwargs.get("kind") == KIND]
+        runs = [
+            RunSummary.model_validate(m.additional_kwargs["payload"])
+            for m in self._store(session_id).messages
+            if m.additional_kwargs.get("kind") == KIND
+        ]
         return runs[-last_n:]
 
     def clear(self, session_id: str) -> None:

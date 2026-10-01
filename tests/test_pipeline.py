@@ -31,13 +31,16 @@ def test_auto_bind_by_type_when_names_differ(registry, df):
 
 
 def test_plan_collects_all_errors_with_locations(registry, pin):
-    bad = {"objective": "many errors", "steps": [
-        {"id": "s", "component": "sumary"},
-        {"id": "lm", "component": "linear_model", "params": {"response": "yeld", "predictors": ["nitrogen"]}},
-        {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
-        {"id": "cl", "component": "clustering", "inputs": {"matrix": "p.score"}},
-        {"id": "k", "component": "keywords", "inputs": {"txt": "$inputs.data"}},
-    ]}
+    bad = {
+        "objective": "many errors",
+        "steps": [
+            {"id": "s", "component": "sumary"},
+            {"id": "lm", "component": "linear_model", "params": {"response": "yeld", "predictors": ["nitrogen"]}},
+            {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
+            {"id": "cl", "component": "clustering", "inputs": {"matrix": "p.score"}},
+            {"id": "k", "component": "keywords", "inputs": {"txt": "$inputs.data"}},
+        ],
+    }
     with pytest.raises(PlanValidationError) as ei:
         parse_plan(bad, registry, pin)
     d = details(ei.value)
@@ -52,9 +55,17 @@ def test_plan_collects_all_errors_with_locations(registry, pin):
 
 def test_type_mismatch(registry, pin):
     with pytest.raises(PlanValidationError) as ei:
-        parse_plan({"objective": "types", "steps": [
-            {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
-            {"id": "k", "component": "keywords", "inputs": {"text": "p.scores"}}]}, registry, pin)
+        parse_plan(
+            {
+                "objective": "types",
+                "steps": [
+                    {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
+                    {"id": "k", "component": "keywords", "inputs": {"text": "p.scores"}},
+                ],
+            },
+            registry,
+            pin,
+        )
     assert ("steps.1.inputs.text", "type_mismatch") in details(ei.value)
 
 
@@ -66,16 +77,27 @@ def test_clustering_source_rules(registry, pin):
 
 def test_cycles_via_references(registry, pin):
     with pytest.raises(PlanValidationError) as ei:
-        parse_plan({"objective": "cycle", "steps": [
-            {"id": "a", "component": "summary", "depends_on": ["b"]},
-            {"id": "b", "component": "clustering", "inputs": {"matrix": "a.result"}}]}, registry, pin)
+        parse_plan(
+            {
+                "objective": "cycle",
+                "steps": [
+                    {"id": "a", "component": "summary", "depends_on": ["b"]},
+                    {"id": "b", "component": "clustering", "inputs": {"matrix": "a.result"}},
+                ],
+            },
+            registry,
+            pin,
+        )
     assert "cycle" in ei.value.details[0].msg
 
 
 def test_param_refs_rejected_in_plans(registry, pin):
     with pytest.raises(PlanValidationError) as ei:
-        parse_plan({"objective": "params", "steps": [{"id": "s", "component": "summary", "inputs": {"data": "$params.x"}}]},
-                   registry, pin)
+        parse_plan(
+            {"objective": "params", "steps": [{"id": "s", "component": "summary", "inputs": {"data": "$params.x"}}]},
+            registry,
+            pin,
+        )
     assert ("steps.0.inputs.data", "param_ref_not_allowed") in details(ei.value)
 
 
@@ -90,11 +112,26 @@ def test_pipeline_spec_instantiate(registry):
 
 
 def test_nested_pipelines_three_levels(registry, pin):
-    plan = parse_plan({"objective": "nested", "steps": [
-        {"id": "study", "component": "full_study", "params": {
-            "response": "yield_t_ha", "factors": ["treatment"], "predictors": ["nitrogen", "treatment"],
-            "features": ["nitrogen", "phosphorus", "potassium"]}}],
-        "outputs": {"labels": "study.labels"}}, registry, pin)
+    plan = parse_plan(
+        {
+            "objective": "nested",
+            "steps": [
+                {
+                    "id": "study",
+                    "component": "full_study",
+                    "params": {
+                        "response": "yield_t_ha",
+                        "factors": ["treatment"],
+                        "predictors": ["nitrogen", "treatment"],
+                        "features": ["nitrogen", "phosphorus", "potassium"],
+                    },
+                }
+            ],
+            "outputs": {"labels": "study.labels"},
+        },
+        registry,
+        pin,
+    )
     rep = PipelineExecutor(registry).run(plan, pin)
     o = rep.by_id("study")
     assert o.status == StepStatus.OK
@@ -105,9 +142,20 @@ def test_nested_pipelines_three_levels(registry, pin):
 
 def test_nested_failure_is_located(registry, df):
     pin = PipelineInputs.from_values({"data": df.head(8)}, registry.types)
-    plan = parse_plan({"objective": "nested fail", "steps": [
-        {"id": "ex", "component": "exploratory_analysis", "params": {"features": ["nitrogen", "ph", "rainfall"]}}]},
-        registry, pin)
+    plan = parse_plan(
+        {
+            "objective": "nested fail",
+            "steps": [
+                {
+                    "id": "ex",
+                    "component": "exploratory_analysis",
+                    "params": {"features": ["nitrogen", "ph", "rainfall"]},
+                }
+            ],
+        },
+        registry,
+        pin,
+    )
     o = PipelineExecutor(registry).run(plan, pin).by_id("ex")
     assert o.status == StepStatus.FAILED
     assert o.error.details[0].loc[:2] == ("pipeline", "clusters")
@@ -115,22 +163,44 @@ def test_nested_failure_is_located(registry, df):
 
 def test_failed_step_skips_dependents(registry, df):
     pin = PipelineInputs.from_values({"data": df.head(8)}, registry.types)
-    plan = parse_plan({"objective": "skip", "steps": [
-        {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
-        {"id": "c", "component": "clustering", "inputs": {"matrix": "p.scores"}},
-        {"id": "after", "component": "summary", "depends_on": ["c"]},
-        {"id": "s", "component": "summary"}]}, registry)  # no inputs: static checks deferred to runtime
+    plan = parse_plan(
+        {
+            "objective": "skip",
+            "steps": [
+                {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
+                {"id": "c", "component": "clustering", "inputs": {"matrix": "p.scores"}},
+                {"id": "after", "component": "summary", "depends_on": ["c"]},
+                {"id": "s", "component": "summary"},
+            ],
+        },
+        registry,
+    )  # no inputs: static checks deferred to runtime
     rep = PipelineExecutor(registry).run(plan, pin)
     assert [rep.by_id(i).status for i in ("p", "c", "after", "s")] == [
-        StepStatus.OK, StepStatus.FAILED, StepStatus.SKIPPED, StepStatus.OK]
+        StepStatus.OK,
+        StepStatus.FAILED,
+        StepStatus.SKIPPED,
+        StepStatus.OK,
+    ]
     with pytest.raises(PlanValidationError):  # with inputs, the same problem is caught before running
         parse_plan(plan, registry, pin)
 
 
 def test_fail_fast(registry, pin):
-    plan = parse_plan({"objective": "fail fast", "steps": [
-        {"id": "bad", "component": "linear_model", "params": {"response": "missing", "predictors": ["nitrogen"]}},
-        {"id": "after", "component": "summary", "depends_on": ["bad"]}]}, registry)  # no inputs -> runtime failure
+    plan = parse_plan(
+        {
+            "objective": "fail fast",
+            "steps": [
+                {
+                    "id": "bad",
+                    "component": "linear_model",
+                    "params": {"response": "missing", "predictors": ["nitrogen"]},
+                },
+                {"id": "after", "component": "summary", "depends_on": ["bad"]},
+            ],
+        },
+        registry,
+    )  # no inputs -> runtime failure
     rep = PipelineExecutor(registry, fail_policy="fail_fast").run(plan, pin)
     assert rep.by_id("bad").status == StepStatus.FAILED and rep.by_id("after").status == StepStatus.SKIPPED
     assert rep.by_id("after").error.category.value == "dependency"

@@ -27,7 +27,12 @@ def test_summary(registry, df):
 
 
 def test_linear_model(registry, df):
-    r, _ = run_component(registry, "linear_model", {"response": "yield_t_ha", "predictors": ["nitrogen", "rainfall", "treatment"]}, data=df)
+    r, _ = run_component(
+        registry,
+        "linear_model",
+        {"response": "yield_t_ha", "predictors": ["nitrogen", "rainfall", "treatment"]},
+        data=df,
+    )
     coefs = {c.term: c for c in r.coefficients}
     assert coefs["nitrogen"].significant and 0.01 < coefs["nitrogen"].estimate < 0.03
     assert "treatment[N60]" in coefs and r.r_squared > 0.5 and r.n_used == 118
@@ -36,18 +41,24 @@ def test_linear_model(registry, df):
 def test_anova_one_and_two_way(registry, df):
     r, _ = run_component(registry, "anova", {"response": "yield_t_ha", "factors": ["treatment"]}, data=df)
     assert next(x for x in r.table if x.source == "treatment").p_value < 1e-6 and len(r.tukey) == 3
-    r2, _ = run_component(registry, "anova", {"response": "yield_t_ha", "factors": ["treatment", "cultivar"], "anova_type": 3}, data=df)
+    r2, _ = run_component(
+        registry, "anova", {"response": "yield_t_ha", "factors": ["treatment", "cultivar"], "anova_type": 3}, data=df
+    )
     assert any(x.source == "treatment:cultivar" for x in r2.table)
 
 
 def test_time_series(registry, df):
-    r, _ = run_component(registry, "time_series", {"time_col": "date", "value_col": "yield_t_ha", "horizon": 6}, data=df)
+    r, _ = run_component(
+        registry, "time_series", {"time_col": "date", "value_col": "yield_t_ha", "horizon": 6}, data=df
+    )
     assert r.freq == "MS" and r.n_periods == 120 and len(r.forecast) == 6
     assert all(f.lower <= f.mean <= f.upper for f in r.forecast)
 
 
 def test_pca_emits_scores_and_loadings(registry, df):
-    r, store = run_component(registry, "pca", {"features": ["nitrogen", "phosphorus", "potassium", "ph"], "variance_threshold": 0.7}, data=df)
+    r, store = run_component(
+        registry, "pca", {"features": ["nitrogen", "phosphorus", "potassium", "ph"], "variance_threshold": 0.7}, data=df
+    )
     assert r.cumulative_variance[-1] >= 0.7 and "nitrogen" in r.components["PC1"].top_features[:2]
     assert store.get("t.scores").shape == (120, r.n_components)
     assert store.get("t.loadings").shape == (4, r.n_components)
@@ -64,6 +75,7 @@ def test_clustering_on_matrix_and_features(registry, df):
 
 
 # ------------------------------------------------------------------ validation
+
 
 def test_missing_column_has_suggestion(registry, df):
     with pytest.raises(DataValidationError) as ei:
@@ -89,14 +101,23 @@ def test_extra_param_and_literal_errors(registry, df):
         run_component(registry, "pca", {"features": ["nitrogen", "ph"], "n_pcs": 2}, data=df)
     assert "remove" in details(ei.value)[("params.n_pcs", "extra_forbidden")].hint
     with pytest.raises(ParamsValidationError) as ei:
-        run_component(registry, "linear_model", {"response": "yield_t_ha", "predictors": ["nitrogen"], "robust_se": "HC1"}, data=df)
+        run_component(
+            registry,
+            "linear_model",
+            {"response": "yield_t_ha", "predictors": ["nitrogen"], "robust_se": "HC1"},
+            data=df,
+        )
     assert "HC3" in ei.value.details[0].hint
 
 
 def test_formula_injection_is_impossible(registry, df):
     with pytest.raises(ParamsValidationError):
-        run_component(registry, "linear_model",
-                      {"response": 'yield_t_ha") + __import__("os").system("id") + Q("x', "predictors": ["nitrogen"]}, data=df)
+        run_component(
+            registry,
+            "linear_model",
+            {"response": 'yield_t_ha") + __import__("os").system("id") + Q("x', "predictors": ["nitrogen"]},
+            data=df,
+        )
 
 
 def test_constant_column_and_too_few_rows(registry):
@@ -117,20 +138,30 @@ def test_anova_small_group_and_log_response(registry, df):
         run_component(registry, "anova", {"response": "yield_t_ha", "factors": ["treatment"]}, data=d)
     assert "merge rare levels" in details(ei.value)[("params.factors", "small_group")].hint
     with pytest.raises(DataValidationError) as ei:
-        run_component(registry, "linear_model", {"response": "y", "predictors": ["nitrogen"], "log_response": True},
-                      data=df.assign(y=df["yield_t_ha"] - 3))
+        run_component(
+            registry,
+            "linear_model",
+            {"response": "y", "predictors": ["nitrogen"], "log_response": True},
+            data=df.assign(y=df["yield_t_ha"] - 3),
+        )
     assert ("params.log_response", "non_positive_response") in details(ei.value)
 
 
 def test_numeric_failure_wrapped(registry, df, monkeypatch):
     comp = registry.get("summary")
-    monkeypatch.setattr(comp, "compute", lambda *a, **k: (_ for _ in ()).throw(ValueError("could not convert string to float: 'x'")))
+    monkeypatch.setattr(
+        comp, "compute", lambda *a, **k: (_ for _ in ()).throw(ValueError("could not convert string to float: 'x'"))
+    )
     with pytest.raises(ComponentExecutionError) as ei:
         run_component(registry, "summary", data=df)
     assert ei.value.report.recoverable and "non-numeric" in ei.value.report.details[0].hint
 
 
 def test_collinearity_warning(registry, df):
-    r, _ = run_component(registry, "linear_model", {"response": "yield_t_ha", "predictors": ["nitrogen", "n2"]},
-                         data=df.assign(n2=df["nitrogen"] * 2))
+    r, _ = run_component(
+        registry,
+        "linear_model",
+        {"response": "yield_t_ha", "predictors": ["nitrogen", "n2"]},
+        data=df.assign(n2=df["nitrogen"] * 2),
+    )
     assert any("multicollinearity" in w for w in r.warnings)

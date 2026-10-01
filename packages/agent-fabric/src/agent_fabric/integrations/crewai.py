@@ -27,7 +27,9 @@ def _crewai() -> Any:
     return crewai
 
 
-def build_crew(fabric: Any, instruction: str, inputs: dict[str, Any] | None = None, root: str | None = None) -> tuple[Any, Any]:
+def build_crew(
+    fabric: Any, instruction: str, inputs: dict[str, Any] | None = None, root: str | None = None
+) -> tuple[Any, Any]:
     crewai = _crewai()
     from crewai.tools import BaseTool
 
@@ -36,15 +38,26 @@ def build_crew(fabric: Any, instruction: str, inputs: dict[str, Any] | None = No
     roots = [root] if root else fabric.config.roots()
     root_agent = fabric.build(roots[0])
     if not root_agent.children:
-        raise AgentConfigError("CrewAI mapping needs a supervisor root",
-                               [ErrorDetail(loc=("root",), type="not_a_supervisor", msg=f"'{root_agent.name}' has no sub-agents")])
-    ctx = RunContext(session_id="crewai", budget=Budget(fabric.config.budget), memory=fabric.memory,
-                     blackboard=dict(inputs or {}), input_keys=list(inputs or {}))
+        raise AgentConfigError(
+            "CrewAI mapping needs a supervisor root",
+            [ErrorDetail(loc=("root",), type="not_a_supervisor", msg=f"'{root_agent.name}' has no sub-agents")],
+        )
+    ctx = RunContext(
+        session_id="crewai",
+        budget=Budget(fabric.config.budget),
+        memory=fabric.memory,
+        blackboard=dict(inputs or {}),
+        input_keys=list(inputs or {}),
+    )
     s = fabric.config.llm
 
     def llm(spec: Any) -> Any:
-        return crewai.LLM(model=f"openai/{fabric.model_for(spec)}", base_url=s.base_url, api_key=s.api_key,
-                          temperature=spec.temperature if spec.temperature is not None else s.temperature)
+        return crewai.LLM(
+            model=f"openai/{fabric.model_for(spec)}",
+            base_url=s.base_url,
+            api_key=s.api_key,
+            temperature=spec.temperature if spec.temperature is not None else s.temperature,
+        )
 
     class RunInput(BaseModel):
         instruction: str = Field(description="what this agent should do")
@@ -56,20 +69,34 @@ def build_crew(fabric: Any, instruction: str, inputs: dict[str, Any] | None = No
             args_schema: type[BaseModel] = RunInput
 
             def _run(self, instruction: str) -> str:
-                res = child.run(AgentTask(instruction=instruction, inputs=list(ctx.input_keys)), ctx,
-                                root_agent.name, 1)
+                res = child.run(
+                    AgentTask(instruction=instruction, inputs=list(ctx.input_keys)), ctx, root_agent.name, 1
+                )
                 return f"[{res.status}] {res.summary}\n{compact(res.output, max_chars=4000)}"
 
         return FabricAgentTool()
 
-    workers = [crewai.Agent(role=c.spec.role, goal=c.spec.goal, backstory=c.spec.backstory or c.spec.card,
-                            llm=llm(c.spec), tools=[make_tool(c)], allow_delegation=False, verbose=False)
-               for c in root_agent.children.values()]
+    workers = [
+        crewai.Agent(
+            role=c.spec.role,
+            goal=c.spec.goal,
+            backstory=c.spec.backstory or c.spec.card,
+            llm=llm(c.spec),
+            tools=[make_tool(c)],
+            allow_delegation=False,
+            verbose=False,
+        )
+        for c in root_agent.children.values()
+    ]
     rs = root_agent.spec
-    manager = crewai.Agent(role=rs.role, goal=rs.goal, backstory=rs.backstory or rs.card, llm=llm(rs),
-                           allow_delegation=True, verbose=False)
-    task = crewai.Task(description=f"{instruction}\n\nAvailable inputs: {sorted(ctx.blackboard)}",
-                       expected_output="A concise, well-grounded answer that cites the sub-agents' results")
-    crew = crewai.Crew(agents=workers, tasks=[task], manager_agent=manager, process=crewai.Process.hierarchical,
-                       verbose=False)
+    manager = crewai.Agent(
+        role=rs.role, goal=rs.goal, backstory=rs.backstory or rs.card, llm=llm(rs), allow_delegation=True, verbose=False
+    )
+    task = crewai.Task(
+        description=f"{instruction}\n\nAvailable inputs: {sorted(ctx.blackboard)}",
+        expected_output="A concise, well-grounded answer that cites the sub-agents' results",
+    )
+    crew = crewai.Crew(
+        agents=workers, tasks=[task], manager_agent=manager, process=crewai.Process.hierarchical, verbose=False
+    )
     return crew, ctx

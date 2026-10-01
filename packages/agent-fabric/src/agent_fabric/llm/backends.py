@@ -35,8 +35,14 @@ class LLMSettings(BaseModel):
 
 
 class LLMBackend(Protocol):
-    def complete(self, messages: list[Message], *, model: str | None = None, json_mode: bool = False,
-                 temperature: float | None = None) -> str: ...
+    def complete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str: ...
 
 
 class LiteLLMProxyBackend:
@@ -45,8 +51,14 @@ class LiteLLMProxyBackend:
     def __init__(self, settings: LLMSettings | None = None) -> None:
         self.s = settings or LLMSettings()
 
-    def complete(self, messages: list[Message], *, model: str | None = None, json_mode: bool = False,
-                 temperature: float | None = None) -> str:
+    def complete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
         body: dict[str, Any] = {
             "model": model or self.s.planner_model,
             "messages": messages,
@@ -55,25 +67,43 @@ class LiteLLMProxyBackend:
         if json_mode:
             body["response_format"] = {"type": "json_object"}
         req = urllib.request.Request(
-            self.s.base_url.rstrip("/") + "/chat/completions", data=json.dumps(body).encode(),
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.s.api_key}"}, method="POST")
+            self.s.base_url.rstrip("/") + "/chat/completions",
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.s.api_key}"},
+            method="POST",
+        )
         try:
             with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
                 payload = json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode(errors="replace")[:500]
-            raise DependencyError(f"LiteLLM proxy returned HTTP {exc.code}",
-                                  [ErrorDetail(type="http_error", msg=detail,
-                                               hint="check model alias in config/litellm_config.yaml and that Ollama has pulled it")]) from exc
+            raise DependencyError(
+                f"LiteLLM proxy returned HTTP {exc.code}",
+                [
+                    ErrorDetail(
+                        type="http_error",
+                        msg=detail,
+                        hint="check model alias in config/litellm_config.yaml and that Ollama has pulled it",
+                    )
+                ],
+            ) from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise DependencyError("LiteLLM proxy is unreachable",
-                                  [ErrorDetail(type="connection_error", msg=str(exc)[:300],
-                                               hint=f"start it: litellm --config config/litellm_config.yaml (expected at {self.s.base_url})")]) from exc
+            raise DependencyError(
+                "LiteLLM proxy is unreachable",
+                [
+                    ErrorDetail(
+                        type="connection_error",
+                        msg=str(exc)[:300],
+                        hint=f"start it: litellm --config config/litellm_config.yaml (expected at {self.s.base_url})",
+                    )
+                ],
+            ) from exc
         try:
             return payload["choices"][0]["message"]["content"] or ""
         except (KeyError, IndexError, TypeError) as exc:
-            raise DependencyError("Unexpected response shape from proxy",
-                                  [ErrorDetail(type="bad_response", msg=str(payload)[:300])]) from exc
+            raise DependencyError(
+                "Unexpected response shape from proxy", [ErrorDetail(type="bad_response", msg=str(payload)[:300])]
+            ) from exc
 
 
 class ScriptedBackend:
@@ -83,8 +113,14 @@ class ScriptedBackend:
         self.responses = deque(responses)
         self.calls: list[dict[str, Any]] = []
 
-    def complete(self, messages: list[Message], *, model: str | None = None, json_mode: bool = False,
-                 temperature: float | None = None) -> str:
+    def complete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
         self.calls.append({"messages": [dict(m) for m in messages], "model": model, "json_mode": json_mode})
         if not self.responses:
             raise AssertionError("ScriptedBackend ran out of responses")

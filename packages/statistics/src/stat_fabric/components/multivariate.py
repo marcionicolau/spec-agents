@@ -33,7 +33,9 @@ class PCAParams(ComponentParams):
         if len(set(self.features)) != len(self.features):
             raise ValueError("features contain duplicates")
         if self.n_components is not None and self.n_components > len(self.features):
-            raise ValueError(f"n_components ({self.n_components}) cannot exceed number of features ({len(self.features)})")
+            raise ValueError(
+                f"n_components ({self.n_components}) cannot exceed number of features ({len(self.features)})"
+            )
         return self
 
 
@@ -64,7 +66,7 @@ def _kmo(corr: np.ndarray) -> float | None:
     np.fill_diagonal(partial, 0)
     r = corr.copy()
     np.fill_diagonal(r, 0)
-    return float((r ** 2).sum() / ((r ** 2).sum() + (partial ** 2).sum()))
+    return float((r**2).sum() / ((r**2).sum() + (partial**2).sum()))
 
 
 @component("pca")
@@ -74,14 +76,21 @@ class PCA(TableComponent[PCAParams, PCAResult]):
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
         head = f"{r['n_components']} component(s) retain {r['cumulative_variance'][-1]:.1%} of the variance."
-        return head, [f"{pc}: {v['explained_variance_ratio']:.1%}, driven by {', '.join(v['top_features'])}"
-                      for pc, v in r["components"].items()]
+        return head, [
+            f"{pc}: {v['explained_variance_ratio']:.1%}, driven by {', '.join(v['top_features'])}"
+            for pc, v in r["components"].items()
+        ]
 
     def extra_data_checks(self, df: pd.DataFrame, params: PCAParams) -> list[ErrorDetail]:
         n = len(df[params.features].dropna())
         if params.n_components and params.n_components > n:
-            return [ErrorDetail(loc=("params", "n_components"), type="too_many_components",
-                                msg=f"n_components={params.n_components} exceeds complete rows ({n})")]
+            return [
+                ErrorDetail(
+                    loc=("params", "n_components"),
+                    type="too_many_components",
+                    msg=f"n_components={params.n_components} exceeds complete rows ({n})",
+                )
+            ]
         return []
 
     def compute_table(self, df: pd.DataFrame, params: PCAParams, ctx: StepContext, inputs: dict) -> PCAResult:
@@ -101,8 +110,12 @@ class PCA(TableComponent[PCAParams, PCAResult]):
             load = pca.components_[i] * np.sqrt(pca.explained_variance_[i])  # correlation-scale loadings
             ld = dict(zip(params.features, load, strict=True))
             top = sorted(ld, key=lambda f: abs(ld[f]), reverse=True)[: params.top_loadings]
-            comps[pc] = ComponentLoadings(explained_variance_ratio=pca.explained_variance_ratio_[i],
-                                          eigenvalue=pca.explained_variance_[i], loadings=ld, top_features=top)
+            comps[pc] = ComponentLoadings(
+                explained_variance_ratio=pca.explained_variance_ratio_[i],
+                eigenvalue=pca.explained_variance_[i],
+                loadings=ld,
+                top_features=top,
+            )
         corr = np.corrcoef(d.values, rowvar=False)
         n, p = d.shape
         det = np.linalg.det(corr)
@@ -113,17 +126,30 @@ class PCA(TableComponent[PCAParams, PCAResult]):
         kmo = _kmo(corr)
         warns = []
         if bartlett_p is not None and bartlett_p > 0.05:
-            warns.append(f"Bartlett test not significant (p={bartlett_p:.3g}): variables are weakly correlated, PCA adds little")
+            warns.append(
+                f"Bartlett test not significant (p={bartlett_p:.3g}): variables are weakly correlated, PCA adds little"
+            )
         if kmo is not None and kmo < 0.5:
             warns.append(f"KMO={kmo:.2f} < 0.5: sampling adequacy is poor")
         if not params.standardize and d.std().max() > 10 * d.std().min():
-            warns.append("features on very different scales without standardization; PCs dominated by large-variance variables")
+            warns.append(
+                "features on very different scales without standardization; PCs dominated by large-variance variables"
+            )
         scores = pd.DataFrame(pca.transform(X), index=d.index, columns=names)
         ctx.emit("scores", scores)
         ctx.emit("loadings", pd.DataFrame(pca.components_.T, index=params.features, columns=names))
         kaiser = int((full.explained_variance_ > 1).sum()) if params.standardize else 0
-        return PCAResult(n_used=n, n_components=k, selection=selection, cumulative_variance=list(cum[:k]),
-                         kaiser_n=kaiser, bartlett_p=bartlett_p, kmo=kmo, components=comps, warnings=warns)
+        return PCAResult(
+            n_used=n,
+            n_components=k,
+            selection=selection,
+            cumulative_variance=list(cum[:k]),
+            kaiser_n=kaiser,
+            bartlett_p=bartlett_p,
+            kmo=kmo,
+            components=comps,
+            warnings=warns,
+        )
 
 
 # =========================================================================== Clustering
@@ -168,16 +194,32 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
     def extra_static(self, bound: dict, params: ClusteringParams) -> list[ErrorDetail]:
         has_matrix = "matrix" in bound
         if has_matrix and params.features:
-            return [ErrorDetail(loc=("params", "features"), type="ambiguous_source",
-                                msg="both 'features' and a bound 'matrix' input were given",
-                                hint="drop 'features' to cluster the matrix, or unbind 'matrix'")]
+            return [
+                ErrorDetail(
+                    loc=("params", "features"),
+                    type="ambiguous_source",
+                    msg="both 'features' and a bound 'matrix' input were given",
+                    hint="drop 'features' to cluster the matrix, or unbind 'matrix'",
+                )
+            ]
         if not has_matrix and not params.features:
-            return [ErrorDetail(loc=("inputs", "matrix"), type="no_source",
-                                msg="nothing to cluster: set 'features' or bind 'matrix'",
-                                hint="e.g. inputs: {matrix: '<pca_step_id>.scores'}")]
+            return [
+                ErrorDetail(
+                    loc=("inputs", "matrix"),
+                    type="no_source",
+                    msg="nothing to cluster: set 'features' or bind 'matrix'",
+                    hint="e.g. inputs: {matrix: '<pca_step_id>.scores'}",
+                )
+            ]
         if params.features and "data" not in bound:
-            return [ErrorDetail(loc=("inputs", "data"), type="port_unbound", msg="'features' needs the 'data' input",
-                                hint="bind data to '$inputs.<dataframe>'")]
+            return [
+                ErrorDetail(
+                    loc=("inputs", "data"),
+                    type="port_unbound",
+                    msg="'features' needs the 'data' input",
+                    hint="bind data to '$inputs.<dataframe>'",
+                )
+            ]
         return []
 
     def extra_checks(self, inputs: dict, params: ClusteringParams) -> list[ErrorDetail]:
@@ -185,7 +227,9 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
         if m is not None and params.features is None:
             bad = [c for c in m.columns if not pd.api.types.is_numeric_dtype(m[c])]
             if bad:
-                return [ErrorDetail(loc=("inputs", "matrix"), type="wrong_dtype", msg=f"non-numeric matrix columns {bad}")]
+                return [
+                    ErrorDetail(loc=("inputs", "matrix"), type="wrong_dtype", msg=f"non-numeric matrix columns {bad}")
+                ]
             n = len(m.dropna())
         elif params.features and inputs.get("data") is not None:
             n = len(inputs["data"][params.features].dropna())
@@ -195,12 +239,19 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
             return [ErrorDetail(loc=("inputs",), type="too_few_rows", msg=f"{n} complete rows; need {self.min_rows}")]
         top = params.k or params.k_max
         if n < 2 * top:
-            return [ErrorDetail(loc=("params", "k" if params.k else "k_max"), type="too_few_rows",
-                                msg=f"{n} complete rows is too few for up to {top} clusters",
-                                hint=f"use k <= {max(2, n // 2)}")]
+            return [
+                ErrorDetail(
+                    loc=("params", "k" if params.k else "k_max"),
+                    type="too_few_rows",
+                    msg=f"{n} complete rows is too few for up to {top} clusters",
+                    hint=f"use k <= {max(2, n // 2)}",
+                )
+            ]
         return []
 
-    def compute_table(self, df: pd.DataFrame, params: ClusteringParams, ctx: StepContext, inputs: dict) -> ClusteringResult:
+    def compute_table(
+        self, df: pd.DataFrame, params: ClusteringParams, ctx: StepContext, inputs: dict
+    ) -> ClusteringResult:
         if params.features is None:
             data = inputs["matrix"].dropna().astype(float)
             X, space, scaler = data.values, "matrix", None
@@ -237,5 +288,14 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
         if not params.standardize and space == "features":
             warns.append("unstandardized features: distances dominated by large-scale variables")
         ctx.emit("labels", pd.Series(km.labels_, index=data.index, name="cluster"))
-        return ClusteringResult(n_used=n, k=k, selection=selection, space=space, silhouette=sil,
-                                silhouette_by_k=sil_by_k, sizes=sizes, centers=centers, warnings=warns)
+        return ClusteringResult(
+            n_used=n,
+            k=k,
+            selection=selection,
+            space=space,
+            silhouette=sil,
+            silhouette_by_k=sil_by_k,
+            sizes=sizes,
+            centers=centers,
+            warnings=warns,
+        )

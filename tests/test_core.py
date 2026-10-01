@@ -64,7 +64,13 @@ def test_spec_rejects_unknown_keys_and_reserved_port(tmp_path):
 
 def test_pipeline_spec_rejects_undeclared_param_refs(tmp_path):
     with pytest.raises(SpecError) as ei:
-        load_spec(_write(tmp_path, "p.yaml", BASE + "kind: pipeline\nsteps: [{id: a, component: summary, params: {columns: $params.cols}}]\n"))
+        load_spec(
+            _write(
+                tmp_path,
+                "p.yaml",
+                BASE + "kind: pipeline\nsteps: [{id: a, component: summary, params: {columns: $params.cols}}]\n",
+            )
+        )
     assert "undeclared pipeline params" in str(ei.value.details[0].msg)
 
 
@@ -93,8 +99,11 @@ def test_contract_mismatch(tmp_path):
 
 
 def test_bad_port_constraints_rejected_at_registration(tmp_path):
-    _write(tmp_path, "x.yaml", BASE + "params: {undocumented: {description: d}}\n"
-                                      "inputs: {d: {type: dataframe, constraints: {min_row: 3}}}\n")
+    _write(
+        tmp_path,
+        "x.yaml",
+        BASE + "params: {undocumented: {description: d}}\ninputs: {d: {type: dataframe, constraints: {min_row: 3}}}\n",
+    )
     reg = Registry()
     reg.add_specs([load_spec(tmp_path / "x.yaml")])
     with pytest.raises(SpecError) as ei:
@@ -110,7 +119,10 @@ def test_spec_without_implementation(tmp_path):
 
 def test_pipeline_spec_validated_on_registration(tmp_path, registry):
     reg = build_registry([__import__("stat_fabric.domain", fromlist=["register"]).register])
-    _write(tmp_path, "p.yaml", """
+    _write(
+        tmp_path,
+        "p.yaml",
+        """
 kind: pipeline
 name: broken
 version: 1.0.0
@@ -121,7 +133,8 @@ inputs: {data: {type: dataframe}}
 steps:
   - {id: pca, component: pca, params: {features: [a, b]}}
   - {id: cl, component: clustering, inputs: {matrix: pca.score}}
-""")
+""",
+    )
     with pytest.raises(SpecError) as ei:
         reg.load_domain(tmp_path, classes=[])
     d = ei.value.details[0]

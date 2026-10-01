@@ -6,5 +6,6 @@ __all__ = ["InMemoryMemory", "LangChainMemory", "MemoryPort", "RunSummary", "mem
 def __getattr__(name):
     if name == "LangChainMemory":
         from .langchain_adapter import LangChainMemory
+
         return LangChainMemory
     raise AttributeError(name)

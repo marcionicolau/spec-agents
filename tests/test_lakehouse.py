@@ -14,8 +14,14 @@ from agent_fabric.pipeline import PipelineInputs, parse_plan
 from lake_fabric.domain import register as register_lake
 
 ROWS = [
-    {"Order ID": str(i), "Order Date": f"2026-01-{i % 28 + 1:02d}", "Region": ["north", "south"][i % 2],
-     "Amount": f"{10 + i}.5", "Paid": ["true", "false"][i % 3 == 0], "Zip": f"0{i:04d}"}
+    {
+        "Order ID": str(i),
+        "Order Date": f"2026-01-{i % 28 + 1:02d}",
+        "Region": ["north", "south"][i % 2],
+        "Amount": f"{10 + i}.5",
+        "Paid": ["true", "false"][i % 3 == 0],
+        "Zip": f"0{i:04d}",
+    }
     for i in range(1, 41)
 ]
 
@@ -35,14 +41,32 @@ def csv_file(tmp_path):
     return p
 
 
-SOURCE_KEYS = {"source_type": "type", "path": "path", "sheet": "sheet", "records_path": "records_path", "url": "url",
-               "auth_conn_id": "auth_conn_id", "mcp_tool": "tool", "mcp_arguments": "arguments", "delimiter": "delimiter"}
+SOURCE_KEYS = {
+    "source_type": "type",
+    "path": "path",
+    "sheet": "sheet",
+    "records_path": "records_path",
+    "url": "url",
+    "auth_conn_id": "auth_conn_id",
+    "mcp_tool": "tool",
+    "mcp_arguments": "arguments",
+    "delimiter": "delimiter",
+}
 
 
 def params_for(_path=None, **over):
     """Flat keyword arguments -> pipeline params with the shared ``source`` object."""
-    base = {"source_type": "csv", "path": str(_path) if _path else None, "dag_id": "ingest_orders", "catalog": "lake", "table": "orders",
-            "business_keys": ["order_id"], "partition_column": "order_date", "gold_group_by": ["region"], "gold_measures": ["amount"]}
+    base = {
+        "source_type": "csv",
+        "path": str(_path) if _path else None,
+        "dag_id": "ingest_orders",
+        "catalog": "lake",
+        "table": "orders",
+        "business_keys": ["order_id"],
+        "partition_column": "order_date",
+        "gold_group_by": ["region"],
+        "gold_measures": ["amount"],
+    }
     base.update(over)
     popped = {k: base.pop(k) for k in list(base) if k in SOURCE_KEYS}
     source = {SOURCE_KEYS[k]: v for k, v in popped.items() if v is not None}
@@ -67,8 +91,14 @@ def test_csv_pipeline_generates_checked_dag(lake, csv_file):
     assert rep.ok, [o.error for o in rep.outcomes if o.error]
     out = rep.output_values()
     types_ = {c["name"]: c["type"] for c in out["schema"]["columns"]}
-    assert types_ == {"order_id": "bigint", "order_date": "date", "region": "varchar", "amount": "double",
-                      "paid": "boolean", "zip": "varchar"}  # leading zeros stay text
+    assert types_ == {
+        "order_id": "bigint",
+        "order_date": "date",
+        "region": "varchar",
+        "amount": "double",
+        "paid": "boolean",
+        "zip": "varchar",
+    }  # leading zeros stay text
     sql = out["layout"]["sql"]
     assert sql["silver_load"][0].startswith('MERGE INTO "lake"."silver"."orders"')
     assert "partitioning = ARRAY['day(order_date)']" in sql["ddl"][4]
@@ -86,16 +116,53 @@ def test_xlsx_json_api_and_mcp_sources(lake, tmp_path):
         ws.append(list(r.values()))
     wb.save(tmp_path / "o.xlsx")
     js = tmp_path / "o.json"
-    js.write_text(json.dumps({"data": {"items": [{"id": i, "when": "2026-01-01T10:00:00Z", "v": i * 1.5} for i in range(30)]}}))
+    js.write_text(
+        json.dumps({"data": {"items": [{"id": i, "when": "2026-01-01T10:00:00Z", "v": i * 1.5} for i in range(30)]}})
+    )
     records = [{"id": i, "when": "2026-01-01T10:00:00Z", "v": i * 1.5} for i in range(30)]
     cases = [
         (dict(source_type="xlsx", path=str(tmp_path / "o.xlsx")), None, "load_workbook"),
-        (dict(source_type="json", path=str(js), records_path="data.items", business_keys=["id"], partition_column=None,
-              gold_group_by=[], gold_measures=["v"]), None, "json.load"),
-        (dict(source_type="api", url="https://api.example.com/v1/x", auth_conn_id="x_api", records_path="data.items",
-              business_keys=["id"], partition_column=None, gold_group_by=[], gold_measures=["v"]), records, "requests.request"),
-        (dict(source_type="mcp", url="https://mcp.example.com/mcp", mcp_tool="list_items", mcp_arguments={"limit": 10},
-              business_keys=["id"], partition_column=None, gold_group_by=[], gold_measures=["v"]), records, "tools/call"),
+        (
+            dict(
+                source_type="json",
+                path=str(js),
+                records_path="data.items",
+                business_keys=["id"],
+                partition_column=None,
+                gold_group_by=[],
+                gold_measures=["v"],
+            ),
+            None,
+            "json.load",
+        ),
+        (
+            dict(
+                source_type="api",
+                url="https://api.example.com/v1/x",
+                auth_conn_id="x_api",
+                records_path="data.items",
+                business_keys=["id"],
+                partition_column=None,
+                gold_group_by=[],
+                gold_measures=["v"],
+            ),
+            records,
+            "requests.request",
+        ),
+        (
+            dict(
+                source_type="mcp",
+                url="https://mcp.example.com/mcp",
+                mcp_tool="list_items",
+                mcp_arguments={"limit": 10},
+                business_keys=["id"],
+                partition_column=None,
+                gold_group_by=[],
+                gold_measures=["v"],
+            ),
+            records,
+            "tools/call",
+        ),
     ]
     for over, sample, marker in cases:
         rep = run_pipeline(lake, params_for(**over), sample)
@@ -111,7 +178,9 @@ def test_api_source_needs_sample(lake):
 
 
 def test_design_errors_are_located_with_hints(lake, csv_file):
-    rep = run_pipeline(lake, params_for(csv_file, business_keys=["ordr_id"], gold_measures=["region"], partition_column="region"))
+    rep = run_pipeline(
+        lake, params_for(csv_file, business_keys=["ordr_id"], gold_measures=["region"], partition_column="region")
+    )
     err = next(o.error for o in rep.outcomes if o.error)
     d = {(".".join(map(str, e.loc)), e.type): e for e in err.details}
     assert "order_id" in d[("params.business_keys.0", "column_not_found")].hint
@@ -123,22 +192,37 @@ def test_merge_requires_keys_and_identifiers_are_validated(lake, csv_file):
     rep = run_pipeline(lake, params_for(csv_file, business_keys=[]))
     assert any("keys_required" in json.dumps(o.error.model_dump(mode="json")) for o in rep.outcomes if o.error)
     with pytest.raises(PlanValidationError):
-        parse_plan(lake.pipeline("ingest_to_lakehouse").instantiate(params_for(csv_file, table='orders"; DROP TABLE x;--')),
-                   lake, PipelineInputs.from_values({}, lake.types))
+        parse_plan(
+            lake.pipeline("ingest_to_lakehouse").instantiate(params_for(csv_file, table='orders"; DROP TABLE x;--')),
+            lake,
+            PipelineInputs.from_values({}, lake.types),
+        )
 
 
 def test_render_rejects_credentials_in_url(lake):
-    rep = run_pipeline(lake, params_for(source_type="api", url="https://u:p@a.example.com/x?token=abc",
-                                         business_keys=["id"], partition_column=None, gold_group_by=[], gold_measures=[]),
-                       [{"id": i} for i in range(25)])
+    rep = run_pipeline(
+        lake,
+        params_for(
+            source_type="api",
+            url="https://u:p@a.example.com/x?token=abc",
+            business_keys=["id"],
+            partition_column=None,
+            gold_group_by=[],
+            gold_measures=[],
+        ),
+        [{"id": i} for i in range(25)],
+    )
     assert "credentials_in_url" in json.dumps([o.error.model_dump(mode="json") for o in rep.outcomes if o.error])
 
 
 def test_dag_check_finds_every_problem(lake):
-    bad = ("import subprocess\nimport pandas\npassword = 'hunter2hunter2'\n"
-           "def f():\n    eval('1')\n    subprocess.run(['ls'])\n    return 'DROP SCHEMA x'\n")
+    bad = (
+        "import subprocess\nimport pandas\npassword = 'hunter2hunter2'\n"
+        "def f():\n    eval('1')\n    subprocess.run(['ls'])\n    return 'DROP SCHEMA x'\n"
+    )
     comp = lake.get("dag_check")
     from agent_fabric.component import ArtifactStore, StepContext
+
     with pytest.raises(DataValidationError) as ei:
         comp.execute({"code": bad}, {}, StepContext(ArtifactStore(), "c", comp.spec, lake.types))
     kinds = {d.type for d in ei.value.details}
@@ -179,10 +263,14 @@ def airflow_stub(monkeypatch):
 
     sdk = types.ModuleType("airflow.sdk")
     sdk.get_current_context = lambda: {"run_id": RUN["id"]}
-    sdk.dag, sdk.task, sdk.BaseHook = passthrough_dag, (lambda fn: fn), types.SimpleNamespace(
-        get_connection=lambda cid: types.SimpleNamespace(password="tkn"))
+    sdk.dag, sdk.task, sdk.BaseHook = (
+        passthrough_dag,
+        (lambda fn: fn),
+        types.SimpleNamespace(get_connection=lambda cid: types.SimpleNamespace(password="tkn")),
+    )
     mods = {
-        "airflow": types.ModuleType("airflow"), "airflow.sdk": sdk,
+        "airflow": types.ModuleType("airflow"),
+        "airflow.sdk": sdk,
         "airflow.exceptions": types.SimpleNamespace(AirflowFailException=AirflowFailException),
         "airflow.providers": types.ModuleType("airflow.providers"),
         "airflow.providers.trino": types.ModuleType("airflow.providers.trino"),
@@ -236,9 +324,20 @@ def test_generated_api_dag_reads_records_with_bearer_token(lake, airflow_stub, m
         return types.SimpleNamespace(raise_for_status=lambda: None, json=lambda: {"data": {"items": records}})
 
     monkeypatch.setitem(sys.modules, "requests", types.SimpleNamespace(request=fake_request))
-    code = run_pipeline(lake, params_for(source_type="api", url="https://api.example.com/v1/x", auth_conn_id="x_api",
-                                         records_path="data.items", business_keys=["id"], partition_column=None,
-                                         gold_group_by=[], gold_measures=["v"]), records).output_values()["dag_code"]
+    code = run_pipeline(
+        lake,
+        params_for(
+            source_type="api",
+            url="https://api.example.com/v1/x",
+            auth_conn_id="x_api",
+            records_path="data.items",
+            business_keys=["id"],
+            partition_column=None,
+            gold_group_by=[],
+            gold_measures=["v"],
+        ),
+        records,
+    ).output_values()["dag_code"]
     load_dag(code)
     assert seen["headers"]["Authorization"] == "Bearer tkn" and seen["method"] == "GET"
     assert "tkn" not in code
@@ -254,7 +353,11 @@ def test_lakehouse_team_runs_engineer_then_reviewer(lake, csv_file):
 
     plan = lake.pipeline("ingest_to_lakehouse").instantiate(params_for(csv_file))
     plan["objective"] = "Ingest the orders CSV into the lakehouse"
-    review = {"verdict": "approved", "summary": "Keys are defined and the design keeps raw data in bronze.", "issues": []}
+    review = {
+        "verdict": "approved",
+        "summary": "Keys are defined and the design keeps raw data in bronze.",
+        "issues": [],
+    }
     backend = ScriptedBackend([json.dumps(plan), json.dumps(review)])
     cfg = AgentsConfig.load(Path(__file__).resolve().parents[1] / "config" / "lakehouse")
     fabric = AgentFabric(lake, cfg, backend=backend)
@@ -285,7 +388,12 @@ def test_generated_select_matches_the_component_helper(lake, csv_file, airflow_s
     from lake_fabric.components import _select
 
     ns = load_dag(run_pipeline(lake, params_for(csv_file)).output_values()["dag_code"])
-    good = [({"data": {"items": [{"a": 1}]}}, "data.items"), ({"a": 1}, None), ([{"a": 1}, {"a": 2}], ""), ({"x": {"y": [{"a": 1}]}}, "x.y")]
+    good = [
+        ({"data": {"items": [{"a": 1}]}}, "data.items"),
+        ({"a": 1}, None),
+        ([{"a": 1}, {"a": 2}], ""),
+        ({"x": {"y": [{"a": 1}]}}, "x.y"),
+    ]
     for payload, path in good:
         assert ns["_select"](payload, path) == _select(payload, path)
     for payload, path in [({"a": 1}, "missing"), ({"data": 5}, "data"), ([1, 2], "x")]:
@@ -296,8 +404,15 @@ def test_generated_select_matches_the_component_helper(lake, csv_file, airflow_s
 
 
 # --------------------------------------------------------------------------- pagination and incremental loads
-API = {"source_type": "api", "url": "https://api.example.com/v1/items", "records_path": "items", "business_keys": ["id"],
-       "partition_column": None, "gold_group_by": [], "gold_measures": ["v"]}
+API = {
+    "source_type": "api",
+    "url": "https://api.example.com/v1/items",
+    "records_path": "items",
+    "business_keys": ["id"],
+    "partition_column": None,
+    "gold_group_by": [],
+    "gold_measures": ["v"],
+}
 SAMPLE = [{"id": i, "v": i * 1.5, "updated_at": f"2026-02-{i % 27 + 1:02d}T10:00:00Z"} for i in range(25)]
 
 
@@ -316,7 +431,11 @@ class FakeApi:
 
     def request(self, method, url, params=None, headers=None, timeout=None):
         self.requests.append((url, dict(params or {})))
-        body = self.pages[min(len(self.requests) - 1, len(self.pages) - 1)] if callable(self.pages) is False else self.pages(url, params)
+        body = (
+            self.pages[min(len(self.requests) - 1, len(self.pages) - 1)]
+            if callable(self.pages) is False
+            else self.pages(url, params)
+        )
         return types.SimpleNamespace(raise_for_status=lambda: None, json=lambda: body)
 
 
@@ -332,9 +451,14 @@ def run_api_dag(lake, monkeypatch, params, pages):
 
 
 def test_cursor_pagination_collects_every_page(lake, airflow_stub, monkeypatch):
-    pages = [{"items": SAMPLE[:10], "meta": {"next": "c2"}}, {"items": SAMPLE[10:20], "meta": {"next": "c3"}},
-             {"items": SAMPLE[20:], "meta": {"next": None}}]
-    api = run_api_dag(lake, monkeypatch, api_params({"mode": "cursor", "next_path": "meta.next", "cursor_param": "cursor"}), pages)
+    pages = [
+        {"items": SAMPLE[:10], "meta": {"next": "c2"}},
+        {"items": SAMPLE[10:20], "meta": {"next": "c3"}},
+        {"items": SAMPLE[20:], "meta": {"next": None}},
+    ]
+    api = run_api_dag(
+        lake, monkeypatch, api_params({"mode": "cursor", "next_path": "meta.next", "cursor_param": "cursor"}), pages
+    )
     assert [r[1].get("cursor") for r in api.requests] == [None, "c2", "c3"]
     inserts = [c for c in FakeTrino.calls if c[0].startswith('INSERT INTO "lake"."bronze"')]
     assert len(inserts[0][1]) == 25 * 6  # id, v, updated_at + 3 metadata columns, twenty-five rows
@@ -342,15 +466,26 @@ def test_cursor_pagination_collects_every_page(lake, airflow_stub, monkeypatch):
 
 def test_page_number_pagination_stops_on_empty_page(lake, airflow_stub, monkeypatch):
     pages = [{"items": SAMPLE[:15]}, {"items": SAMPLE[15:]}, {"items": []}]
-    api = run_api_dag(lake, monkeypatch, api_params({"mode": "page", "page_param": "page", "page_size_param": "per_page", "page_size": 15}), pages)
+    api = run_api_dag(
+        lake,
+        monkeypatch,
+        api_params({"mode": "page", "page_param": "page", "page_size_param": "per_page", "page_size": 15}),
+        pages,
+    )
     assert [(r[1]["page"], r[1]["per_page"]) for r in api.requests] == [(1, 15), (2, 15), (3, 15)]
 
 
 def test_next_link_stays_on_the_same_host(lake, airflow_stub, monkeypatch):
-    good = lambda url, params: {"items": SAMPLE[:12], "links": {"next": "https://api.example.com/v1/items?page=2"}} if "page=2" not in url \
+    good = lambda url, params: (
+        {"items": SAMPLE[:12], "links": {"next": "https://api.example.com/v1/items?page=2"}}
+        if "page=2" not in url
         else {"items": SAMPLE[12:], "links": {"next": None}}
+    )
     api = run_api_dag(lake, monkeypatch, api_params({"mode": "next_link", "next_path": "links.next"}), good)
-    assert [r[0] for r in api.requests] == ["https://api.example.com/v1/items", "https://api.example.com/v1/items?page=2"]
+    assert [r[0] for r in api.requests] == [
+        "https://api.example.com/v1/items",
+        "https://api.example.com/v1/items?page=2",
+    ]
     assert api.requests[1][1] == {}  # the link carries its own query
     evil = lambda url, params: {"items": SAMPLE[:12], "links": {"next": "https://evil.example.net/steal"}}
     with pytest.raises(airflow_stub, match="another host"):
@@ -360,7 +495,12 @@ def test_next_link_stays_on_the_same_host(lake, airflow_stub, monkeypatch):
 def test_running_out_of_pages_fails_instead_of_loading_partial_data(lake, airflow_stub, monkeypatch):
     endless = lambda url, params: {"items": SAMPLE[:5], "meta": {"next": "again"}}
     with pytest.raises(airflow_stub, match="did not finish"):
-        run_api_dag(lake, monkeypatch, api_params({"mode": "cursor", "next_path": "meta.next", "cursor_param": "c", "max_pages": 3}), endless)
+        run_api_dag(
+            lake,
+            monkeypatch,
+            api_params({"mode": "cursor", "next_path": "meta.next", "cursor_param": "c", "max_pages": 3}),
+            endless,
+        )
     assert not any(c[0].startswith("MERGE") for c in FakeTrino.calls)
 
 
@@ -383,6 +523,7 @@ def test_incremental_first_run_reads_everything_and_empty_increment_is_ok(lake, 
     assert "updated_since" not in api.requests[0][1]
     assert len([c for c in FakeTrino.calls if c[0].startswith('INSERT INTO "lake"."bronze"')][0][1]) == 25 * 6
     from datetime import datetime
+
     FakeTrino.calls, FakeTrino.count_answers = [], {"rows": 0, "nulls": 0, "watermark": datetime(2030, 1, 1)}
     load_dag(render_api(lake, params))  # nothing newer than 2030: the gate must not fail the run
     assert any(c[0].startswith("MERGE") for c in FakeTrino.calls)
@@ -395,9 +536,25 @@ def test_pagination_and_watermark_misconfiguration_is_reported(lake):
 
     k = kinds(api_params({"mode": "cursor", "next_path": "meta.next"}))
     assert "pagination_field_required" in k and k["pagination_field_required"].loc[-1] == "cursor_param"
-    assert "pagination_not_supported" in kinds(params_for(source_type="mcp", url="https://m.example.com/x", mcp_tool="t", business_keys=["id"],
-                                                          partition_column=None, gold_group_by=[], gold_measures=[]) | {
-        "source": {"type": "mcp", "url": "https://m.example.com/x", "tool": "t", "pagination": {"mode": "page", "page_param": "p"}}})
+    assert "pagination_not_supported" in kinds(
+        params_for(
+            source_type="mcp",
+            url="https://m.example.com/x",
+            mcp_tool="t",
+            business_keys=["id"],
+            partition_column=None,
+            gold_group_by=[],
+            gold_measures=[],
+        )
+        | {
+            "source": {
+                "type": "mcp",
+                "url": "https://m.example.com/x",
+                "tool": "t",
+                "pagination": {"mode": "page", "page_param": "p"},
+            }
+        }
+    )
     bad_col = kinds(api_params(watermark_column="updatd_at"))
     assert "updated_at" in bad_col["column_not_found"].hint
     text_ids = [{"id": f"x{i}"} for i in range(25)]

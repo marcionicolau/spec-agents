@@ -25,7 +25,9 @@ FILE_SUFFIXES = {"csv": {".csv", ".tsv", ".txt"}, "json": {".json", ".jsonl"}, "
 
 def _ident(v: str) -> str:
     if not IDENT.match(v):
-        raise ValueError(f"{v!r} is not a valid identifier (lower-case letters, digits, underscore; starts with a letter)")
+        raise ValueError(
+            f"{v!r} is not a valid identifier (lower-case letters, digits, underscore; starts with a letter)"
+        )
     return v
 
 
@@ -40,12 +42,16 @@ class Pagination(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     mode: Literal["next_link", "cursor", "page"]
-    next_path: str | None = Field(None, pattern=_DOTTED, description="dotted path of the next link or cursor in the response")
+    next_path: str | None = Field(
+        None, pattern=_DOTTED, description="dotted path of the next link or cursor in the response"
+    )
     cursor_param: str | None = Field(None, pattern=r"^[A-Za-z0-9_\-.]+$")
     page_param: str | None = Field(None, pattern=r"^[A-Za-z0-9_\-.]+$")
     page_size_param: str | None = Field(None, pattern=r"^[A-Za-z0-9_\-.]+$")
     page_size: int | None = Field(None, ge=1, le=10000)
-    max_pages: int = Field(100, ge=1, le=1000, description="more pages than this fails the run instead of loading partial data")
+    max_pages: int = Field(
+        100, ge=1, le=1000, description="more pages than this fails the run instead of loading partial data"
+    )
 
 
 class SourceConfig(BaseModel):
@@ -110,20 +116,46 @@ class SourceInspect(Component[SourceInspectParams, SourceInspectResult]):
         src, loc = params.source, ("params", "source")
         if src.type in FILE_SUFFIXES:
             if not src.path:
-                return [ErrorDetail(loc=loc + ("path",), type="path_required", msg=f"{src.type} needs a local path",
-                                    hint="set source.path, or pass a `sample` of records")] if inputs.get("sample") is None else []
+                return (
+                    [
+                        ErrorDetail(
+                            loc=loc + ("path",),
+                            type="path_required",
+                            msg=f"{src.type} needs a local path",
+                            hint="set source.path, or pass a `sample` of records",
+                        )
+                    ]
+                    if inputs.get("sample") is None
+                    else []
+                )
             p = Path(src.path)
             if p.suffix.lower() not in FILE_SUFFIXES[src.type]:
-                return [ErrorDetail(loc=loc + ("path",), type="wrong_extension",
-                                    msg=f"{p.suffix or 'no extension'} is not a {src.type} file",
-                                    hint=f"expected one of {sorted(FILE_SUFFIXES[src.type])}")]
+                return [
+                    ErrorDetail(
+                        loc=loc + ("path",),
+                        type="wrong_extension",
+                        msg=f"{p.suffix or 'no extension'} is not a {src.type} file",
+                        hint=f"expected one of {sorted(FILE_SUFFIXES[src.type])}",
+                    )
+                ]
             if not p.is_file():
-                return [ErrorDetail(loc=loc + ("path",), type="file_not_found", msg=f"{src.path} does not exist",
-                                    hint="use the path as seen by the machine running this step")]
+                return [
+                    ErrorDetail(
+                        loc=loc + ("path",),
+                        type="file_not_found",
+                        msg=f"{src.path} does not exist",
+                        hint="use the path as seen by the machine running this step",
+                    )
+                ]
         elif inputs.get("sample") is None:
-            return [ErrorDetail(loc=("inputs", "sample"), type="sample_required",
-                                msg=f"{src.type} sources cannot be read here; provide a sample of records",
-                                hint="bind `sample` to a JSON list of example records")]
+            return [
+                ErrorDetail(
+                    loc=("inputs", "sample"),
+                    type="sample_required",
+                    msg=f"{src.type} sources cannot be read here; provide a sample of records",
+                    hint="bind `sample` to a JSON list of example records",
+                )
+            ]
         return []
 
     def _records(self, inputs: dict, params: SourceInspectParams) -> list[dict]:
@@ -146,8 +178,10 @@ class SourceInspect(Component[SourceInspectParams, SourceInspectResult]):
         try:
             from openpyxl import load_workbook
         except ImportError as exc:
-            raise DependencyError("reading xlsx needs the 'openpyxl' package",
-                                  [ErrorDetail(type="missing_package", msg="openpyxl is not installed", hint="pip install openpyxl")]) from exc
+            raise DependencyError(
+                "reading xlsx needs the 'openpyxl' package",
+                [ErrorDetail(type="missing_package", msg="openpyxl is not installed", hint="pip install openpyxl")],
+            ) from exc
         wb = load_workbook(path, read_only=True, data_only=True)
         ws = wb[src.sheet] if src.sheet else wb.active
         rows = ws.iter_rows(values_only=True)
@@ -171,15 +205,19 @@ class SourceInspect(Component[SourceInspectParams, SourceInspectResult]):
             nulls = sum(value_kind(v) is None for v in vals)
             if nulls == len(vals):
                 warns.append(f"column {src!r} is empty in the sample; typed as varchar")
-            cols.append(ColumnInfo(name=sanitize(src, taken), source_name=str(src), type=kind, null_rate=nulls / len(vals)))
+            cols.append(
+                ColumnInfo(name=sanitize(src, taken), source_name=str(src), type=kind, null_rate=nulls / len(vals))
+            )
         if len(records) < 20:
             warns.append(f"only {len(records)} sampled rows; inferred types may be wrong")
         ctx.emit("schema", {"columns": [c.model_dump() for c in cols]})
         return SourceInspectResult(source_type=params.source.type, n_sampled=len(records), columns=cols, warnings=warns)
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
-        return (f"{len(r['columns'])} columns inferred from {r['n_sampled']} {r['source_type']} rows.",
-                [f"{c['name']}: {c['type']}" for c in r["columns"][:8]])
+        return (
+            f"{len(r['columns'])} columns inferred from {r['n_sampled']} {r['source_type']} rows.",
+            [f"{c['name']}: {c['type']}" for c in r["columns"][:8]],
+        )
 
 
 # ============================================================================ medallion_plan
@@ -219,9 +257,15 @@ class MedallionPlan(Component[MedallionPlanParams, MedallionPlanResult]):
         def known(param: str, values: list[str]) -> None:
             for i, v in enumerate(values):
                 if v not in cols:
-                    errs.append(ErrorDetail(loc=("params", param, i), type="column_not_found", input=v,
-                                            msg=f"'{v}' is not a column of the source",
-                                            hint=suggest(v, cols) or f"columns: {sorted(cols)}"))
+                    errs.append(
+                        ErrorDetail(
+                            loc=("params", param, i),
+                            type="column_not_found",
+                            input=v,
+                            msg=f"'{v}' is not a column of the source",
+                            hint=suggest(v, cols) or f"columns: {sorted(cols)}",
+                        )
+                    )
 
         known("business_keys", params.business_keys)
         known("gold_group_by", params.gold_group_by)
@@ -229,43 +273,92 @@ class MedallionPlan(Component[MedallionPlanParams, MedallionPlanResult]):
         if params.partition_column is not None:
             known("partition_column", [params.partition_column])
             if cols.get(params.partition_column) not in ("date", "timestamp"):
-                errs.append(ErrorDetail(loc=("params", "partition_column"), type="not_temporal",
-                                        msg="the partition column must be a date or timestamp column",
-                                        hint="partition on an event date, or leave it null"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "partition_column"),
+                        type="not_temporal",
+                        msg="the partition column must be a date or timestamp column",
+                        hint="partition on an event date, or leave it null",
+                    )
+                )
         for i, m in enumerate(params.gold_measures):
             if m in cols and cols[m] not in NUMERIC:
-                errs.append(ErrorDetail(loc=("params", "gold_measures", i), type="not_numeric", input=m,
-                                        msg=f"'{m}' is {cols[m]}, gold measures must be numeric"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "gold_measures", i),
+                        type="not_numeric",
+                        input=m,
+                        msg=f"'{m}' is {cols[m]}, gold measures must be numeric",
+                    )
+                )
             if m in params.gold_group_by:
-                errs.append(ErrorDetail(loc=("params", "gold_measures", i), type="measure_is_group", input=m,
-                                        msg=f"'{m}' cannot be both a group column and a measure"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "gold_measures", i),
+                        type="measure_is_group",
+                        input=m,
+                        msg=f"'{m}' cannot be both a group column and a measure",
+                    )
+                )
         if params.load_mode == "merge" and not params.business_keys:
-            errs.append(ErrorDetail(loc=("params", "business_keys"), type="keys_required",
-                                    msg="merge needs at least one business key", hint="set business_keys or use load_mode 'append'"))
-        clash = [c for c in cols if c in ("row_count",) or (c.startswith(("avg_", "min_", "max_")) and c[4:] in params.gold_measures)]
+            errs.append(
+                ErrorDetail(
+                    loc=("params", "business_keys"),
+                    type="keys_required",
+                    msg="merge needs at least one business key",
+                    hint="set business_keys or use load_mode 'append'",
+                )
+            )
+        clash = [
+            c
+            for c in cols
+            if c in ("row_count",) or (c.startswith(("avg_", "min_", "max_")) and c[4:] in params.gold_measures)
+        ]
         if clash and params.gold_measures:
-            errs.append(ErrorDetail(loc=("params", "gold_measures"), type="gold_name_clash",
-                                    msg=f"gold aggregate names clash with source columns {clash}", hint="rename the source columns"))
+            errs.append(
+                ErrorDetail(
+                    loc=("params", "gold_measures"),
+                    type="gold_name_clash",
+                    msg=f"gold aggregate names clash with source columns {clash}",
+                    hint="rename the source columns",
+                )
+            )
         return errs
 
     def compute(self, inputs: dict, params: MedallionPlanParams, ctx: StepContext) -> MedallionPlanResult:
-        columns = [{"name": c["name"], "source_name": c["source_name"], "type": c["type"]} for c in inputs["schema"]["columns"]]
+        columns = [
+            {"name": c["name"], "source_name": c["source_name"], "type": c["type"]} for c in inputs["schema"]["columns"]
+        ]
         layout = build_layout(
-            catalog=params.catalog, table=params.table,
+            catalog=params.catalog,
+            table=params.table,
             schemas={"bronze": params.bronze_schema, "silver": params.silver_schema, "gold": params.gold_schema},
-            columns=columns, business_keys=params.business_keys, load_mode=params.load_mode,
-            partition_column=params.partition_column, gold_group_by=params.gold_group_by, gold_measures=params.gold_measures)
+            columns=columns,
+            business_keys=params.business_keys,
+            load_mode=params.load_mode,
+            partition_column=params.partition_column,
+            gold_group_by=params.gold_group_by,
+            gold_measures=params.gold_measures,
+        )
         ctx.emit("layout", layout)
         warns = []
         if not params.business_keys:
             warns.append("no business keys: silver cannot be de-duplicated, re-runs will append duplicates")
-        return MedallionPlanResult(tables=layout["tables"], load_mode=params.load_mode, n_columns=len(columns),
-                                   business_keys=params.business_keys, gold_group_by=params.gold_group_by,
-                                   gold_measures=params.gold_measures, warnings=warns)
+        return MedallionPlanResult(
+            tables=layout["tables"],
+            load_mode=params.load_mode,
+            n_columns=len(columns),
+            business_keys=params.business_keys,
+            gold_group_by=params.gold_group_by,
+            gold_measures=params.gold_measures,
+            warnings=warns,
+        )
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
-        return (f"Medallion layers designed for {r['tables']['silver']} ({r['load_mode']}).",
-                [f"{layer}: {name}" for layer, name in r["tables"].items()])
+        return (
+            f"Medallion layers designed for {r['tables']['silver']} ({r['load_mode']}).",
+            [f"{layer}: {name}" for layer, name in r["tables"].items()],
+        )
 
 
 # ============================================================================ airflow_dag_render
@@ -281,8 +374,12 @@ class AirflowDagRenderParams(ComponentParams):
     retries: int = Field(2, ge=0, le=5)
     catchup: bool = False
     tags: list[str] = Field(default_factory=lambda: ["lakehouse", "medallion"], max_length=8)
-    watermark_column: str | None = Field(None, description="load only records at or after the highest value already in silver")
-    watermark_param: str | None = Field(None, pattern=r"^[A-Za-z0-9_\-.]+$", description="API query parameter that receives the watermark")
+    watermark_column: str | None = Field(
+        None, description="load only records at or after the highest value already in silver"
+    )
+    watermark_param: str | None = Field(
+        None, pattern=r"^[A-Za-z0-9_\-.]+$", description="API query parameter that receives the watermark"
+    )
 
     _dag = field_validator("dag_id")(_ident)
 
@@ -303,61 +400,140 @@ class AirflowDagRender(Component[AirflowDagRenderParams, AirflowDagRenderResult]
         errs: list[ErrorDetail] = []
         src, loc = params.source, ("params", "source")
         if not _CRON.match(params.schedule.strip()):
-            errs.append(ErrorDetail(loc=("params", "schedule"), type="bad_schedule", input=params.schedule,
-                                    msg="not a preset (@daily, @hourly...) or a 5-field cron expression", hint="e.g. '0 3 * * *'"))
+            errs.append(
+                ErrorDetail(
+                    loc=("params", "schedule"),
+                    type="bad_schedule",
+                    input=params.schedule,
+                    msg="not a preset (@daily, @hourly...) or a 5-field cron expression",
+                    hint="e.g. '0 3 * * *'",
+                )
+            )
         if src.type in FILE_SUFFIXES:
             if not src.path:
-                errs.append(ErrorDetail(loc=loc + ("path",), type="path_required", msg=f"{src.type} sources need `path`"))
+                errs.append(
+                    ErrorDetail(loc=loc + ("path",), type="path_required", msg=f"{src.type} sources need `path`")
+                )
             elif Path(src.path).suffix.lower() not in FILE_SUFFIXES[src.type]:
-                errs.append(ErrorDetail(loc=loc + ("path",), type="wrong_extension",
-                                        msg=f"{src.path} is not a {src.type} file", hint=f"expected {sorted(FILE_SUFFIXES[src.type])}"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("path",),
+                        type="wrong_extension",
+                        msg=f"{src.path} is not a {src.type} file",
+                        hint=f"expected {sorted(FILE_SUFFIXES[src.type])}",
+                    )
+                )
         else:
             u = urlparse(src.url or "")
             if u.scheme not in ("http", "https") or not u.netloc:
-                errs.append(ErrorDetail(loc=loc + ("url",), type="bad_url", input=src.url,
-                                        msg=f"{src.type} sources need an http(s) `url`"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("url",),
+                        type="bad_url",
+                        input=src.url,
+                        msg=f"{src.type} sources need an http(s) `url`",
+                    )
+                )
             elif u.username or u.password or re.search(r"(token|key|secret|password)=", u.query, re.I):
-                errs.append(ErrorDetail(loc=loc + ("url",), type="credentials_in_url",
-                                        msg="credentials must not be embedded in the URL", hint="store them in an Airflow connection and set auth_conn_id"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("url",),
+                        type="credentials_in_url",
+                        msg="credentials must not be embedded in the URL",
+                        hint="store them in an Airflow connection and set auth_conn_id",
+                    )
+                )
             if src.type == "mcp" and not src.tool:
                 errs.append(ErrorDetail(loc=loc + ("tool",), type="tool_required", msg="mcp sources need `tool`"))
         pg = src.pagination
         if pg is not None:
             if src.type != "api":
-                errs.append(ErrorDetail(loc=loc + ("pagination",), type="pagination_not_supported",
-                                        msg="pagination applies to api sources only"))
-            for need, applies in (("next_path", pg.mode in ("next_link", "cursor")), ("cursor_param", pg.mode == "cursor"),
-                                  ("page_param", pg.mode == "page")):
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("pagination",),
+                        type="pagination_not_supported",
+                        msg="pagination applies to api sources only",
+                    )
+                )
+            for need, applies in (
+                ("next_path", pg.mode in ("next_link", "cursor")),
+                ("cursor_param", pg.mode == "cursor"),
+                ("page_param", pg.mode == "page"),
+            ):
                 if applies and getattr(pg, need) is None:
-                    errs.append(ErrorDetail(loc=loc + ("pagination", need), type="pagination_field_required",
-                                            msg=f"pagination mode '{pg.mode}' needs {need}"))
+                    errs.append(
+                        ErrorDetail(
+                            loc=loc + ("pagination", need),
+                            type="pagination_field_required",
+                            msg=f"pagination mode '{pg.mode}' needs {need}",
+                        )
+                    )
             if pg.page_size_param and pg.page_size is None:
-                errs.append(ErrorDetail(loc=loc + ("pagination", "page_size"), type="pagination_field_required",
-                                        msg="page_size_param needs page_size"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("pagination", "page_size"),
+                        type="pagination_field_required",
+                        msg="page_size_param needs page_size",
+                    )
+                )
         if params.watermark_param and not params.watermark_column:
-            errs.append(ErrorDetail(loc=("params", "watermark_param"), type="watermark_column_required",
-                                    msg="watermark_param needs watermark_column"))
+            errs.append(
+                ErrorDetail(
+                    loc=("params", "watermark_param"),
+                    type="watermark_column_required",
+                    msg="watermark_param needs watermark_column",
+                )
+            )
         if params.watermark_param and src.type != "api":
-            errs.append(ErrorDetail(loc=("params", "watermark_param"), type="watermark_param_not_supported",
-                                    msg="the watermark can only be sent as a query parameter to api sources",
-                                    hint="other sources are filtered after reading"))
+            errs.append(
+                ErrorDetail(
+                    loc=("params", "watermark_param"),
+                    type="watermark_param_not_supported",
+                    msg="the watermark can only be sent as a query parameter to api sources",
+                    hint="other sources are filtered after reading",
+                )
+            )
         if params.watermark_column:
             cols = {c["name"]: c["type"] for c in inputs["layout"]["columns"]}
             wc = params.watermark_column
             if wc not in cols:
-                errs.append(ErrorDetail(loc=("params", "watermark_column"), type="column_not_found", input=wc,
-                                        msg=f"'{wc}' is not a column of the source", hint=suggest(wc, cols) or f"columns: {sorted(cols)}"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "watermark_column"),
+                        type="column_not_found",
+                        input=wc,
+                        msg=f"'{wc}' is not a column of the source",
+                        hint=suggest(wc, cols) or f"columns: {sorted(cols)}",
+                    )
+                )
             elif cols[wc] not in ("bigint", "double", "date", "timestamp"):
-                errs.append(ErrorDetail(loc=("params", "watermark_column"), type="watermark_not_orderable", input=wc,
-                                        msg=f"'{wc}' is {cols[wc]}; a watermark must be numeric, date or timestamp"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "watermark_column"),
+                        type="watermark_not_orderable",
+                        input=wc,
+                        msg=f"'{wc}' is {cols[wc]}; a watermark must be numeric, date or timestamp",
+                    )
+                )
             if inputs["layout"]["load_mode"] != "merge":
-                errs.append(ErrorDetail(loc=("params", "watermark_column"), type="incremental_needs_merge",
-                                        msg=f"incremental loads re-read the boundary rows, so load_mode must be merge (is {inputs['layout']['load_mode']})",
-                                        hint="set load_mode to merge with business keys in medallion_plan"))
+                errs.append(
+                    ErrorDetail(
+                        loc=("params", "watermark_column"),
+                        type="incremental_needs_merge",
+                        msg=f"incremental loads re-read the boundary rows, so load_mode must be merge (is {inputs['layout']['load_mode']})",
+                        hint="set load_mode to merge with business keys in medallion_plan",
+                    )
+                )
         for k in src.query:
             if re.search(r"(token|key|secret|password)", k, re.I):
-                errs.append(ErrorDetail(loc=loc + ("query", k), type="credentials_in_query",
-                                        msg=f"query parameter '{k}' looks like a credential", hint="use auth_conn_id"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc + ("query", k),
+                        type="credentials_in_query",
+                        msg=f"query parameter '{k}' looks like a credential",
+                        hint="use auth_conn_id",
+                    )
+                )
         return errs
 
     def compute(self, inputs: dict, params: AirflowDagRenderParams, ctx: StepContext) -> AirflowDagRenderResult:
@@ -365,30 +541,71 @@ class AirflowDagRender(Component[AirflowDagRenderParams, AirflowDagRenderResult]
         src = params.source
         source = src.model_dump()
         label = src.path or src.url or src.type
-        config = {"dag_id": params.dag_id, "schedule": params.schedule.strip(), "start_date": params.start_date,
-                  "catchup": params.catchup, "retries": params.retries, "tags": params.tags,
-                  "trino_conn_id": params.trino_conn_id, "source_label": Path(label).name if src.path else label,
-                  "source": source, "columns": layout["columns"], "sql": layout["sql"], "watermark": None}
+        config = {
+            "dag_id": params.dag_id,
+            "schedule": params.schedule.strip(),
+            "start_date": params.start_date,
+            "catchup": params.catchup,
+            "retries": params.retries,
+            "tags": params.tags,
+            "trino_conn_id": params.trino_conn_id,
+            "source_label": Path(label).name if src.path else label,
+            "source": source,
+            "columns": layout["columns"],
+            "sql": layout["sql"],
+            "watermark": None,
+        }
         if params.watermark_column:
             col = next(c for c in layout["columns"] if c["name"] == params.watermark_column)
-            config["watermark"] = {"column": col["name"], "source_name": col["source_name"], "type": col["type"],
-                                   "param": params.watermark_param,
-                                   "sql": f'SELECT max("{col["name"]}") FROM {layout["tables"]["silver"]}'}
+            config["watermark"] = {
+                "column": col["name"],
+                "source_name": col["source_name"],
+                "type": col["type"],
+                "param": params.watermark_param,
+                "sql": f'SELECT max("{col["name"]}") FROM {layout["tables"]["silver"]}',
+            }
         code = render_dag(config)
         ctx.emit("code", code)
-        return AirflowDagRenderResult(dag_id=params.dag_id, source_type=src.type, task_ids=list(TASKS), n_lines=code.count("\n"))
+        return AirflowDagRenderResult(
+            dag_id=params.dag_id, source_type=src.type, task_ids=list(TASKS), n_lines=code.count("\n")
+        )
 
     def summarize(self, r: dict) -> tuple[str, list[str]]:
         return f"DAG '{r['dag_id']}' generated ({r['n_lines']} lines).", [f"task: {t}" for t in r["task_ids"]]
 
 
 # ============================================================================ dag_check
-ALLOWED_IMPORTS = {"__future__", "airflow", "csv", "hashlib", "json", "logging", "urllib", "datetime", "requests", "openpyxl", "typing"}
-FORBIDDEN_CALLS = {"eval", "exec", "compile", "__import__", "os.system", "os.popen", "pickle.loads", "pickle.load",
-                   "marshal.loads", "yaml.load"}
+ALLOWED_IMPORTS = {
+    "__future__",
+    "airflow",
+    "csv",
+    "hashlib",
+    "json",
+    "logging",
+    "urllib",
+    "datetime",
+    "requests",
+    "openpyxl",
+    "typing",
+}
+FORBIDDEN_CALLS = {
+    "eval",
+    "exec",
+    "compile",
+    "__import__",
+    "os.system",
+    "os.popen",
+    "pickle.loads",
+    "pickle.load",
+    "marshal.loads",
+    "yaml.load",
+}
 FORBIDDEN_PREFIXES = ("subprocess.", "os.exec", "os.spawn", "shutil.rmtree", "socket.")
-SECRET_PATTERNS = (re.compile(r"(?i)(password|passwd|secret|api_?key|token)\s*[:=]\s*['\"][^'\"\s]{4,}['\"]"),
-                   re.compile(r"AKIA[0-9A-Z]{16}"), re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}"))
+SECRET_PATTERNS = (
+    re.compile(r"(?i)(password|passwd|secret|api_?key|token)\s*[:=]\s*['\"][^'\"\s]{4,}['\"]"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"Bearer\s+[A-Za-z0-9._\-]{20,}"),
+)
 DESTRUCTIVE_SQL = re.compile(r"(?i)\b(drop\s+(schema|catalog|database)|truncate\s+table)\b")
 
 
@@ -425,12 +642,23 @@ def _analyse(code: str, allowed: set[str]) -> tuple[list[ErrorDetail], dict[str,
                 top = m.split(".")[0]
                 imports.add(top)
                 if top not in allowed:
-                    errs.append(ErrorDetail(loc=loc, type="import_not_allowed", input=m, msg=f"import of '{m}' is not allowed",
-                                            hint=f"allowed: {sorted(allowed)}"))
+                    errs.append(
+                        ErrorDetail(
+                            loc=loc,
+                            type="import_not_allowed",
+                            input=m,
+                            msg=f"import of '{m}' is not allowed",
+                            hint=f"allowed: {sorted(allowed)}",
+                        )
+                    )
         elif isinstance(node, ast.Call):
             name = _dotted(node.func)
             if name in FORBIDDEN_CALLS or name.startswith(FORBIDDEN_PREFIXES):
-                errs.append(ErrorDetail(loc=loc, type="forbidden_call", input=name, msg=f"call to '{name}' is not allowed in a DAG file"))
+                errs.append(
+                    ErrorDetail(
+                        loc=loc, type="forbidden_call", input=name, msg=f"call to '{name}' is not allowed in a DAG file"
+                    )
+                )
         elif isinstance(node, ast.FunctionDef):
             decos = {_dotted(d.func if isinstance(d, ast.Call) else d) for d in node.decorator_list}
             if "task" in decos:
@@ -438,19 +666,37 @@ def _analyse(code: str, allowed: set[str]) -> tuple[list[ErrorDetail], dict[str,
             if "dag" in decos:
                 has_dag = True
         elif isinstance(node, ast.Constant) and isinstance(node.value, str) and DESTRUCTIVE_SQL.search(node.value):
-            errs.append(ErrorDetail(loc=loc, type="destructive_sql", msg="destructive SQL (DROP SCHEMA/CATALOG, TRUNCATE) is not allowed"))
+            errs.append(
+                ErrorDetail(
+                    loc=loc,
+                    type="destructive_sql",
+                    msg="destructive SQL (DROP SCHEMA/CATALOG, TRUNCATE) is not allowed",
+                )
+            )
     for pat in SECRET_PATTERNS:
         for m in pat.finditer(code):
-            errs.append(ErrorDetail(loc=("inputs", "code", f"line {code[:m.start()].count(chr(10)) + 1}"), type="hardcoded_secret",
-                                    msg="looks like a hardcoded credential", hint="use an Airflow connection"))
+            errs.append(
+                ErrorDetail(
+                    loc=("inputs", "code", f"line {code[: m.start()].count(chr(10)) + 1}"),
+                    type="hardcoded_secret",
+                    msg="looks like a hardcoded credential",
+                    hint="use an Airflow connection",
+                )
+            )
     mid = re.search(r"CONFIG\s*=\s*\{.*?'dag_id':\s*'([^']+)'", code, re.S)
     dag_id = mid.group(1) if mid else None
     if not has_dag:
         errs.append(ErrorDetail(loc=("inputs", "code"), type="no_dag", msg="no function decorated with @dag"))
     missing = [t for t in TASKS if t not in tasks]
     if missing and has_dag:
-        errs.append(ErrorDetail(loc=("inputs", "code"), type="missing_tasks", msg=f"medallion tasks missing: {missing}",
-                                hint="every DAG needs " + ", ".join(TASKS)))
+        errs.append(
+            ErrorDetail(
+                loc=("inputs", "code"),
+                type="missing_tasks",
+                msg=f"medallion tasks missing: {missing}",
+                hint="every DAG needs " + ", ".join(TASKS),
+            )
+        )
     return errs, {"dag_id": dag_id, "task_ids": tasks, "imports": sorted(imports)}
 
 
