@@ -1,5 +1,13 @@
 # Extending: components, prompt components, pipelines
 
+> **Format note.** `SKILL.md` here is a *superset* of the open [Agent Skills](https://agentskills.io/specification) format: the
+> frontmatter carries the executable contract (`params`, `inputs`, `outputs`, `steps`, `runtime`, ...) and names are snake_case.
+> The reference validator accepts only `name`, `description`, `license`, `compatibility`, `metadata` (string values) and
+> `allowed-tools`, with kebab-case names, so fabric skills are not loadable as-is by other agents. `agent-fabric export-skills --out DIR`
+> (`just skills-export`) writes a spec-compliant *view* of every skill (kebab-case name, description + when to use, string metadata,
+> guidance body plus a generated `## Contract` section, `references/` copied) and validates it; CI runs it on every PR. The fabric
+> `SKILL.md` stays the single source of truth; nothing is read back from the export.
+
 ## Adding a component (any domain)
 
 1. **Skill** `<pack>/skills/<name>/SKILL.md`, where `<pack>` = `packages/<domain>/src/<module>`

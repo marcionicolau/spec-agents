@@ -27,6 +27,7 @@ specs:
     uv run python -m agent_fabric.lint --strict --domains examples/notes/skills --agents examples/notes
     uv run agent-fabric catalog --skills examples/notes/skills
     uv run agent-fabric agents examples/notes
+    just skills-export
 
 # `just test` = everything; `just test statistics` = one package (+ cross-package tests/ for agent-fabric)
 test pkg="":
@@ -42,6 +43,11 @@ build:
 
 cov:
     uv run pytest -q --cov --cov-report=term
+
+# export every skill as a spec-compliant Agent Skill (agentskills.io) into build/skills and validate it (CI runs this)
+skills-export:
+    rm -rf build/skills
+    uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
 
 # SKILL.md contract changes vs. the base branch must carry a version bump (CI runs this on PRs)
 contracts base="origin/main":

@@ -116,6 +116,17 @@ def cmd_catalog(a: Any, console: Console) -> int:
     return 0
 
 
+def cmd_export_skills(a: Any, console: Console) -> int:
+    from ..skills_export import export_registry, validate_tree
+
+    written = export_registry(_registry(a), a.out)
+    problems = validate_tree(a.out)
+    for p in problems:
+        console.print(f"[red]ERROR[/] {p}", highlight=False)
+    console.print(f"{len(written)} skill(s) exported to {a.out}, {len(problems)} problem(s)")
+    return 1 if problems else 0
+
+
 def cmd_agents(a: Any, console: Console) -> int:
     from .render import agent_tree, issues_table
 
