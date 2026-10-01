@@ -4,6 +4,7 @@ version: 1.1.0
 domain: coworker
 category: selection
 description: Choose the files worth reading for a task within a token budget, using focus files, import links and task terms.
+runtime: code
 params:
   task: {description: "what you want to do, in a sentence with concrete names", example: make the executor skip dependents of failed steps}
   focus_files: {description: "files you already know are central, relative to the root", example: [src/agent_fabric/executor.py]}

@@ -4,6 +4,7 @@ version: 2.1.0
 domain: lakehouse
 category: generation
 description: Render a runnable Airflow DAG file that reads the source and loads bronze, silver and gold in Trino.
+runtime: code
 params:
   dag_id: {description: snake_case DAG id, example: ingest_orders}
   source:

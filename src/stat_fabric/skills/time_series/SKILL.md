@@ -5,6 +5,7 @@ domain: statistics
 category: temporal
 description: Regularises a series to a fixed frequency, tests stationarity (ADF), measures trend/seasonal strength
   (STL) and forecasts with ARIMA.
+runtime: code
 params:
   time_col: {description: date/time column, example: date}
   value_col: {description: numeric value column, example: sales}

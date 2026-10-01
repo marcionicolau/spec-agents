@@ -4,6 +4,7 @@ version: 2.1.0
 domain: lakehouse
 category: discovery
 description: Infer column names and types of a CSV, JSON, XLSX, API or MCP source from a sample of its records.
+runtime: code
 params:
   source:
     description: "source description: type (csv, json, xlsx, api or mcp), plus path/sheet/delimiter/encoding for files, url/method/query/auth_conn_id/timeout for api and mcp, records_path for JSON payloads, tool/arguments for mcp, pagination {mode next_link|cursor|page, next_path, cursor_param, page_param, page_size_param, page_size, max_pages} for api"

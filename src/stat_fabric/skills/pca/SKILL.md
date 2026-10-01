@@ -5,6 +5,7 @@ domain: statistics
 category: multivariate
 description: Standardised PCA with variance-based component selection, correlation-scale loadings, Kaiser criterion,
   Bartlett sphericity and KMO adequacy.
+runtime: code
 params:
   features:
     description: numeric columns to reduce (>= 2)

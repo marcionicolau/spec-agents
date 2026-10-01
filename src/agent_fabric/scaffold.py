@@ -18,6 +18,7 @@ version: 0.1.0
 domain: {domain}
 category: other
 description: TODO one line - what it does (shown in every planner catalogue, keep < 200 chars).
+runtime: code               # or 'prompt' - 'scaffold prompt' gives the code-free variant
 params:
   example_param: {{description: TODO, example: null}}
 inputs:

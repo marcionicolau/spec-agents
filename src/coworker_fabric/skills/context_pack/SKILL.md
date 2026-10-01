@@ -4,6 +4,7 @@ version: 1.0.0
 domain: coworker
 category: selection
 description: Assemble the selected files into one Markdown bundle ready to paste into a prompt.
+runtime: code
 params:
   max_chars_per_file: {description: files longer than this are cut with a marker, example: 20000}
 inputs:

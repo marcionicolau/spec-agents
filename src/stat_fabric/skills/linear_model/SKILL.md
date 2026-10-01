@@ -5,6 +5,7 @@ domain: statistics
 category: inferential
 description: Ordinary least squares with coefficient table, fit statistics and residual diagnostics (Breusch-Pagan,
   Jarque-Bera, Durbin-Watson, VIF).
+runtime: code
 params:
   response: {description: numeric outcome column, example: yield}
   predictors:

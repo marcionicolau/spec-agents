@@ -4,6 +4,7 @@ version: 1.0.0
 domain: lakehouse
 category: design
 description: Design bronze, silver and gold Trino/Iceberg tables and the SQL that loads them from an inferred schema.
+runtime: code
 params:
   catalog: {description: Trino catalog backed by the Iceberg connector, example: lake}
   table: {description: base table name shared by the three layers, example: orders}

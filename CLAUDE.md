@@ -163,6 +163,7 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
    version: 1.0.0
    domain: my_domain # catalogue filter for planners
    description: One line, < 200 chars (sent in every planner catalogue)
+   runtime: code # 'prompt' = no Python class, see the prompt-runtime section below
    params: # one entry per Params field (contract-checked)
      top_k: { description: "...", example: 5 }
    inputs: # typed ports; constraints validated by the artifact type

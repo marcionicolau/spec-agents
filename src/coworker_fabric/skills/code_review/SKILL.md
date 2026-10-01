@@ -4,6 +4,7 @@ version: 1.0.0
 domain: coworker
 category: review
 description: Static review of the selected Python files - complexity, long functions, risky exception handling, unused imports.
+runtime: code
 params:
   max_function_lines: {description: functions longer than this are flagged, example: 60}
   max_complexity: {description: cyclomatic complexity above this is flagged, example: 10}

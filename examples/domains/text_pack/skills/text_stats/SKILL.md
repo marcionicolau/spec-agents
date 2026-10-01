@@ -4,6 +4,7 @@ version: 1.0.0
 domain: text
 category: descriptive
 description: Word and sentence counts, average word length and lexical diversity.
+runtime: code
 params:
   lowercase: {description: lower-case words before counting, example: true}
 inputs:

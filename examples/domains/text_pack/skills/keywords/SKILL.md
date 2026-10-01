@@ -4,6 +4,7 @@ version: 1.0.0
 domain: text
 category: extraction
 description: Most frequent content words after stop-word removal.
+runtime: code
 params:
   top_k: {description: how many terms to return, example: 10}
   min_length: {description: minimum word length, example: 4}

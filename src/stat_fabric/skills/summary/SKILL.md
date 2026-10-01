@@ -4,6 +4,7 @@ version: 1.0.0
 domain: statistics
 category: descriptive
 description: Univariate statistics for numeric and categorical columns, normality screening and Pearson correlations.
+runtime: code
 params:
   columns:
     description: columns to describe; null = all columns

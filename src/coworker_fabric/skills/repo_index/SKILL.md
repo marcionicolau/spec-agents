@@ -4,6 +4,7 @@ version: 1.0.0
 domain: coworker
 category: discovery
 description: Index a code repository - files, sizes in tokens, Python symbols with complexity and the import graph.
+runtime: code
 params:
   root: {description: repository directory as seen by the machine running the step, example: /home/me/project}
   include: {description: glob patterns relative to the root; default is Python files, example: ["src/**/*.py"]}

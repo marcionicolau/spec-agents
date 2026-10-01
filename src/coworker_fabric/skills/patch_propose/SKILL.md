@@ -4,6 +4,7 @@ version: 1.0.0
 domain: coworker
 category: change
 description: Validate proposed text edits against the real files and produce a unified diff without touching the disk.
+runtime: code
 params:
   root: {description: repository directory, example: /home/me/project}
   edits:

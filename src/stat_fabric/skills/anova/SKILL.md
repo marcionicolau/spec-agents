@@ -4,6 +4,7 @@ version: 1.0.0
 domain: statistics
 category: inferential
 description: One- or two-way ANOVA with partial eta-squared, Levene and Shapiro checks and Tukey HSD post-hoc (one-way).
+runtime: code
 params:
   response: {description: numeric outcome column, example: yield}
   factors:

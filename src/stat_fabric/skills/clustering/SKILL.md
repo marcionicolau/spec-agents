@@ -4,6 +4,7 @@ version: 2.0.0
 domain: statistics
 category: unsupervised
 description: K-means on standardised features or on PCA scores, with k chosen by silhouette when not fixed.
+runtime: code
 params:
   features:
     description: numeric columns of 'data' (>= 2); omit when 'matrix' is bound

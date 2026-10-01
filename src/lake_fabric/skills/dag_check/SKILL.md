@@ -4,6 +4,7 @@ version: 1.0.0
 domain: lakehouse
 category: verification
 description: Static safety and structure check of a generated Airflow DAG (imports, calls, secrets, required tasks).
+runtime: code
 params:
   extra_imports: {description: additional top-level modules the DAG may import, example: []}
 inputs:
