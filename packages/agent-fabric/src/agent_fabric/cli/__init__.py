@@ -4,6 +4,7 @@ agent-fabric run <config_dir> [--input name=path ...] "instruction"
 agent-fabric lint [--domains ref|dir ...] [--agents dir] [--schemas mod:MAP ...] [--strict]
 agent-fabric catalog [--domains ref|dir ...] [--skills dir ...]
 agent-fabric agents <config_dir>
+agent-fabric export-skills --out DIR [--domains ref|dir ...] [--skills dir ...]
 
 python -m agent_fabric.cli <same>
 """
@@ -55,6 +56,13 @@ def build_parser() -> argparse.ArgumentParser:
     agents.add_argument("config")
     _common(agents)
 
+    export = sub.add_parser(
+        "export-skills",
+        help="write spec-compliant Agent Skills (agentskills.io) for every registered skill and validate them",
+    )
+    export.add_argument("--out", required=True, help="output directory (one <kebab-name>/SKILL.md per skill)")
+    _common(export)
+
     return ap
 
 
@@ -71,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         "lint": commands.cmd_lint,
         "catalog": commands.cmd_catalog,
         "agents": commands.cmd_agents,
+        "export-skills": commands.cmd_export_skills,
     }[a.command]
     try:
         return fn(a, console)
