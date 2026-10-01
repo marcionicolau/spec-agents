@@ -306,3 +306,21 @@ def load_spec_dir(directory: str | Path) -> list[AnySpec]:
     if details:
         raise SpecError(f"{len(details)} problem(s) in specs under {directory}", details)
     return specs
+
+
+__all__ = [
+    "RESULT_PORT",
+    "SKILL_FILE",
+    "AnySpec",
+    "ComponentSpec",
+    "LLMHints",
+    "ParamDoc",
+    "PipelineParam",
+    "PipelineSpec",
+    "PortSpec",
+    "PromptOptions",
+    "StepTemplate",
+    "load_spec",
+    "load_spec_dir",
+    "spec_files",
+]

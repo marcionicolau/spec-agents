@@ -157,3 +157,17 @@ def compare_baseline(
     for metric in current.keys() - base.keys():
         issues.append(BaselineIssue(severity="new", suite=suite, metric=metric, msg="not in the baseline yet"))
     return issues
+
+
+__all__ = [
+    "BaselineIssue",
+    "CaseResult",
+    "EvalReport",
+    "PlannerCase",
+    "compare_baseline",
+    "evaluate_planner",
+    "load_baselines",
+    "load_cases",
+    "save_baselines",
+    "score_plan",
+]

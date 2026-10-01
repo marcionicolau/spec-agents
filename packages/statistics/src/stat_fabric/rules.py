@@ -88,3 +88,9 @@ def register_planner_backend() -> None:
     from agent_fabric.agents.fabric import planner_builder
 
     planner_builder("stats_rules", lambda f, spec, backend: StatsRulePlanner(f.registry, spec.options.get("hints")))
+
+
+__all__ = [
+    "StatsRulePlanner",
+    "register_planner_backend",
+]

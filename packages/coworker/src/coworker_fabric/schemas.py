@@ -24,3 +24,10 @@ class Critique(BaseModel):
 
 
 SCHEMAS = {"Critique": Critique}
+
+
+__all__ = [
+    "SCHEMAS",
+    "Critique",
+    "Suggestion",
+]

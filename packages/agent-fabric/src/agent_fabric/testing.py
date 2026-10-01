@@ -11,3 +11,8 @@ def run_component(registry, name, params=None, **inputs):
     store = ArtifactStore()
     result = comp.execute(inputs, params or {}, StepContext(store, "t", comp.spec, registry.types))
     return result, store
+
+
+__all__ = [
+    "run_component",
+]

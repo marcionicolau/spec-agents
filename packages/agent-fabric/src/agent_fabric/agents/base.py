@@ -132,3 +132,8 @@ class BaseAgent(ABC):
             "does": self.spec.card,
             **({"sub_agents": sorted(self.children)} if self.children else {}),
         }
+
+
+__all__ = [
+    "BaseAgent",
+]

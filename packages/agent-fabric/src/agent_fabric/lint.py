@@ -359,3 +359,11 @@ def main(argv: list[str] | None = None) -> None:
 
 if __name__ == "__main__":
     main()
+
+
+__all__ = [
+    "LintIssue",
+    "collect_issues",
+    "lint_agents",
+    "lint_skills",
+]

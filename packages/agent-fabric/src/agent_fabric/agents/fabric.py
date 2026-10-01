@@ -450,3 +450,10 @@ def _make_template_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend)
 planner_builder("fabric", _make_llm_planner)
 planner_builder("pydantic_ai", _make_pai_planner)
 planner_builder("template", _make_template_planner)
+
+
+__all__ = [
+    "AgentFabric",
+    "BuilderInfo",
+    "planner_builder",
+]

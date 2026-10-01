@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from importlib import metadata as _metadata
 
-__version__ = "0.2.0"
+try:
+    __version__ = _metadata.version(
+        "agent-fabric"
+    )  # dynamic: derived from the latest agent-fabric-v* git tag at build time
+except _metadata.PackageNotFoundError:  # pragma: no cover - source tree without an installed distribution
+    __version__ = "0.0.0"
 
 
 def domain_loader(ref: str) -> Callable:
@@ -32,3 +38,10 @@ def build_registry(domains: Iterable[Callable | str] = (), discover: bool = Fals
     if discover:
         reg.discover_domains()
     return reg
+
+
+__all__ = [
+    "__version__",
+    "build_registry",
+    "domain_loader",
+]

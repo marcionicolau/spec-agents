@@ -33,3 +33,8 @@ def sample_trial_df() -> pd.DataFrame:
     d["yield_t_ha"] = 2.0 + 0.02 * d["nitrogen"] + 0.002 * d["rainfall"] + effect + season + rng.normal(0, 0.25, n)
     d.loc[[3, 17], "yield_t_ha"] = np.nan
     return d
+
+
+__all__ = [
+    "sample_trial_df",
+]

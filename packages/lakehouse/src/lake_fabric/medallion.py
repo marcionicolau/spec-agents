@@ -193,3 +193,8 @@ def build_layout(
             "gold_refresh": gold,
         },
     }
+
+
+__all__ = [
+    "build_layout",
+]

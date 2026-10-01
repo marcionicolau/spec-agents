@@ -140,3 +140,16 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
 
 def register(registry: Registry) -> list[str]:
     return registry.load_domain(SPEC_DIR, [TextStats, Keywords])
+
+
+__all__ = [
+    "SPEC_DIR",
+    "Keyword",
+    "Keywords",
+    "KeywordsParams",
+    "KeywordsResult",
+    "TextStats",
+    "TextStatsParams",
+    "TextStatsResult",
+    "register",
+]

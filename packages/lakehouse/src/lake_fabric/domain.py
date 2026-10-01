@@ -18,3 +18,9 @@ def register(registry: Registry) -> list[str]:
     registry.types.register(PythonSourceType())
     classes = [c for c in declared_components() if c.__module__.startswith("lake_fabric.")]
     return registry.load_domain(SPEC_DIR, classes)
+
+
+__all__ = [
+    "SPEC_DIR",
+    "register",
+]

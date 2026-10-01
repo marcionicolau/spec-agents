@@ -214,3 +214,24 @@ def suggest(name: str, candidates: Iterable[str]) -> str | None:
     """'did you mean ...?' hint for misspelled names (components, ports, agents, columns)."""
     matches = difflib.get_close_matches(str(name), list(candidates), n=3, cutoff=0.6)
     return f"did you mean {', '.join(repr(m) for m in matches)}?" if matches else None
+
+
+__all__ = [
+    "AgentConfigError",
+    "BudgetExceeded",
+    "ComponentExecutionError",
+    "DataValidationError",
+    "DelegationError",
+    "DependencyError",
+    "ErrorCategory",
+    "ErrorDetail",
+    "ErrorReport",
+    "FabricError",
+    "LLMOutputError",
+    "MissingOptionalDependency",
+    "ParamsValidationError",
+    "PlanValidationError",
+    "SpecError",
+    "details_from_pydantic",
+    "suggest",
+]

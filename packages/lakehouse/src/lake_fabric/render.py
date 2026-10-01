@@ -311,3 +311,8 @@ def render_dag(config: dict[str, Any]) -> str:
         config=pprint.pformat(config, width=110, sort_dicts=False),
     )
     return "\n".join(line.rstrip() for line in (text + COMMON + READERS[kind] + DAG).splitlines()) + "\n"
+
+
+__all__ = [
+    "render_dag",
+]

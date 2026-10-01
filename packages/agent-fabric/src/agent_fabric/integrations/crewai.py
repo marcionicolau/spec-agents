@@ -100,3 +100,8 @@ def build_crew(
         agents=workers, tasks=[task], manager_agent=manager, process=crewai.Process.hierarchical, verbose=False
     )
     return crew, ctx
+
+
+__all__ = [
+    "build_crew",
+]

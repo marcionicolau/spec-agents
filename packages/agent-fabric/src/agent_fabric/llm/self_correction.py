@@ -174,3 +174,13 @@ def structured_completion[T](
                 feedback += "\n\n" + extra
         messages = base + [{"role": "assistant", "content": raw[:4000]}, {"role": "user", "content": feedback}]
     raise CorrectionExhausted(attempts)
+
+
+__all__ = [
+    "Attempt",
+    "Corrected",
+    "CorrectionExhausted",
+    "extract_json",
+    "extract_text",
+    "structured_completion",
+]

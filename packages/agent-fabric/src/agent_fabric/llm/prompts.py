@@ -111,3 +111,8 @@ def compact(obj: Any, max_items: int = 12, max_chars: int = 6000) -> str:
 
     text = json.dumps(trim(obj), ensure_ascii=False)
     return text if len(text) <= max_chars else text[: max_chars - 20] + ' ..."[truncated]"'
+
+
+__all__ = [
+    "compact",
+]

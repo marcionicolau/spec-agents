@@ -69,3 +69,8 @@ class LangChainMemory:
     def as_langchain_history(self, session_id: str) -> Any:
         """Raw ``BaseChatMessageHistory`` - e.g. for ``RunnableWithMessageHistory``."""
         return self._store(session_id)
+
+
+__all__ = [
+    "LangChainMemory",
+]

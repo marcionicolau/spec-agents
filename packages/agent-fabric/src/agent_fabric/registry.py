@@ -272,3 +272,11 @@ class Registry:
                 item["avoid_when"] = spec.avoid_when
             out.append(item)
         return out
+
+
+__all__ = [
+    "DOMAIN_ENTRY_POINT",
+    "Registry",
+    "component",
+    "declared_components",
+]

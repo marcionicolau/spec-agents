@@ -126,3 +126,12 @@ class ScriptedBackend:
             raise AssertionError("ScriptedBackend ran out of responses")
         nxt = self.responses.popleft()
         return nxt if isinstance(nxt, str) else nxt(messages)
+
+
+__all__ = [
+    "LLMBackend",
+    "LLMSettings",
+    "LiteLLMProxyBackend",
+    "Message",
+    "ScriptedBackend",
+]

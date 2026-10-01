@@ -250,3 +250,9 @@ def _parse_text(comp: PromptComponent, inputs: dict[str, Any], params: Component
         return text
 
     return parse
+
+
+__all__ = [
+    "PromptComponent",
+    "PromptResult",
+]

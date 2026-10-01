@@ -299,3 +299,13 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
             centers=centers,
             warnings=warns,
         )
+
+
+__all__ = [
+    "Clustering",
+    "ClusteringParams",
+    "ClusteringResult",
+    "ComponentLoadings",
+    "PCAParams",
+    "PCAResult",
+]

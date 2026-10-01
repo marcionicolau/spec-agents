@@ -498,3 +498,15 @@ def pick_symbols(
         else:
             merged.append([a, b])
     return merged, [c["name"] for c in sorted(chosen, key=lambda c: c["line"])], used
+
+
+__all__ = [
+    "Scorer",
+    "allowed_roots",
+    "analyse_python",
+    "pick_symbols",
+    "review_source",
+    "root_allowed",
+    "safe_path",
+    "token_estimate",
+]

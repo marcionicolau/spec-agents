@@ -143,3 +143,11 @@ def _register() -> None:
 
 if dspy is not None:
     _register()
+
+
+__all__ = [
+    "DSPyPlanner",
+    "configure_dspy",
+    "optimize_planner",
+    "plan_metric",
+]
