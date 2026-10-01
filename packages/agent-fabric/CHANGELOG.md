@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.1.0...agent-fabric-v0.2.0) (2026-10-01)
+
+
+### Features
+
+* **agent-fabric:** fail PRs whose SKILL.md contract changes lack a version bump ([#51](https://github.com/marcionicolau/spec-agents/issues/51)) ([ac97619](https://github.com/marcionicolau/spec-agents/commit/ac97619390756378cb1b8cdd9145814a93417ba0))
+* **agent-fabric:** lint skill descriptions for what-and-when style ([#49](https://github.com/marcionicolau/spec-agents/issues/49)) ([321a834](https://github.com/marcionicolau/spec-agents/commit/321a8343fa8f8953a7bea7974841858015e9c890)), closes [#23](https://github.com/marcionicolau/spec-agents/issues/23)
+
 ## [0.1.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.0.1...agent-fabric-v0.1.0) (2026-10-01)
 
 
