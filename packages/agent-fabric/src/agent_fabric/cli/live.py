@@ -61,7 +61,7 @@ class RunView:
         head = Columns([Spinner("dots"), Text(f" {self.current}", style="cyan"), Text(self.instruction, style="bold")])
         parts: list[RenderableType] = [head]
         if self.agents:
-            grid = Table.grid(pad=(0, 2))
+            grid = Table.grid(padding=(0, 2))
             for path, st in self.agents.items():
                 indent = "  " * path.count("/")
                 marker = Spinner("line") if st == "running" else status_text(st)
@@ -73,7 +73,7 @@ class RunView:
                 t.add_row(o.step_id, o.component, status_text(o.status), f"{o.duration_s:.2f}s")
             parts.append(Panel(t, title="pipeline steps", border_style="dim"))
         if self.events:
-            feed = Table.grid(pad=(0, 1))
+            feed = Table.grid(padding=(0, 1))
             for e in self.events:
                 feed.add_row(
                     Text(e.event, style=_EVENT_STYLE.get(e.event, "white")),

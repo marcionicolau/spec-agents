@@ -43,6 +43,10 @@ build:
 cov:
     uv run pytest -q --cov --cov-report=term
 
+# type check (ty) with every optional framework installed so their imports resolve
+types:
+    uv run --all-extras ty check
+
 # deterministic planner baseline; `just evals live` needs the LiteLLM proxy
 evals mode="rules":
     uv run python examples/run_evals.py --mode {{mode}}

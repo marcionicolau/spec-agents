@@ -1,4 +1,4 @@
-"""Verify built wheels ship their skill specs and LICENSE.
+"""Verify built wheels ship their skill specs, LICENSE and py.typed.
 
 uv build --all-packages --out-dir dist && python tools/check_wheels.py dist
 """
@@ -31,6 +31,8 @@ def main(dist_dir: str) -> int:
             names = set(z.namelist())
         if not any(n.endswith("/licenses/LICENSE") for n in names):
             problems.append(f"{wheel.name}: LICENSE missing")
+        if not any(n.endswith("/py.typed") for n in names):
+            problems.append(f"{wheel.name}: py.typed missing")
         shipped = {n.split("/", 1)[1] for n in names if "/skills/" in n and n.endswith(".md")}
         for rel in sorted(source_skills(dist_name) - shipped):
             problems.append(f"{wheel.name}: {rel} missing from wheel")

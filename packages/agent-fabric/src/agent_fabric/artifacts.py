@@ -35,8 +35,9 @@ class ArtifactType:
         return None
 
     def describe(self, profile: BaseModel | None, value: Any = None) -> str:
-        if profile is not None and hasattr(profile, "to_prompt"):
-            return profile.to_prompt()
+        to_prompt = getattr(profile, "to_prompt", None)
+        if callable(to_prompt):
+            return to_prompt()
         return f"{self.name}" if value is None else f"{self.name}: {str(value)[:200]}"
 
     def parse_constraints(self, raw: dict[str, Any], loc: tuple[str | int, ...]) -> BaseModel:

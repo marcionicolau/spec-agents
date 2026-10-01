@@ -26,7 +26,7 @@ def component[C: type](spec_name: str) -> Callable[[C], C]:
     """Class decorator binding an implementation to a spec name."""
 
     def deco(cls: C) -> C:
-        cls.spec_name = spec_name  # type: ignore[attr-defined]
+        cls.spec_name = spec_name  # ty: ignore[unresolved-attribute]
         if cls not in _DECLARED:
             _DECLARED.append(cls)
         return cls
@@ -86,7 +86,7 @@ class Registry:
         if not (isinstance(rm, type) and issubclass(rm, ComponentResult)):
             errors.append(ErrorDetail(loc=("Result",), type="bad_model", msg="Result must subclass ComponentResult"))
         if not errors:
-            code, declared = set(pm.model_fields), set(spec.params)
+            code, declared = set(pm.model_fields), set(spec.params)  # ty: ignore[unresolved-attribute]
             errors += [
                 ErrorDetail(loc=("params", f), type="spec_only_param", msg="declared in the spec but missing in Params")
                 for f in sorted(declared - code)
@@ -140,7 +140,8 @@ class Registry:
         self.add_specs(loaded)
         names = {s.name for s in loaded} | set(self._loaded_dirs.get(key, ()))
         for cls in classes if classes is not None else declared_components():
-            if getattr(cls, "spec_name", None) in names and cls.spec_name not in self._components:
+            spec = getattr(cls, "spec_name", None)
+            if spec in names and spec not in self._components:
                 self.register(cls)
         for s in loaded:  # 'runtime: prompt' skills need no Python class
             if isinstance(s, ComponentSpec) and s.runtime == "prompt" and s.name not in self._components:

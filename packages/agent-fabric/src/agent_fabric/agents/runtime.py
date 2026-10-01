@@ -28,10 +28,13 @@ class AgentTask(BaseModel):
     inputs: list[str] = Field(default_factory=list, description="blackboard keys handed to the agent")
 
 
+type EventKind = Literal["start", "end", "llm_call", "delegate", "fallback", "skip", "error"]
+
+
 class TraceEvent(BaseModel):
     at: float
     path: str
-    event: Literal["start", "end", "llm_call", "delegate", "fallback", "skip", "error"]
+    event: EventKind
     detail: str = ""
 
 
@@ -128,7 +131,7 @@ class RunContext:
     on_event: Any = None  # optional listener(TraceEvent) - UIs render a live view from it
     on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
 
-    def event(self, path: str, event: str, detail: str = "") -> None:
+    def event(self, path: str, event: EventKind, detail: str = "") -> None:
         e = TraceEvent(at=round(time.perf_counter() - self.t0, 4), path=path, event=event, detail=detail[:200])
         self.trace.append(e)
         if self.on_event is not None:

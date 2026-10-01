@@ -600,7 +600,7 @@ class PydanticAISupervisor(SupervisorAgent):
             return f"[{res.status}] {res.summary}\noutput: {compact(res.output, max_chars=3000)}"
 
         run = agent.run_sync(f"Task: {task.instruction}")
-        usage = run.usage() if callable(run.usage) else run.usage
+        usage: Any = run.usage() if callable(run.usage) else run.usage
         n = usage.requests
         ctx.budget.charge_llm(path, n)
         ctx.llm_calls_by_path[path] = ctx.llm_calls_by_path.get(path, 0) + n
