@@ -102,7 +102,7 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: |
-          git fetch --no-tags origin "$BASE_REF"
+          # full-history checkout already has origin/<base>; no credentials are persisted for another fetch
           uv run python -m agent_fabric.contracts --base "origin/$BASE_REF"
       - name: Planner baseline (informational)
         # the rules baseline intentionally fails treatment_effect (docs/maintenance.md); live evals need the proxy
