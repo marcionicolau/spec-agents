@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
+      # `main` is the scope release-please uses (chore(main): release <pkg> <version>).
       # PR titles become the squash-commit message that release-please reads; a wrong scope means no release.
       - uses: amannn/action-semantic-pull-request@48f256284bd46cdaab1048c3721360e808335d50 # v6
         env:
@@ -26,5 +27,5 @@ jobs:
             deps
             docs
             text-pack
-            main # release-please titles: chore(main): release <pkg> <version>
+            main
           requireScope: false
