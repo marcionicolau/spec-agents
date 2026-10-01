@@ -147,6 +147,7 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v10.2.0
         with:
+          python-version: "3.12" # oldest supported; older floors have no wheels for newer Pythons
           enable-cache: true
       - run: uv sync --resolution lowest-direct --all-packages --group dev
       - run: uv run pytest -q

@@ -4142,8 +4142,8 @@ requires-dist = [
     { name = "agent-fabric", editable = "packages/agent-fabric" },
     { name = "pandas", specifier = ">=2.1" },
     { name = "scikit-learn", specifier = ">=1.4" },
-    { name = "scipy", specifier = ">=1.11" },
-    { name = "statsmodels", specifier = ">=0.14" },
+    { name = "scipy", specifier = ">=1.11.2" },
+    { name = "statsmodels", specifier = ">=0.14.1" },
 ]
 
 [[package]]
