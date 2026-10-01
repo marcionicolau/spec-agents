@@ -1,8 +1,8 @@
 """Scaffold new SKILL.md / AGENT.md files with the canonical sections (keeps packs uniform).
 
-    python -m agent_fabric.scaffold skill   my_step   --dir src/my_pack/skills --domain my_domain
-    python -m agent_fabric.scaffold pipeline my_flow  --dir src/my_pack/skills --domain my_domain
-    python -m agent_fabric.scaffold agent   reviewer  --dir config --kind llm
+python -m agent_fabric.scaffold skill   my_step   --dir src/my_pack/skills --domain my_domain
+python -m agent_fabric.scaffold pipeline my_flow  --dir src/my_pack/skills --domain my_domain
+python -m agent_fabric.scaffold agent   reviewer  --dir config --kind llm
 """
 
 from __future__ import annotations
@@ -37,6 +37,41 @@ TODO - how to read the Result fields (use `backticks` only for real field/param 
 
 ## Common mistakes
 TODO - parameter mistakes the repairer and planner should avoid.
+"""
+
+PROMPT = """---
+name: {name}
+version: 0.1.0
+domain: {domain}
+category: other
+description: TODO one line - what it does (shown in every planner catalogue, keep < 200 chars).
+runtime: prompt
+prompt: {{grounding: true}}           # optional: model, temperature, grounding
+params:
+  tone: {{description: TODO, required: false, default: neutral}}
+inputs:
+  source: {{type: text, description: TODO, constraints: {{min_chars: 1}}}}
+outputs:
+  answer: {{type: text}}
+---
+# {title}
+
+## When to use
+TODO - first paragraph goes to the planner catalogue; be concrete.
+
+## Instructions
+TODO - the prompt template sent to the model. Placeholders: {{params.<name>}},
+{{inputs.<port>}} and {{objective}}. Escape literal braces as {{{{ }}}}.
+
+Work for a {{params.tone}} audience.
+
+{{inputs.source}}
+
+## Interpreting
+TODO - how to read `answer` / the Result.
+
+## Common mistakes
+TODO - what the repairer and planner should avoid.
 """
 
 PIPELINE = """---
@@ -75,8 +110,13 @@ TODO - working instructions (this body is the agent's system prompt).
 Mention sub-agents / components with `backticks` so the lint can check them.
 """
 
-_EXTRA = {"supervisor": "strategy: router\nsub_agents: []\n", "planner": "domains: []\n",
-          "pipeline": "pipeline: TODO\n", "function": "function: TODO\n", "llm": ""}
+_EXTRA = {
+    "supervisor": "strategy: router\nsub_agents: []\n",
+    "planner": "domains: []\n",
+    "pipeline": "pipeline: TODO\n",
+    "function": "function: TODO\n",
+    "llm": "",
+}
 
 
 def scaffold(what: str, name: str, directory: str | Path, domain: str = "core", kind: str = "llm") -> Path:
@@ -88,7 +128,8 @@ def scaffold(what: str, name: str, directory: str | Path, domain: str = "core", 
         text = AGENT.format(name=name, kind=kind, extra=_EXTRA.get(kind, ""))
     else:
         path = Path(directory) / name / "SKILL.md"
-        text = (PIPELINE if what == "pipeline" else SKILL).format(name=name, domain=domain, title=title)
+        tpl = {"pipeline": PIPELINE, "prompt": PROMPT}.get(what, SKILL)
+        text = tpl.format(name=name, domain=domain, title=title)
     if path.exists():
         raise FileExistsError(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,7 +139,7 @@ def scaffold(what: str, name: str, directory: str | Path, domain: str = "core", 
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="python -m agent_fabric.scaffold")
-    ap.add_argument("what", choices=["skill", "pipeline", "agent"])
+    ap.add_argument("what", choices=["skill", "pipeline", "prompt", "agent"])
     ap.add_argument("name")
     ap.add_argument("--dir", required=True)
     ap.add_argument("--domain", default="core")

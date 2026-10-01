@@ -11,7 +11,7 @@ Port constraints for ``dataframe`` (``TableConstraints``) map semantic *roles*
 from __future__ import annotations
 
 import warnings
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 import pandas as pd
@@ -24,7 +24,7 @@ from .errors import ErrorDetail, suggest
 # ------------------------------------------------------------------ profile
 
 
-class ColumnKind(str, Enum):
+class ColumnKind(StrEnum):
     NUMERIC = "numeric"
     CATEGORICAL = "categorical"
     DATETIME = "datetime"

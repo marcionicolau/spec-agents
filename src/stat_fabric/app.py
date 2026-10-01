@@ -8,7 +8,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
+from collections.abc import Callable, Iterable
 
 import pandas as pd
 
@@ -36,7 +37,7 @@ class StatisticalAnalysisFabric:
             self.agents.register_schema(name, model)
 
     @classmethod
-    def from_config(cls, path: str | Path, domains: Iterable[Callable] = (), **kw: Any) -> "StatisticalAnalysisFabric":
+    def from_config(cls, path: str | Path, domains: Iterable[Callable] = (), **kw: Any) -> StatisticalAnalysisFabric:
         """``path``: agents directory (fabric.md + agents/*/AGENT.md) or legacy YAML file.
         ``domains``: extra domain packs the tree needs besides statistics."""
         return cls(AgentsConfig.load(path), registry=build_registry([register, *domains]), **kw)

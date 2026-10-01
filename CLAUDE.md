@@ -10,16 +10,18 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
 
 1. **LLMs plan, delegate, repair and interpret — they never compute.** Every result comes from
    `PipelineExecutor` → `Component.compute()`. Never add a path where model text becomes data.
+   Exception by design: `runtime: prompt` components turn validated/grounded model output into declared
+   `text`/`json`/`number`/`any` artifacts — never typed objects like dataframes (§5).
 2. **Everything is declared in Markdown with YAML frontmatter, then verified against code.**
    - **Frontmatter = contract** (validated by Pydantic): ports, params, steps, sub-agents, budgets.
-   - **Body = guidance** in natural language, injected into prompts *on demand*. The body can never
+   - **Body = guidance** in natural language, injected into prompts _on demand_. The body can never
      widen the contract: limits, allowed values and names live only in frontmatter/code.
    - Components & pipelines: `skills/<name>/SKILL.md`; agents: `config/agents/<name>/AGENT.md`;
      run-wide settings: `config/fabric.md`. Legacy `*.yaml` specs load into the same models.
-3. **The core (`src/agent_fabric`) is domain-agnostic.** Domain knowledge lives in *domain packs*
+3. **The core (`src/agent_fabric`) is domain-agnostic.** Domain knowledge lives in _domain packs_
    (`src/stat_fabric`, `examples/domains/text_pack`). Never import a domain pack from the core.
 4. **Every failure is a typed `FabricError`** with a located `ErrorReport` (`category`, `loc`, `type`,
-   `msg`, `hint`, `recoverable`). Validators collect *all* errors before raising. No bare exceptions,
+   `msg`, `hint`, `recoverable`). Validators collect _all_ errors before raising. No bare exceptions,
    no error strings.
 5. **No LLM-authored code or formulas are executed.** (Stats: formulas are built from validated column names.)
 6. **Models are referenced by LiteLLM alias only** (`local-planner`, `local-writer`, `local-fast`);
@@ -33,14 +35,14 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
 
 ## 2. Stack
 
-| Concern | Library | Where | Role |
-|---|---|---|---|
-| Contracts | Pydantic v2 | everywhere | specs, params, results, plans, agent configs, errors |
-| Structured runs | PydanticAI | `llm/planner.py`, `agents/kinds.py` | planner with `ModelRetry`; supervisor delegating via tool calls |
-| Prompt optimisation | DSPy | `integrations/dspy.py` | planner signature; validators = metric; `BootstrapFewShot` |
-| Multi-agent orchestration | CrewAI | `integrations/crewai.py` | tree → hierarchical crew; each worker's tool runs the *fabric* agent |
-| Memory | LangChain | `memory/langchain_adapter.py` | `MemoryPort` adapter over any `BaseChatMessageHistory` |
-| Gateway | LiteLLM proxy :4000 | `config/litellm_config.yaml` | aliases, fallbacks, retries, JSON mode → Ollama |
+| Concern                   | Library             | Where                               | Role                                                                 |
+| ------------------------- | ------------------- | ----------------------------------- | -------------------------------------------------------------------- |
+| Contracts                 | Pydantic v2         | everywhere                          | specs, params, results, plans, agent configs, errors                 |
+| Structured runs           | PydanticAI          | `llm/planner.py`, `agents/kinds.py` | planner with `ModelRetry`; supervisor delegating via tool calls      |
+| Prompt optimisation       | DSPy                | `integrations/dspy.py`              | planner signature; validators = metric; `BootstrapFewShot`           |
+| Multi-agent orchestration | CrewAI              | `integrations/crewai.py`            | tree → hierarchical crew; each worker's tool runs the _fabric_ agent |
+| Memory                    | LangChain           | `memory/langchain_adapter.py`       | `MemoryPort` adapter over any `BaseChatMessageHistory`               |
+| Gateway                   | LiteLLM proxy :4000 | `config/litellm_config.yaml`        | aliases, fallbacks, retries, JSON mode → Ollama                      |
 
 ---
 
@@ -61,7 +63,9 @@ Read §1 first. §5 (new component), §6 (new pipeline), §8 (new agent / sub-ag
       └── function ── registered callable
                                    │
    PipelinePlan ─► parse_plan (structure → registry/ports/types → static constraints on input profiles)
-                ─► PipelineExecutor (topological, ArtifactStore, skip dependents, optional ParamRepairer)
+                ─► PipelineExecutor (topological, ArtifactStore, skip dependents, optional ParamRepairer;
+                                     carries the run's LLM backend + objective into StepContext for
+                                     `runtime: prompt` components, and fires on_step per step)
                 ─► Component.execute (params → port types/constraints → compute → Result → warnings)
 ```
 
@@ -88,9 +92,11 @@ src/agent_fabric/            GENERIC CORE
   memory/                    MemoryPort, InMemoryMemory, LangChainMemory
   integrations/              dspy.py, crewai.py
   report.py                  render_markdown(AgentRunReport)
-  lint.py                    drift lint + CLI (python -m agent_fabric.lint)
+  lint.py                    drift lint + CLI (python -m agent_fabric.lint); collect_issues() shared with cli/
+  prompt.py                  PromptComponent: code-free `runtime: prompt` components (self-correction, grounding)
   evals.py                   planner regression evals (score shared with DSPy metric)
   scaffold.py                templates for SKILL.md / AGENT.md (python -m agent_fabric.scaffold)
+  cli/                       agent-fabric CLI (rich): run (live view), lint, catalog, agents, scaffold
 src/stat_fabric/             STATISTICS DOMAIN PACK
   components/                summary, linear_model, anova, time_series, pca, clustering (code)
   skills/<name>/SKILL.md     contracts + guidance for the 6 components and 3 pipelines
@@ -107,6 +113,7 @@ examples/domains/text_pack/  second domain (text_stats, keywords, document_diges
 config/                      litellm_config.yaml, fabric.md (root/budget/llm), agents/<name>/AGENT.md (research team)
 config/lakehouse/            fabric.md + agents: lakehouse_team, dag_engineer, dag_reviewer, schema_designer
 config/coworker/             fabric.md + agents: pair_programmer, context_scout, code_critic, patch_author
+config/notes/                code-free demo domain: fabric.md (`skill_dirs`), note_taker planner, 3 prompt skills
 examples/evals/              planner_cases.yaml (regression cases); run_evals.py
 ```
 
@@ -117,7 +124,7 @@ examples/evals/              planner_cases.yaml (regression cases); run_evals.py
 ```bash
 uv sync --extra all --extra dev             # env from uv.lock (commit uv.lock; `uv lock` after changing dependencies)
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
-uv run ruff check src tests examples        # pyflakes rules (F); see [tool.ruff.lint]
+uv run ruff check src tests examples        # pyflakes (F) + pyupgrade (UP); see [tool.ruff.lint]
 # CI (.github/workflows/ci.yml) runs: pytest, ruff, the three lint commands below, and run_evals --mode rules (informational)
 python -m agent_fabric.lint --domains stat_fabric.domain:register examples.domains.text_pack:register \
        --agents config --schemas stat_fabric.schemas:SCHEMAS --strict
@@ -127,7 +134,13 @@ python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents c
        --schemas coworker_fabric.schemas:SCHEMAS --strict
 python -m lake_fabric.generate params.json --sample records.json --out dags   # DAG file, no LLM involved
 python -m agent_fabric.scaffold skill my_step --dir src/stat_fabric/skills --domain statistics
+python -m agent_fabric.scaffold prompt my_step --dir config/notes/skills --domain notes   # code-free skill
 python examples/run_evals.py --mode live    # before merging guidance/model changes
+
+uv run agent-fabric catalog --skills config/notes/skills          # rich table; also accepts --domains ref/dir
+uv run agent-fabric agents config/notes                           # renders + validates the agent tree
+uv run agent-fabric lint --agents config/notes                    # same engine as -m agent_fabric.lint, rich output
+uv run agent-fabric run config/notes "Digest this" --input transcript=meeting.txt --plain   # run; drop --plain for live view
 
 export OLLAMA_API_BASE=http://localhost:11434 LITELLM_MASTER_KEY=sk-local-dev
 litellm --config config/litellm_config.yaml --port 4000
@@ -143,28 +156,36 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
 ## 5. Adding a component (any domain)
 
 1. **Skill** `<pack>/skills/<name>/SKILL.md` (start from `python -m agent_fabric.scaffold skill <name> ...`):
+
    ```markdown
    ---
-   name: my_step            # snake_case, unique, == folder name
+   name: my_step # snake_case, unique, == folder name
    version: 1.0.0
-   domain: my_domain        # catalogue filter for planners
+   domain: my_domain # catalogue filter for planners
    description: One line, < 200 chars (sent in every planner catalogue)
-   params:                  # one entry per Params field (contract-checked)
-     top_k: {description: "...", example: 5}
-   inputs:                  # typed ports; constraints validated by the artifact type
-     data: {type: dataframe, constraints: {min_rows: 10, roles: [...]}}
-   outputs:                 # extra outputs; 'result' (the JSON Result) is implicit
-     scores: {type: dataframe}
+   params: # one entry per Params field (contract-checked)
+     top_k: { description: "...", example: 5 }
+   inputs: # typed ports; constraints validated by the artifact type
+     data: { type: dataframe, constraints: { min_rows: 10, roles: [...] } }
+   outputs: # extra outputs; 'result' (the JSON Result) is implicit
+     scores: { type: dataframe }
    ---
+
    # My step
-   ## When to use          -> planner catalogue (first paragraph only)
-   ## When not to use      -> planner catalogue (first paragraph only)
-   ## Interpreting         -> step interpreter prompt (≤ 1500 chars)
-   ## Common mistakes      -> parameter repair + planner feedback when a plan using it is rejected
+
+   ## When to use -> planner catalogue (first paragraph only)
+
+   ## When not to use -> planner catalogue (first paragraph only)
+
+   ## Interpreting -> step interpreter prompt (≤ 1500 chars)
+
+   ## Common mistakes -> parameter repair + planner feedback when a plan using it is rejected
    ```
+
    Put long material in `skills/<name>/references/*.md` and link it; it is read only via
    `Guidance.reference(...)` / `registry.guidance(...)`, never injected automatically.
    Use `backticks` only for real identifiers (params, ports, Result fields, component names): the lint checks them.
+
 2. **Class**:
    ```python
    @component("my_step")
@@ -185,6 +206,22 @@ New artifact type: subclass `ArtifactType` (`accepts`, `profile`, `Constraints`,
 Registration fails on: spec/Params mismatch, unknown port type, invalid port constraints, spec without
 implementation. Runtime: emitting an undeclared output or the wrong type raises `SpecError`.
 
+### Prompt components — `runtime: prompt` (no Python)
+
+A SKILL.md can be the entire component: `runtime: prompt` skips the class and `register()` call —
+`Registry.load_domain` binds it to `PromptComponent`, which builds Params dynamically from the spec.
+The prompt template is the `## Instructions` body section; placeholders `{params.<name>}`,
+`{inputs.<port>}` and `{objective}` are validated against the declared contract at registration
+(`unknown_placeholder`), missing Instructions is `missing_instructions`, literal braces escape as `{{ }}`.
+Outputs must be `text`/`json`/`number`/`any` (`prompt_output_type`) — a prompt step can never feed a
+`dataframe` port, so the deterministic-compute boundary holds for typed data. With declared outputs the
+model must answer a JSON object (validated, self-corrected, grounded by default — set
+`prompt: {grounding: false}` to opt out); with no outputs, free text is taken verbatim. Prompt steps run
+inside pipelines and through planner agents; the LLM backend and objective arrive via `StepContext`
+(`llm`, `llm_settings`, `objective`) and every call is charged to `budget.max_llm_calls`. No-LLM runs fail
+the step as `dependency`. Scaffold: `python -m agent_fabric.scaffold prompt <name> --dir ... --domain ...`.
+See `config/notes/` for a domain that is 100% Markdown.
+
 ---
 
 ## 6. Adding a pipeline (spec only, no code)
@@ -198,16 +235,28 @@ kind: pipeline
 version: 1.0.0
 domain: my_domain
 description: One line.
-params:  {features: {description: ..., required: true}, k: {description: ..., default: null}}
-inputs:  {data: {type: dataframe}}
+params:
+  {
+    features: { description: ..., required: true },
+    k: { description: ..., default: null },
+  }
+inputs: { data: { type: dataframe } }
 steps:
-  - {id: pca, component: pca, params: {features: $params.features}}
-  - {id: clusters, component: clustering, params: {k: $params.k}, inputs: {matrix: pca.scores}}
-outputs: {labels: clusters.labels}
+  - { id: pca, component: pca, params: { features: $params.features } }
+  - {
+      id: clusters,
+      component: clustering,
+      params: { k: $params.k },
+      inputs: { matrix: pca.scores },
+    }
+outputs: { labels: clusters.labels }
 ---
+
 # My pipeline
+
 ## When to use
-## Procedure              (why these steps, in this order - required by the lint)
+
+## Procedure (why these steps, in this order - required by the lint)
 ```
 
 References: `$inputs.<name>`, `<step>.<port>` (`result` always exists), `$params.<name>` (templates only;
@@ -220,16 +269,16 @@ targets of `kind: pipeline` agents. Invalid references are reported at registrat
 
 ## 7. Error model
 
-| Category | Class | Recoverable | Typical fix path |
-|---|---|---|---|
-| `spec` | `SpecError` | no | developer fixes spec/code |
-| `plan` | `PlanValidationError` | yes | planner self-correction |
-| `params` / `data` | `ParamsValidationError` / `DataValidationError` | yes | planner, `LLMParamRepairer` |
-| `execution` | `ComponentExecutionError` | per hint table | report |
-| `llm_output` | `LLMOutputError`, `CorrectionExhausted` | yes / no | retry loop |
-| `dependency` | `DependencyError` | no | skip dependents, fallback backend |
-| `agent` | `AgentConfigError` / `DelegationError` | no / yes | fix config / router self-correction |
-| `budget` | `BudgetExceeded` | no | stop delegating; synthesis skipped |
+| Category          | Class                                           | Recoverable    | Typical fix path                    |
+| ----------------- | ----------------------------------------------- | -------------- | ----------------------------------- |
+| `spec`            | `SpecError`                                     | no             | developer fixes spec/code           |
+| `plan`            | `PlanValidationError`                           | yes            | planner self-correction             |
+| `params` / `data` | `ParamsValidationError` / `DataValidationError` | yes            | planner, `LLMParamRepairer`         |
+| `execution`       | `ComponentExecutionError`                       | per hint table | report                              |
+| `llm_output`      | `LLMOutputError`, `CorrectionExhausted`         | yes / no       | retry loop                          |
+| `dependency`      | `DependencyError`                               | no             | skip dependents, fallback backend   |
+| `agent`           | `AgentConfigError` / `DelegationError`          | no / yes       | fix config / router self-correction |
+| `budget`          | `BudgetExceeded`                                | no             | stop delegating; synthesis skipped  |
 
 Rules: set `loc` (path into plan/params/config), stable snake_case `type`, factual `msg`, actionable `hint`
 (`suggest()` for names). Don't create cascades: a port with a bad reference counts as bound.
@@ -239,18 +288,21 @@ Nested pipeline errors are re-located as `pipeline.<inner_step>.…`.
 
 ## 8. Agents and sub-agents
 
-`config/fabric.md` holds `root`, `budget`, `llm` (frontmatter; body = human docs).
+`config/fabric.md` holds `root`, `budget`, `llm` (frontmatter; body = human docs) plus `skill_dirs`
+(directories of SKILL.md specs resolved relative to the config dir — this is how code-free domains like
+`config/notes/` are loaded; `python` domain loaders still apply via `--domains`/`build_registry`).
 Each agent is `config/agents/<name>/AGENT.md`:
 
 ```markdown
 ---
-name: stats_team            # == folder name
+name: stats_team # == folder name
 kind: supervisor
 strategy: sequential
 sub_agents: [statistician, methods_reviewer]
 role: Statistics team
 description: One line - what parent routers see when deciding to delegate here.
 ---
+
 Working instructions (this body is the agent's system prompt, after an optional role/goal header).
 Mention sub-agents and components in `backticks` so the lint can verify them.
 ```
@@ -261,13 +313,13 @@ Frontmatter fields (`AgentSpec`): `kind`, `backend`, `fallback`, `role`, `goal`,
 derived from the file and must not appear in frontmatter. An agent needs a `goal`, a `description` or a body.
 Loading reports **all** file problems at once, located by relative path.
 
-| kind | backends | notes |
-|---|---|---|
-| `supervisor` | `fabric` (router/sequential), `rules` (sequential, no LLM), `pydantic_ai` (tool delegation) | owns `sub_agents` |
-| `planner` | `fabric`, `pydantic_ai`, `dspy`, `template`, `stats_rules` | plans over `domains`, executes, interprets |
-| `pipeline` | `fabric` | runs `pipeline` with `options.params`; inputs mapped by name, then by type |
-| `llm` | `fabric` | free text or `output_schema`; `options.check_grounding` |
-| `function` | `fabric` | registered callable `(task, inputs) -> dict` |
+| kind         | backends                                                                                    | notes                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `supervisor` | `fabric` (router/sequential), `rules` (sequential, no LLM), `pydantic_ai` (tool delegation) | owns `sub_agents`                                                          |
+| `planner`    | `fabric`, `pydantic_ai`, `dspy`, `template`, `stats_rules`                                  | plans over `domains`, executes, interprets                                 |
+| `pipeline`   | `fabric`                                                                                    | runs `pipeline` with `options.params`; inputs mapped by name, then by type |
+| `llm`        | `fabric`                                                                                    | free text or `output_schema`; `options.check_grounding`                    |
+| `function`   | `fabric`                                                                                    | registered callable `(task, inputs) -> dict`                               |
 
 **Validation before run** (`AgentFabric.validate`): unknown kind/backend/sub-agent/pipeline/function/
 schema/domain (with suggestions), self-reference, duplicates, sub-agents on leaf kinds, supervisors without
@@ -295,22 +347,23 @@ returning a `BaseAgent` subclass implementing `_run(task, ctx, path, depth)`. Pl
 
 ## 9. Maintenance workflow (long-term)
 
-| Change | Required checks |
-|---|---|
-| New/changed contract (frontmatter, Params, Result) | `pytest`; bump `version` (minor = new optional field, major = breaking) |
-| Body-only edit (SKILL.md/AGENT.md prose) | `lint --strict`; `run_evals.py --mode live` — prose changes behaviour without changing code |
-| Model alias swap in `litellm_config.yaml` | `run_evals.py --mode live`; compare `mean_score` with the last run |
-| Coworker scorer / `context_select` change | `python -m coworker_fabric.evals --root .` (deterministic, labeled cases in `examples/evals/context_cases.yaml`; also asserted in `tests/test_coworker.py`); add a case for every retrieval bug you fix |
-| New skill / agent | `scaffold` → fill sections → `lint --strict` → tests for its checks |
+| Change                                             | Required checks                                                                                                                                                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| New/changed contract (frontmatter, Params, Result) | `pytest`; bump `version` (minor = new optional field, major = breaking)                                                                                                                                 |
+| Body-only edit (SKILL.md/AGENT.md prose)           | `lint --strict`; `run_evals.py --mode live` — prose changes behaviour without changing code                                                                                                             |
+| Model alias swap in `litellm_config.yaml`          | `run_evals.py --mode live`; compare `mean_score` with the last run                                                                                                                                      |
+| Coworker scorer / `context_select` change          | `python -m coworker_fabric.evals --root .` (deterministic, labeled cases in `examples/evals/context_cases.yaml`; also asserted in `tests/test_coworker.py`); add a case for every retrieval bug you fix |
+| New skill / agent                                  | `scaffold` → fill sections → `lint --strict` → tests for its checks                                                                                                                                     |
 
 Lint rules (`agent_fabric/lint.py`): unknown backticked identifiers, missing canonical sections, broken
 relative links (error), description > 200 chars, skill body > 6000 / agent body > 4000 chars, router bodies
 that never mention a sub-agent, bodies mentioning agents that are not sub-agents, plus full tree validation.
 Evals (`agent_fabric/evals.py`): cases name expected/forbidden components; score = 0.7 valid + 0.1 first try
-+ 0.2 coverage − 0.3 per forbidden component (same score as the DSPy metric). The rules baseline
-intentionally fails `treatment_effect` (it is objective-blind) — that is what an LLM planner should beat.
 
-Single source of truth: never duplicate a contract in YAML *and* SKILL.md for the same name (the loader
+- 0.2 coverage − 0.3 per forbidden component (same score as the DSPy metric). The rules baseline
+  intentionally fails `treatment_effect` (it is objective-blind) — that is what an LLM planner should beat.
+
+Single source of truth: never duplicate a contract in YAML _and_ SKILL.md for the same name (the loader
 rejects duplicate names). Keep YAML only for legacy packs.
 
 ## 10. Lakehouse and coworker packs (rules specific to them)
@@ -339,7 +392,7 @@ rejects duplicate names). Keep YAML only for legacy packs.
   (`class Component[P: ComponentParams, R: ComponentResult]`, `def f[T](...)`, `type X = ...`), not `TypeVar`/`Generic`.
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.
 - `extra="forbid"` on every model an LLM (or YAML author) can produce.
-- Prompt *templates* live in `llm/prompts.py`; domain wording lives in SKILL.md/AGENT.md bodies, never in code.
+- Prompt _templates_ live in `llm/prompts.py`; domain wording lives in SKILL.md/AGENT.md bodies, never in code.
 - Use `compact()` before sending results to a model.
 - Library warnings are captured per step into `result.warnings` as `[library] …`.
 - Don't: parse model prose beyond `extract_json`/`extract_text`; catch bare `Exception` outside the

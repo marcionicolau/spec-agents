@@ -20,8 +20,8 @@ if TYPE_CHECKING:  # pragma: no cover
 class BaseAgent(ABC):
     accepts_sub_agents: bool = False
 
-    def __init__(self, name: str, spec: AgentSpec, fabric: "AgentFabric",
-                 children: dict[str, "BaseAgent"] | None = None) -> None:
+    def __init__(self, name: str, spec: AgentSpec, fabric: AgentFabric,
+                 children: dict[str, BaseAgent] | None = None) -> None:
         self.name, self.spec, self.fabric = name, spec, fabric
         self.children: dict[str, BaseAgent] = children or {}
         self.fallback_agent: BaseAgent | None = None

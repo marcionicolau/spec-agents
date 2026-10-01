@@ -74,21 +74,45 @@ class ArtifactStore:
 
 
 class StepContext:
-    def __init__(self, store: ArtifactStore, step_id: str, spec: ComponentSpec, types: TypeRegistry,
-                 depth: int = 0) -> None:
+    def __init__(
+        self,
+        store: ArtifactStore,
+        step_id: str,
+        spec: ComponentSpec,
+        types: TypeRegistry,
+        depth: int = 0,
+        *,
+        llm: Any = None,
+        llm_settings: Any = None,
+        objective: str = "",
+        on_step: Any = None,
+    ) -> None:
         self.store, self.step_id, self.spec, self.types, self.depth = store, step_id, spec, types, depth
+        self.llm = llm  # LLMBackend for 'runtime: prompt' components (None = unavailable)
+        self.llm_settings = llm_settings  # LLMSettings of the calling agent/run
+        self.objective = objective  # PipelinePlan.objective, for prompt templates
+        self.on_step = on_step  # propagated to nested pipelines
 
     def emit(self, name: str, value: Any) -> None:
         port = self.spec.outputs.get(name)
         if port is None:
-            raise SpecError(f"Component '{self.spec.name}' emitted undeclared output '{name}'",
-                            [ErrorDetail(loc=("spec", "outputs"), type="undeclared_output",
-                                         msg=f"'{name}' is not listed in outputs", hint="declare it in the spec")])
+            raise SpecError(
+                f"Component '{self.spec.name}' emitted undeclared output '{name}'",
+                [
+                    ErrorDetail(
+                        loc=("spec", "outputs"),
+                        type="undeclared_output",
+                        msg=f"'{name}' is not listed in outputs",
+                        hint="declare it in the spec",
+                    )
+                ],
+            )
         t = self.types.get(port.type)
         if not t.accepts(value):
-            raise SpecError(f"Output '{name}' of '{self.spec.name}' is not of type '{port.type}'",
-                            [ErrorDetail(loc=("outputs", name), type="output_type_mismatch",
-                                         msg=f"got {type(value).__name__}")])
+            raise SpecError(
+                f"Output '{name}' of '{self.spec.name}' is not of type '{port.type}'",
+                [ErrorDetail(loc=("outputs", name), type="output_type_mismatch", msg=f"got {type(value).__name__}")],
+            )
         self.store.put(f"{self.step_id}.{name}", value)
 
 
@@ -101,7 +125,9 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         self.spec, self.types = spec, types
         self.port_constraints: dict[str, BaseModel] = {}
         for port, ps in spec.inputs.items():
-            self.port_constraints[port] = types.get(ps.type).parse_constraints(ps.constraints, ("inputs", port, "constraints"))
+            self.port_constraints[port] = types.get(ps.type).parse_constraints(
+                ps.constraints, ("inputs", port, "constraints")
+            )
         for ps in spec.outputs.values():
             types.get(ps.type)
 
@@ -126,8 +152,11 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         try:
             return self.Params.model_validate(raw or {})  # type: ignore[return-value]
         except ValidationError as exc:
-            raise ParamsValidationError(f"Invalid parameters for '{self.spec.name}'",
-                                        details_from_pydantic(exc, ("params",)), component=self.spec.name) from exc
+            raise ParamsValidationError(
+                f"Invalid parameters for '{self.spec.name}'",
+                details_from_pydantic(exc, ("params",)),
+                component=self.spec.name,
+            ) from exc
 
     # ------------------------------------------------------------------ validation
     def static_checks(self, bound: dict[str, BaseModel | None], params: P) -> list[ErrorDetail]:
@@ -135,13 +164,20 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         for port, ps in self.spec.inputs.items():
             if port not in bound:
                 if ps.required:
-                    errors.append(ErrorDetail(loc=("inputs", port), type="port_unbound",
-                                              msg=f"required input '{port}' ({ps.type}) is not bound",
-                                              hint="bind it to '$inputs.<name>' or '<step_id>.<output>'"))
+                    errors.append(
+                        ErrorDetail(
+                            loc=("inputs", port),
+                            type="port_unbound",
+                            msg=f"required input '{port}' ({ps.type}) is not bound",
+                            hint="bind it to '$inputs.<name>' or '<step_id>.<output>'",
+                        )
+                    )
                 continue
             profile = bound[port]
             if profile is not None:
-                errors += self.types.get(ps.type).static_check(profile, self.port_constraints[port], params, ("inputs", port))
+                errors += self.types.get(ps.type).static_check(
+                    profile, self.port_constraints[port], params, ("inputs", port)
+                )
         return errors + self.extra_static(bound, params)
 
     def validate_inputs(self, inputs: dict[str, Any], params: P) -> None:
@@ -152,8 +188,13 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
                 continue
             t = self.types.get(ps.type)
             if not t.accepts(inputs[port]):
-                errors.append(ErrorDetail(loc=("inputs", port), type="wrong_artifact_type",
-                                          msg=f"expected {ps.type}, got {type(inputs[port]).__name__}"))
+                errors.append(
+                    ErrorDetail(
+                        loc=("inputs", port),
+                        type="wrong_artifact_type",
+                        msg=f"expected {ps.type}, got {type(inputs[port]).__name__}",
+                    )
+                )
                 continue
             bound[port] = t.profile(inputs[port])
         if not errors:
@@ -161,12 +202,14 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         if not errors:
             for port in bound:
                 errors += self.types.get(self.spec.inputs[port].type).runtime_check(
-                    inputs[port], self.port_constraints[port], params, ("inputs", port))
+                    inputs[port], self.port_constraints[port], params, ("inputs", port)
+                )
         if not errors:
             errors = self.extra_checks(inputs, params)
         if errors:
-            raise DataValidationError(f"Inputs do not satisfy '{self.spec.name}' requirements", errors,
-                                      component=self.spec.name)
+            raise DataValidationError(
+                f"Inputs do not satisfy '{self.spec.name}' requirements", errors, component=self.spec.name
+            )
 
     # ------------------------------------------------------------------ template method
     def execute(self, inputs: dict[str, Any], raw_params: dict[str, Any] | None, ctx: StepContext) -> R:
@@ -176,8 +219,13 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter("always")
                 result = self.compute(inputs, params, ctx)
-            lib = sorted({str(w.message).split("\n")[0][:160] for w in caught
-                          if not issubclass(w.category, (DeprecationWarning, FutureWarning, PendingDeprecationWarning))})
+            lib = sorted(
+                {
+                    str(w.message).split("\n")[0][:160]
+                    for w in caught
+                    if not issubclass(w.category, (DeprecationWarning, FutureWarning, PendingDeprecationWarning))
+                }
+            )
             result = self.Result.model_validate(result.model_dump())
             result.warnings.extend(f"[library] {m}" for m in lib)
             ctx.store.put(f"{ctx.step_id}.{RESULT_PORT}", result.model_dump(mode="json"))
@@ -185,8 +233,12 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         except FabricError as exc:
             raise exc.with_context(component=self.spec.name, step_id=ctx.step_id) from None
         except ValidationError as exc:
-            raise SpecError(f"'{self.spec.name}' produced a result that violates its Result model",
-                            details_from_pydantic(exc, ("result",)), component=self.spec.name, step_id=ctx.step_id) from exc
+            raise SpecError(
+                f"'{self.spec.name}' produced a result that violates its Result model",
+                details_from_pydantic(exc, ("result",)),
+                component=self.spec.name,
+                step_id=ctx.step_id,
+            ) from exc
         except Exception as exc:  # library / numerical failures
             raise wrap_execution_error(exc, self.spec.name, ctx.step_id) from exc
 
@@ -207,6 +259,10 @@ def wrap_execution_error(exc: Exception, component: str, step_id: str) -> Compon
         if needle in text:
             hint, recoverable = h, rec
             break
-    return ComponentExecutionError(f"'{component}' failed during computation",
-                                   [ErrorDetail(type=type(exc).__name__, msg=str(exc)[:300], hint=hint)],
-                                   component=component, step_id=step_id, recoverable=recoverable)
+    return ComponentExecutionError(
+        f"'{component}' failed during computation",
+        [ErrorDetail(type=type(exc).__name__, msg=str(exc)[:300], hint=hint)],
+        component=component,
+        step_id=step_id,
+        recoverable=recoverable,
+    )

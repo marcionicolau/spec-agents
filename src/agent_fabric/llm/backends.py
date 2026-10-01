@@ -11,7 +11,8 @@ import os
 import urllib.error
 import urllib.request
 from collections import deque
-from typing import Any, Callable, Iterable, Protocol
+from typing import Any, Protocol
+from collections.abc import Callable, Iterable
 
 from pydantic import BaseModel, Field
 

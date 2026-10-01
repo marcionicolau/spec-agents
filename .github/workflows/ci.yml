@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       PYTHONPATH: src:.
     timeout-minutes: 15
@@ -23,7 +23,7 @@ jobs:
       matrix:
         python: ["3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v10.2.0
@@ -50,6 +50,15 @@ jobs:
           uv run python -m agent_fabric.lint --strict
           --domains coworker_fabric.domain:register
           --agents config/coworker --schemas coworker_fabric.schemas:SCHEMAS
+      - name: Lint specs (notes, code-free domain)
+        run: >-
+          uv run python -m agent_fabric.lint --strict
+          --domains config/notes/skills --agents config/notes
+      - name: CLI smoke (agent-fabric)
+        run: >-
+          uv run agent-fabric catalog --skills config/notes/skills &&
+          uv run agent-fabric agents config/notes &&
+          uv run agent-fabric lint --agents config/notes --strict
       - name: Planner baseline (informational)
         # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
         run: uv run python examples/run_evals.py --mode rules

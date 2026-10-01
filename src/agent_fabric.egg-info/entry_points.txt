@@ -2,3 +2,6 @@
 coworker = coworker_fabric.domain:register
 lakehouse = lake_fabric.domain:register
 statistics = stat_fabric.domain:register
+
+[console_scripts]
+agent-fabric = agent_fabric.cli:main

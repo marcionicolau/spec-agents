@@ -56,6 +56,16 @@ Error report:
 {error}
 {pitfalls}"""
 
+PROMPT_STEP_SYSTEM = """You are one step inside a deterministic pipeline. Do the task in the user message,
+nothing else. Rules:
+- Use only the information given in the message; do not invent facts, files, paths or numbers.
+- {output_rule}"""
+
+PROMPT_STEP_OUTPUT_TEXT = "Reply with the answer text only, no JSON, no preamble."
+PROMPT_STEP_OUTPUT_JSON = (
+    "Reply with ONE JSON object and nothing else. It must contain exactly these keys (extra keys are ignored): {ports}"
+)
+
 # ------------------------------------------------------------------ agents
 
 AGENT_SYSTEM = """You are {role}.

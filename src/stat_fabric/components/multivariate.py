@@ -29,7 +29,7 @@ class PCAParams(ComponentParams):
     top_loadings: int = Field(3, ge=1, le=10)
 
     @model_validator(mode="after")
-    def _check(self) -> "PCAParams":
+    def _check(self) -> PCAParams:
         if len(set(self.features)) != len(self.features):
             raise ValueError("features contain duplicates")
         if self.n_components is not None and self.n_components > len(self.features):
@@ -138,7 +138,7 @@ class ClusteringParams(ComponentParams):
     random_state: int = 42
 
     @model_validator(mode="after")
-    def _check(self) -> "ClusteringParams":
+    def _check(self) -> ClusteringParams:
         if self.features is not None and len(self.features) < 2:
             raise ValueError("features needs at least 2 columns")
         if self.k_min > self.k_max:

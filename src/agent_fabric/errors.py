@@ -9,13 +9,14 @@ from __future__ import annotations
 
 import difflib
 import json
-from enum import Enum
-from typing import Any, ClassVar, Iterable, Sequence
+from enum import StrEnum
+from typing import Any, ClassVar
+from collections.abc import Iterable, Sequence
 
 from pydantic import BaseModel, Field, ValidationError
 
 
-class ErrorCategory(str, Enum):
+class ErrorCategory(StrEnum):
     SPEC = "spec"                # component spec / contract is broken (developer error)
     PLAN = "plan"                # analysis plan is structurally invalid
     PARAMS = "params"            # step parameters do not match the component's Params model
@@ -96,7 +97,7 @@ class FabricError(Exception):
             details=self.details,
         )
 
-    def with_context(self, *, component: str | None = None, step_id: str | None = None) -> "FabricError":
+    def with_context(self, *, component: str | None = None, step_id: str | None = None) -> FabricError:
         self.component = self.component or component
         self.step_id = self.step_id or step_id
         return self

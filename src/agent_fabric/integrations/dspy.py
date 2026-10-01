@@ -8,7 +8,8 @@ Registers planner backend ``dspy`` (``kind: planner, backend: dspy``).
 from __future__ import annotations
 
 import json
-from typing import Any, Iterable
+from typing import Any
+from collections.abc import Iterable
 
 from ..errors import MissingOptionalDependency, PlanValidationError
 from ..evals import score_plan

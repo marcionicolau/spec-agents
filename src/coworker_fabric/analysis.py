@@ -322,7 +322,7 @@ def pick_symbols(f: dict[str, Any], scorer: Scorer, budget_tokens: int, preamble
         used = head * 12 + sum(c["tokens"] for c in chosen)
     if not chosen:
         return None
-    spans = sorted(([c["line"], c["end_line"]] for c in chosen))
+    spans = sorted([c["line"], c["end_line"]] for c in chosen)
     if head:
         spans.insert(0, [1, head])
     merged: list[list[int]] = []

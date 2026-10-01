@@ -1,6 +1,7 @@
+numpy>=1.26
 pydantic>=2.7
 pyyaml>=6
-numpy>=1.26
+rich>=13.7.1
 
 [all]
 agent-fabric[crewai,dspy,langchain,pydantic-ai,stats]
