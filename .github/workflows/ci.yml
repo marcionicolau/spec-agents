@@ -16,7 +16,7 @@ jobs:
   check:
     runs-on: ubuntu-24.04
     env:
-      PYTHONPATH: src:.
+      PYTHONPATH: .
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
-      - run: uv sync --locked --extra stats --extra lakehouse --extra dev
+      - run: uv sync --locked --all-packages --group dev
       - name: Tests
         run: uv run pytest -q
       - name: Ruff

@@ -13,10 +13,19 @@ resolution-markers = [
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[manifest]
+members = [
+    "agent-fabric",
+    "coworker",
+    "lakehouse",
+    "spec-agents",
+    "statistics",
+]
+
 [[package]]
 name = "agent-fabric"
 version = "0.2.0"
-source = { editable = "." }
+source = { editable = "packages/agent-fabric" }
 dependencies = [
     { name = "numpy" },
     { name = "pydantic" },
@@ -31,23 +40,12 @@ all = [
     { name = "langchain-core" },
     { name = "pandas" },
     { name = "pydantic-ai-slim", extra = ["openai"] },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "statsmodels" },
 ]
 crewai = [
     { name = "crewai" },
 ]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-]
 dspy = [
     { name = "dspy" },
-]
-lakehouse = [
-    { name = "openpyxl" },
-    { name = "requests" },
 ]
 langchain = [
     { name = "langchain-core" },
@@ -58,39 +56,25 @@ proxy = [
 pydantic-ai = [
     { name = "pydantic-ai-slim", extra = ["openai"] },
 ]
-stats = [
-    { name = "pandas" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "statsmodels" },
-]
 tabular = [
     { name = "pandas" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "agent-fabric", extras = ["stats", "pydantic-ai", "dspy", "crewai", "langchain"], marker = "extra == 'all'" },
+    { name = "agent-fabric", extras = ["tabular", "pydantic-ai", "dspy", "crewai", "langchain"], marker = "extra == 'all'" },
     { name = "crewai", marker = "extra == 'crewai'", specifier = ">=0.100" },
     { name = "dspy", marker = "extra == 'dspy'", specifier = ">=3.0" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=0.3" },
     { name = "litellm", extras = ["proxy"], marker = "extra == 'proxy'", specifier = ">=1.60" },
     { name = "numpy", specifier = ">=1.26" },
-    { name = "openpyxl", marker = "extra == 'lakehouse'", specifier = ">=3.1" },
-    { name = "pandas", marker = "extra == 'stats'", specifier = ">=2.1" },
     { name = "pandas", marker = "extra == 'tabular'", specifier = ">=2.1" },
     { name = "pydantic", specifier = ">=2.7" },
     { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pyyaml", specifier = ">=6" },
-    { name = "requests", marker = "extra == 'lakehouse'", specifier = ">=2.31" },
     { name = "rich", specifier = ">=13.7.1" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "scikit-learn", marker = "extra == 'stats'", specifier = ">=1.4" },
-    { name = "scipy", marker = "extra == 'stats'", specifier = ">=1.11" },
-    { name = "statsmodels", marker = "extra == 'stats'", specifier = ">=0.14" },
 ]
-provides-extras = ["tabular", "lakehouse", "stats", "pydantic-ai", "dspy", "crewai", "langchain", "proxy", "all", "dev"]
+provides-extras = ["all", "crewai", "dspy", "langchain", "proxy", "pydantic-ai", "tabular"]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -744,6 +728,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/cc/c7/eed8f27100517e8c0
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a7/06/3d6badcf13db419e25b07041d9c7b4a2c331d3f4e7134445ec5df57714cd/coloredlogs-15.0.1-py2.py3-none-any.whl", hash = "sha256:612ee75c546f53e92e70049c9dbfcc18c935a2b9a53b66085ce9ef6a6e5c0934", size = 46018, upload-time = "2021-06-11T10:22:42.561Z" },
 ]
+
+[[package]]
+name = "coworker"
+version = "0.2.0"
+source = { editable = "packages/coworker" }
+dependencies = [
+    { name = "agent-fabric" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agent-fabric", editable = "packages/agent-fabric" }]
 
 [[package]]
 name = "crewai"
@@ -1695,6 +1690,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ca/57/b07b96353f902aa1bdbe00e878e3a12a137977d03a962479785576aa8ec9/kubernetes-36.0.3.tar.gz", hash = "sha256:36993ed25ce59b789c9341473a228fcf268504a2fec7c2b2b1531d73072e5ce7", size = 2337528, upload-time = "2026-07-13T20:38:12.128Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5b/30/a96d47df739689ac0001ade0afefc16e3b477fc2fb426b568515fdc8afce/kubernetes-36.0.3-py2.py3-none-any.whl", hash = "sha256:8fde9241c4b298e6374a069dcf728359b4e72c2fb29489a975ba4e1c047cf10f", size = 4618066, upload-time = "2026-07-13T20:38:10.172Z" },
+]
+
+[[package]]
+name = "lakehouse"
+version = "0.2.0"
+source = { editable = "packages/lakehouse" }
+dependencies = [
+    { name = "agent-fabric" },
+    { name = "openpyxl" },
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-fabric", editable = "packages/agent-fabric" },
+    { name = "openpyxl", specifier = ">=3.1" },
+    { name = "requests", specifier = ">=2.31" },
 ]
 
 [[package]]
@@ -3941,6 +3953,25 @@ wheels = [
 ]
 
 [[package]]
+name = "spec-agents"
+version = "0.0.0"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.5" },
+]
+
+[[package]]
 name = "sse-starlette"
 version = "3.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -3976,6 +4007,27 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/20/08dfcd9c983f6a6f4a1000d934b9e6d626cff8d2eeb77a89a68eef20a2b7/starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5", size = 2580846, upload-time = "2025-04-13T13:56:17.942Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/0c/9d30a4ebeb6db2b25a841afbb80f6ef9a854fc3b41be131d249a977b4959/starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35", size = 72037, upload-time = "2025-04-13T13:56:16.21Z" },
+]
+
+[[package]]
+name = "statistics"
+version = "0.2.0"
+source = { editable = "packages/statistics" }
+dependencies = [
+    { name = "agent-fabric" },
+    { name = "pandas" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "statsmodels" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agent-fabric", editable = "packages/agent-fabric" },
+    { name = "pandas", specifier = ">=2.1" },
+    { name = "scikit-learn", specifier = ">=1.4" },
+    { name = "scipy", specifier = ">=1.11" },
+    { name = "statsmodels", specifier = ">=0.14" },
 ]
 
 [[package]]

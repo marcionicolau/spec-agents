@@ -86,11 +86,11 @@ research_lead (supervisor, router)           fallback: rules
 
 ## Outros domínios
 
-| Domínio     | Pacote                | Agentes                                                                                  | O que faz                                                                                                                           |
-| ----------- | --------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `lakehouse` | `src/lake_fabric`     | `config/lakehouse` (`lakehouse_team`, `dag_engineer`, `dag_reviewer`, `schema_designer`) | Gera DAGs do Airflow que carregam CSV, JSON, XLSX, API ou ferramenta MCP em tabelas Trino/Iceberg nas camadas bronze, silver e gold |
-| `coworker`  | `src/coworker_fabric` | `config/coworker` (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`)    | Programação em par: escolhe o contexto dentro de um orçamento de tokens, revisa o código e valida propostas de patch                |
-| `notes`     | — _(só Markdown)_     | `config/notes` (`note_taker`)                                                            | Demo code-free: resumo, extração de ações e digest de reunião via `runtime: prompt`                                                 |
+| Domínio     | Pacote               | Agentes                                                                                  | O que faz                                                                                                                           |
+| ----------- | -------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `lakehouse` | `packages/lakehouse` | `config/lakehouse` (`lakehouse_team`, `dag_engineer`, `dag_reviewer`, `schema_designer`) | Gera DAGs do Airflow que carregam CSV, JSON, XLSX, API ou ferramenta MCP em tabelas Trino/Iceberg nas camadas bronze, silver e gold |
+| `coworker`  | `packages/coworker`  | `config/coworker` (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`)    | Programação em par: escolhe o contexto dentro de um orçamento de tokens, revisa o código e valida propostas de patch                |
+| `notes`     | — _(só Markdown)_    | `config/notes` (`note_taker`)                                                            | Demo code-free: resumo, extração de ações e digest de reunião via `runtime: prompt`                                                 |
 
 **Lakehouse.** Pipeline `ingest_to_lakehouse`: `source_inspect` → `medallion_plan` → `airflow_dag_render` → `dag_check`.
 O código do DAG vem de um modelo estático e nenhum valor é interpolado em código ou SQL; credenciais ficam em
@@ -146,7 +146,7 @@ mesmo relatório Markdown de `render_markdown`.
 ## Uso
 
 ```bash
-uv sync --extra all --extra dev                    # ambiente a partir do uv.lock (versionar o uv.lock)
+uv sync --all-packages --group dev                 # workspace uv (packages/*); versionar o uv.lock
 pytest -q                                          # suíte offline
 python examples/run_demo.py --mode scripted        # erros simulados de modelo pequeno + auto-correção
 python examples/run_demo.py --mode offline         # proxy fora do ar: degradação controlada

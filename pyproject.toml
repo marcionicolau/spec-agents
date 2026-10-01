@@ -1,42 +1,16 @@
 [project]
-name = "agent-fabric"
-version = "0.2.0"
-description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy; statistics, lakehouse and coworker domain packs included"
+name = "spec-agents"
+version = "0.0.0"
+description = "Metarepo: agent-fabric core + domain plugin packs (statistics, lakehouse, coworker)"
 requires-python = ">=3.12"
-dependencies = [
-  "numpy>=1.26",
-  "pydantic>=2.7",
-  "pyyaml>=6",
-  "rich>=13.7.1",
-]
+dependencies = []
 
-[project.scripts]
-agent-fabric = "agent_fabric.cli:main"
-
-[project.entry-points."agent_fabric.domains"]
-statistics = "stat_fabric.domain:register"
-lakehouse = "lake_fabric.domain:register"
-coworker = "coworker_fabric.domain:register"
-
-[project.optional-dependencies]
-all = ["agent-fabric[stats,pydantic-ai,dspy,crewai,langchain]"]
-crewai = ["crewai>=0.100"]
+[dependency-groups]
 dev = ["pytest>=8", "ruff>=0.5"]
-dspy = ["dspy>=3.0"]
-lakehouse = ["openpyxl>=3.1", "requests>=2.31"]
-langchain = ["langchain-core>=0.3"]
-proxy = ["litellm[proxy]>=1.60"]
-pydantic-ai = ["pydantic-ai-slim[openai]>=1.0"]
-stats = ["pandas>=2.1", "scipy>=1.11", "statsmodels>=0.14", "scikit-learn>=1.4"]
-tabular = ["pandas>=2.1"]
-
-[build-system]
-requires = ["setuptools>=68"]
-build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
-pythonpath = ["src", "."]
+pythonpath = ["."]
 testpaths = ["tests"]
 
 [tool.ruff]
@@ -46,10 +20,8 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["F", "UP"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv]
+package = false
 
-[tool.setuptools.package-data]
-stat_fabric = ["skills/**/*.md"]
-lake_fabric = ["skills/**/*.md"]
-coworker_fabric = ["skills/**/*.md"]
+[tool.uv.workspace]
+members = ["packages/*"]
