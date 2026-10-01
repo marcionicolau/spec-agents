@@ -8,8 +8,8 @@ license-files = ["LICENSE"]
 dependencies = [
   "agent-fabric>=0.2,<1",
   "pandas>=2.1",
-  "scipy>=1.11",
-  "statsmodels>=0.14",
+  "scipy>=1.11.2",
+  "statsmodels>=0.14.1",
   "scikit-learn>=1.4",
 ]
 

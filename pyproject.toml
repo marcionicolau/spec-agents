@@ -6,7 +6,11 @@ requires-python = ">=3.12"
 dependencies = []
 
 [dependency-groups]
-dev = ["pytest>=8", "ruff>=0.5"]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.5",
+]
 
 [tool.pytest.ini_options]
 filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
@@ -32,3 +36,12 @@ package = false
 
 [tool.uv.workspace]
 members = ["packages/*"]
+
+[tool.coverage.run]
+source = ["packages"]
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = false
+skip_covered = true

@@ -13,13 +13,95 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  changes:
+    # which packages need their tests run; core / workspace-wide changes fan out to every package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      packages: ${{ steps.matrix.outputs.packages }}
+      core: ${{ steps.matrix.outputs.core }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@v4.0.3
+        id: filter
+        with:
+          filters: |
+            core:
+              - 'packages/agent-fabric/**'
+              - 'tests/**'
+              - 'pyproject.toml'
+              - 'uv.lock'
+              - 'justfile'
+              - '.github/workflows/ci.yml'
+            statistics: ['packages/statistics/**']
+            lakehouse: ['packages/lakehouse/**']
+            coworker: ['packages/coworker/**']
+            text-pack: ['packages/text-pack/**', 'examples/**']
+      - id: matrix
+        env:
+          CHANGED: ${{ steps.filter.outputs.changes }}
+        run: |
+          core=$(jq -r 'index("core") != null' <<<"$CHANGED")
+          if [ "$core" = "true" ]; then
+            pkgs='["agent-fabric","statistics","lakehouse","coworker","text-pack"]'
+          else
+            pkgs=$(jq -c '. - ["core"]' <<<"$CHANGED")
+          fi
+          echo "core=$core" >> "$GITHUB_OUTPUT"
+          echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+          echo "packages to test: $pkgs"
+
+  lint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v4
+      - run: just sync
+      - name: Ruff (check + format)
+        run: just lint
+      - uses: raven-actions/actionlint@v2.2.0
+
+  specs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v4
+      - run: just sync
+      - name: Lint spec trees and CLI smoke
+        run: just specs
+      - name: Planner baseline (informational)
+        # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
+        run: just evals rules
+        continue-on-error: true
+
+  test:
+    needs: changes
+    if: needs.changes.outputs.packages != '[]'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
+        package: ${{ fromJSON(needs.changes.outputs.packages) }}
         python: ["3.12", "3.13"]
+    name: test (${{ matrix.package }}, ${{ matrix.python }})
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -28,36 +110,79 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           enable-cache: true
-      - run: uv sync --locked --all-packages --group dev
-      - name: Tests
-        run: uv run pytest -q
-      - name: Ruff
-        run: uv run ruff check . && uv run ruff format --check .
-      - name: Lint specs (statistics and text)
-        run: >-
-          uv run python -m agent_fabric.lint --strict
-          --domains stat_fabric.domain:register text_pack:register
-          --agents examples/research_team --schemas stat_fabric.schemas:SCHEMAS
-      - name: Lint specs (lakehouse)
-        run: >-
-          uv run python -m agent_fabric.lint --strict
-          --domains lake_fabric.domain:register
-          --agents packages/lakehouse/config --schemas lake_fabric.schemas:SCHEMAS
-      - name: Lint specs (coworker)
-        run: >-
-          uv run python -m agent_fabric.lint --strict
-          --domains coworker_fabric.domain:register
-          --agents packages/coworker/config --schemas coworker_fabric.schemas:SCHEMAS
-      - name: Lint specs (notes, code-free domain)
-        run: >-
-          uv run python -m agent_fabric.lint --strict
-          --domains examples/notes/skills --agents examples/notes
-      - name: CLI smoke (agent-fabric)
-        run: >-
-          uv run agent-fabric catalog --skills examples/notes/skills &&
-          uv run agent-fabric agents examples/notes &&
-          uv run agent-fabric lint --agents examples/notes --strict
-      - name: Planner baseline (informational)
-        # the rules baseline intentionally fails treatment_effect (CLAUDE.md section 9); live evals need the proxy
-        run: uv run python examples/run_evals.py --mode rules
-        continue-on-error: true
+      - uses: extractions/setup-just@v4
+      - run: just sync
+      - run: just test ${{ matrix.package }}
+
+  extras:
+    # every optional framework installed: the adapter tests must run (no skips) and coverage is enforced
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v4
+      - run: just sync --all-extras
+      - name: Full suite with coverage, no skipped tests
+        run: |
+          uv run pytest -q -rs --cov --cov-report=term | tee pytest.log
+          if grep -q "^SKIPPED" pytest.log; then echo "::error::tests were skipped with all extras installed"; exit 1; fi
+
+  lowest:
+    # floors in pyproject.toml must work: informational until they are verified
+    needs: changes
+    if: needs.changes.outputs.core == 'true' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.12" # oldest supported; older floors have no wheels for newer Pythons
+          enable-cache: true
+      - run: uv sync --resolution lowest-direct --all-packages --group dev
+      - run: uv run pytest -q
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+      - uses: extractions/setup-just@v4
+      - run: just sync
+      - name: Build wheels/sdists and verify skills + LICENSE are shipped
+        run: just build
+      - run: uvx twine check dist/*
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: dist
+          path: dist/
+          retention-days: 7
+
+  ci-ok:
+    # the only status check branch protection needs to require
+    if: always()
+    needs: [changes, lint, specs, test, extras, build, lowest]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: All required jobs passed (skipped is fine, failed/cancelled is not)
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if echo "$NEEDS" | jq -e '[.[].result] | any(. == "failure" or . == "cancelled")' >/dev/null; then exit 1; fi
