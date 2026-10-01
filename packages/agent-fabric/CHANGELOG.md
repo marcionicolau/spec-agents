@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.3.0...agent-fabric-v0.4.0) (2026-10-01)
+
+
+### Features
+
+* **agent-fabric:** export skills as spec-compliant Agent Skills ([#54](https://github.com/marcionicolau/spec-agents/issues/54)) ([bb2b9bb](https://github.com/marcionicolau/spec-agents/commit/bb2b9bbf395bb90107a8bdcb47aad5516d0aadab)), closes [#22](https://github.com/marcionicolau/spec-agents/issues/22)
+
 ## [0.3.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.2.0...agent-fabric-v0.3.0) (2026-10-01)
 
 
