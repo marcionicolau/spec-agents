@@ -1,3 +1,5 @@
+"""LLM backends, planning, repair, self-correction and interpretation."""
+
 from .backends import LiteLLMProxyBackend, LLMBackend, LLMSettings, ScriptedBackend
 from .interpreter import Interpretation, LLMInterpreter, RuleInterpreter, grounding_errors
 from .planner import LLMPlanner, PlanningOutcome, PydanticAIPlanner, TemplatePlanner

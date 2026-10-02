@@ -134,7 +134,9 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
 - **Public API = `__all__`.** Every package and every public module lists what it exports in `__all__`; everything else is internal
   and may change in any release. Add new public names to `__all__` **with a docstring** (`tests/test_public_api.py` fails
   otherwise; existing debt lives in `tests/public_api_undocumented.txt` and may only shrink, `python tests/test_public_api.py --update`).
-  `agent_fabric.__version__` is read from the installed distribution (dynamic version), never hard-coded.
+  `agent_fabric.__version__` is read from the installed distribution (dynamic version), never hard-coded. Docstrings follow the
+  Google convention — ruff `D` rules enforce the style (summary line, blank line before the body); the `D10x` existence rules are
+  off because the ratchet already requires docstrings on public names and internal names need none.
 - Use `compact()` before sending results to a model.
 - Library warnings are captured per step into `result.warnings` as `[library] …`.
 - Don't: parse model prose beyond `extract_json`/`extract_text`; catch bare `Exception` outside the

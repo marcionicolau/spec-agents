@@ -140,8 +140,11 @@ def save_baselines(path: str | Path, data: dict[str, Any]) -> None:
 def compare_baseline(
     suite: str, current: dict[str, float], baselines: dict[str, Any], tolerance: float | None = None
 ) -> list[BaselineIssue]:
-    """Regressions are metrics below ``baseline - tolerance``; metrics well above it are reported as improvements
-    (refresh the baseline in the same PR so the gain is protected); unknown/missing metrics are reported too."""
+    """Compare a suite's metrics to its baseline.
+
+    Regressions are metrics below ``baseline - tolerance``; metrics well above it are reported as improvements
+    (refresh the baseline in the same PR so the gain is protected); unknown/missing metrics are reported too.
+    """
     tol = tolerance if tolerance is not None else float(baselines.get("tolerance", DEFAULT_TOLERANCE))
     base: dict[str, float] = baselines.get("suites", {}).get(suite, {})
     issues: list[BaselineIssue] = []

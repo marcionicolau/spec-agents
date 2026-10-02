@@ -82,7 +82,8 @@ def run_cases(
 ) -> list[CaseScore]:
     """Index ``root`` once, then run ``context_select`` for every case with ``select_params`` (budget, hops, ...).
 
-    ``include`` limits the indexed files (globs relative to ``root``); the default is the indexer's own default (every ``.py`` file)."""
+    ``include`` limits the indexed files (globs relative to ``root``); the default is the indexer's own default (every ``.py`` file).
+    """
     from .domain import register
 
     os.environ.setdefault("COWORKER_ALLOWED_ROOTS", str(Path(root).resolve()))

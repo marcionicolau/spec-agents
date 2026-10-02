@@ -60,8 +60,11 @@ class StatisticalAnalysisFabric:
 
     @classmethod
     def from_config(cls, path: str | Path, domains: Iterable[Callable] = (), **kw: Any) -> StatisticalAnalysisFabric:
-        """``path``: agents directory (fabric.md + agents/*/AGENT.md) or legacy YAML file.
-        ``domains``: extra domain packs the tree needs besides statistics."""
+        """Build the fabric from a config path.
+
+        ``path``: agents directory (fabric.md + agents/*/AGENT.md) or legacy YAML file.
+        ``domains``: extra domain packs the tree needs besides statistics.
+        """
         return cls(AgentsConfig.load(path), registry=build_registry([register, *domains]), **kw)
 
     def analyze(
