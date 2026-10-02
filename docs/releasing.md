@@ -20,6 +20,12 @@ that package (`pattern-prefix = "<package>-"`; other packages' tags are ignored)
 4. Paths outside `packages/<pkg>/` never trigger a release; cross-cutting changes use `chore`, `ci`, `docs`, `deps`.
 5. `SKILL.md` `version:` fields are contracts, not releases: bump them by hand (minor = new optional field, major = breaking).
 
+**Release PRs stay mergeable.** All release PRs edit the shared `.release-please-manifest.json`, so merging one makes the others conflict.
+The `sync-release-prs` job of `release.yml` runs `tools/release_sync.py` after every push to `main`: a release branch that no longer merges
+cleanly is rebuilt as *main + the PR's own changelog/version files + only its own manifest entry*, keeps its commit message and is force-pushed with
+lease using `RELEASE_PLEASE_TOKEN` (a push by `GITHUB_TOKEN` would not re-run the required checks). Mergeable branches are left alone. Locally:
+`GH_TOKEN=$(gh auth token) just release-sync` (add `--dry-run` to only report).
+
 **Distribution (GitHub Releases only).** After release-please creates a release, the `assets` job of `release.yml` checks out that tag, builds the
 package (`uv build --package <pkg>`), verifies it with `tools/check_wheels.py --expect-version <version>` (skills, LICENSE, `py.typed`, exact
 version without a `.dev` suffix) and attaches the wheel and sdist to the GitHub Release, using the job-scoped `GITHUB_TOKEN`: no long-lived
