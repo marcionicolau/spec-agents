@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from agent_fabric.compat import requires_api
 from agent_fabric.component import Component, ComponentParams, ComponentResult, Num, StepContext
 from agent_fabric.errors import ErrorDetail
 from agent_fabric.registry import Registry, component
@@ -146,6 +147,7 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
         return f"Top terms: {', '.join(k['term'] for k in kws[:5])}.", [f"{k['term']}: {k['count']}" for k in kws[:6]]
 
 
+@requires_api(1)
 def register(registry: Registry) -> list[str]:
     """Register the text domain (``text_stats``, ``keywords`` and the ``document_digest`` pipeline); returns the names registered."""
     return registry.load_domain(SPEC_DIR, [TextStats, Keywords])
