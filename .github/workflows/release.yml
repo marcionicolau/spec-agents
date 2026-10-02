@@ -3,6 +3,20 @@ name: release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    # Re-publish the wheel and sdist of an existing GitHub Release to PyPI/TestPyPI (retry, or publish releases made before PyPI was set up).
+    # Runs in this file because PyPI trusted publishers are bound to the workflow file name.
+    inputs:
+      tag:
+        description: "Release tag, e.g. statistics-v0.2.1 or agent-fabric-v0.5.1"
+        required: true
+        type: string
+      index:
+        description: "Target index"
+        required: true
+        type: choice
+        options: [testpypi, pypi]
+        default: testpypi
 
 # release-please opens/updates one release PR per package; merging it tags and creates the GitHub Release.
 # Use a PAT or GitHub App token (RELEASE_PLEASE_TOKEN) if the release PR must trigger CI; GITHUB_TOKEN-created
@@ -15,6 +29,7 @@ concurrency:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -142,3 +157,72 @@ jobs:
         with:
           packages-dir: dist/
           repository-url: ${{ vars.PYPI_REPOSITORY_URL || 'https://upload.pypi.org/legacy/' }}
+
+  plan-republish:
+    # manual run: validate the tag and work out the package, its PyPI environment and the target index
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      pkg: ${{ steps.plan.outputs.pkg }}
+      environment: ${{ steps.plan.outputs.environment }}
+      version: ${{ steps.plan.outputs.version }}
+      repository_url: ${{ steps.plan.outputs.repository_url }}
+    steps:
+      - id: plan
+        env:
+          TAG: ${{ inputs.tag }}
+          INDEX: ${{ inputs.index }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ ! "$TAG" =~ ^(agent-fabric|statistics|lakehouse|coworker|text-pack)-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::error::'$TAG' is not a release tag of this repository (<package>-vX.Y.Z)"; exit 1
+          fi
+          pkg="${BASH_REMATCH[1]}"
+          version="${BASH_REMATCH[2]}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null || { echo "::error::no GitHub Release for $TAG"; exit 1; }
+          case "$INDEX" in
+            pypi) url="https://upload.pypi.org/legacy/" ;;
+            testpypi) url="https://test.pypi.org/legacy/" ;;
+            *) echo "::error::unknown index $INDEX"; exit 1 ;;
+          esac
+          {
+            echo "pkg=$pkg"
+            echo "environment=pypi-$pkg"
+            echo "version=$version"
+            echo "repository_url=$url"
+          } >> "$GITHUB_OUTPUT"
+
+  publish-existing:
+    needs: plan-republish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment:
+      name: ${{ needs.plan-republish.outputs.environment }}
+    permissions:
+      id-token: write # trusted publishing
+      contents: read # download the release assets
+    steps:
+      - name: Download the release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+          VERSION: ${{ needs.plan-republish.outputs.version }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir dist --pattern '*.whl' --pattern '*.tar.gz'
+          ls -l dist
+          # only spec_agents_* distributions of exactly this version, one wheel and one sdist
+          shopt -s nullglob
+          files=(dist/*)
+          if [ "${#files[@]}" -ne 2 ]; then echo "::error::expected one wheel and one sdist, found ${#files[@]} file(s)"; exit 1; fi
+          for f in "${files[@]}"; do
+            [[ "$(basename "$f")" == spec_agents_*-"$VERSION"* ]] || { echo "::error::$f is not a spec_agents_* build of $VERSION (releases made before the rename carry the old names and cannot be published)"; exit 1; }
+          done
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist/
+          repository-url: ${{ needs.plan-republish.outputs.repository_url }}
+          skip-existing: true # idempotent retry
+
