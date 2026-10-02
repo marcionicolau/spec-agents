@@ -52,6 +52,7 @@ class MarkdownDoc:
 
     @property
     def title(self) -> str | None:
+        """Text of the first level-1 heading of the body, or ``None``."""
         m = _H1.search(self.body)
         return m.group(1).strip() if m else None
 
@@ -119,6 +120,10 @@ class Guidance(BaseModel):
     references: list[str] = Field(default_factory=list, description="files under references/, loaded on demand")
 
     def section(self, name: str, max_chars: int | None = None) -> str:
+        """Text of a canonical body section (e.g. ``"when to use"``), looked up case-insensitively through the section aliases.
+
+        Returns ``""`` when absent. With ``max_chars`` the text is cut at a word boundary and ends with an ellipsis.
+        """
         text = self.sections.get(SECTION_ALIASES.get(name.lower(), name.lower()), "")
         if max_chars and len(text) > max_chars:
             return text[: max_chars - 1].rsplit(" ", 1)[0] + "…"

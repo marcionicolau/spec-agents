@@ -69,6 +69,11 @@ class PromptComponent(Component[ComponentParams, PromptResult]):
 
     @classmethod
     def from_spec(cls, spec: ComponentSpec, types: Any) -> PromptComponent:
+        """Build a prompt component from a ``runtime: prompt`` spec, validating the contract at registration.
+
+        Reports every problem at once as a `SpecError`: a missing ``## Instructions`` section, outputs that are not ``text``/``json``/``number``/``any``,
+        and ``{params.x}`` / ``{inputs.x}`` placeholders that are not declared (``missing_instructions``, ``prompt_output_type``, ``unknown_placeholder``).
+        """
         errors: list[ErrorDetail] = []
         template = spec.guidance.section(INSTRUCTIONS)
         if not template:
@@ -133,6 +138,13 @@ class PromptComponent(Component[ComponentParams, PromptResult]):
         return sub(spec, types)
 
     def compute(self, inputs: dict[str, Any], params: ComponentParams, ctx: StepContext) -> PromptResult:
+        """Render the prompt template, call the model and return the validated answer.
+
+        Raises a ``DependencyError`` when the step context has no LLM backend. Without declared outputs the answer is free text; with outputs it
+        must be a JSON object containing every declared port with a value of the declared type (extra keys are ignored with a warning), checked and self-corrected up to
+        ``max_correction_attempts``. Unless ``prompt.grounding`` is false, numbers in text outputs must appear in the inputs or parameters. Every
+        model call is charged to the run budget by the metered backend. Emits one artifact per declared output.
+        """
         if ctx.llm is None:
             raise DependencyError(
                 f"'{self.spec.name}' is a 'runtime: prompt' step and needs an LLM backend",
