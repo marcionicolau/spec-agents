@@ -2,9 +2,10 @@
 
 [![CI](https://github.com/marcionicolau/spec-agents/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marcionicolau/spec-agents/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-informational)](https://marcionicolau.github.io/spec-agents/)
+[![PyPI](https://img.shields.io/pypi/v/spec-agents-core?label=pypi%3A%20spec-agents-core)](https://pypi.org/project/spec-agents-core/)
 [![Latest release](https://img.shields.io/github/v/release/marcionicolau/spec-agents?display_name=tag&sort=semver)](https://github.com/marcionicolau/spec-agents/releases)
 [![License: MIT](https://img.shields.io/github/license/marcionicolau/spec-agents)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Python](https://img.shields.io/pypi/pyversions/spec-agents-core?logo=python&logoColor=white)](https://pypi.org/project/spec-agents-core/)
 [![Typed](https://img.shields.io/badge/typing-typed-informational)](packages/agent-fabric/src/agent_fabric/py.typed)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-261230?logo=ruff&logoColor=white)](https://docs.astral.sh/ruff/)
 [![uv](https://img.shields.io/badge/packaging-uv-DE5FE9)](https://docs.astral.sh/uv/)
@@ -34,9 +35,9 @@ A [uv](https://docs.astral.sh/uv/) monorepo under `packages/`. Each package has 
 | [`spec-agents-coworker`](packages/coworker) | `coworker_fabric` | Pair programming: context selection, static review, patch proposals |
 | [`spec-agents-text`](packages/text-pack) | `text_pack` | A minimal text domain; the template for new packs |
 
-Install from PyPI (`pip install spec-agents-core`, plus the packs you need; the import names are in the table) once the first release is
-published there. Until then every [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) carries the wheel and sdist of its package.
-Git tags and PR scopes use the short package names (`agent-fabric-v0.5.0`, `feat(statistics): ...`). A pack declares the core API level it was
+Install from PyPI: `pip install spec-agents-core` plus the packs you need (`spec-agents-statistics`, `spec-agents-lakehouse`, `spec-agents-coworker`,
+`spec-agents-text`); the import names are in the table. Every [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) also carries the wheel
+and sdist of its package, and PyPI files have build provenance attestations. Git tags and PR scopes use the short package names (`agent-fabric-v0.5.0`, `feat(statistics): ...`). A pack declares the core API level it was
 written for (`@requires_api(1)`, compared with `agent_fabric.API_LEVEL`) and the loader rejects incompatible packs with a located error.
 
 ## Markdown specs: contract + guidance

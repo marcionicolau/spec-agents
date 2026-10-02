@@ -63,7 +63,7 @@ the same environment: each has its own. One-time setup:
    `PYPI_REPOSITORY_URL` for the real index.
 
 The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so release PRs trigger CI); rotate it by re-running
-`gh secret set RELEASE_PLEASE_TOKEN`. Until `PYPI_PUBLISH` is enabled, GitHub Releases are the only distribution.
+`gh secret set RELEASE_PLEASE_TOKEN`. The five packages are on PyPI (`PYPI_PUBLISH=true`; remove it to stop publishing). GitHub Releases keep the same files.
 
 ## CI
 `.github/workflows/ci.yml` runs path-scoped package tests (Python 3.12/3.13), lint (ruff, actionlint), spec lint, wheel build + check

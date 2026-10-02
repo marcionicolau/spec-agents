@@ -4,9 +4,8 @@ Statistics domain pack for [agent-fabric](../agent-fabric/README.md): determinis
 `time_series`, `pca`, `clustering` and the pipelines `exploratory_analysis`, `experiment_analysis`, `full_study`. Formulas are built from
 validated column names; no model-written code is executed. Also provides `StatsRulePlanner` (planner backend `stats_rules`, no LLM).
 
-> **Status:** pre-release. Until the first PyPI release, install a wheel from the
-> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
-> the `pip install` lines below are the PyPI names.
+> **Install:** `pip install spec-agents-statistics` ([PyPI](https://pypi.org/project/spec-agents-statistics/)); wheels and sdists are also attached to each
+> [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) (`statistics-vX.Y.Z`).
 
 ## Names
 
