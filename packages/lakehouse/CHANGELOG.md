@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/marcionicolau/spec-agents/compare/lakehouse-v0.2.0...lakehouse-v0.2.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* document the spec-agents-* distribution names in the package READMEs ([#96](https://github.com/marcionicolau/spec-agents/issues/96)) ([fffad88](https://github.com/marcionicolau/spec-agents/commit/fffad88e5c8405bb01c7d9dddf66b7cf52a13e28)), closes [#76](https://github.com/marcionicolau/spec-agents/issues/76)
+
 ## [0.2.0](https://github.com/marcionicolau/spec-agents/compare/lakehouse-v0.1.0...lakehouse-v0.2.0) (2026-10-02)
 
 
