@@ -48,6 +48,12 @@ at most `max_delegations`. Dependents of failed delegations are skipped.
 **Budget**: `max_depth`, `max_agent_runs`, `max_delegations`, `max_llm_calls` (all LLM calls go through
 `MeteredBackend`; PydanticAI calls are charged from its usage). Once exhausted, supervisors stop delegating.
 
+**Parallel delegations**: `budget.max_parallel` (default `1` = sequential, as before) lets a router run independent
+delegations at the same time, in threads. Delegations run in waves (all dependencies done); budget is charged and
+`delegate` events are emitted in plan order before a wave starts, results are returned in plan order, and every trace
+event carries a `seq` giving the run a total order. Counters, trace and blackboard are lock-protected. Keep your own
+function agents and backends thread-safe when you raise it.
+
 **Fallbacks**: build-time and run-time; recorded in `result.notes` and trace (`fallback` event).
 **Memory**: per agent at `<session>/<path>`; routers/planners receive their last runs as context.
 

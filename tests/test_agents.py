@@ -355,3 +355,78 @@ def test_langchain_memory_backs_the_tree(registry, df, note):
     assert runs and runs[0].agent == "lead/digest"
     assert mem.history("lc/lead")[0] == ("user", "first run")
     assert len(mem.as_langchain_history("lc/lead").messages) == 3  # human, ai, run summary
+
+
+def _parallel_cfg(max_parallel: int) -> dict:
+    agent = {"kind": "function", "function": "work", "role": "w", "goal": "work"}
+    cfg = {
+        "root": "lead",
+        "budget": {"max_parallel": max_parallel},
+        "agents": {
+            "lead": {
+                "kind": "supervisor",
+                "strategy": "router",
+                "synthesize": False,
+                "sub_agents": ["a", "b", "c"],
+                "role": "lead",
+                "goal": "route",
+            },
+            "a": dict(agent),
+            "b": dict(agent),
+            "c": dict(agent),
+        },
+    }
+    return cfg
+
+
+PLAN = {
+    "delegations": [
+        {"id": "d1", "agent": "a", "instruction": "do work"},
+        {"id": "d2", "agent": "b", "instruction": "do work"},
+        {"id": "d3", "agent": "c", "instruction": "do work", "depends_on": ["d1", "d2"]},
+    ]
+}
+
+
+def test_independent_delegations_run_in_parallel(registry):
+    import threading
+
+    barrier = threading.Barrier(2, timeout=5)  # d1 and d2 only pass if they run at the same time
+    fabric, _ = make(registry, _parallel_cfg(2), [json.dumps(PLAN)])
+
+    calls: list[str] = []
+
+    def sync_work(task, inputs):
+        calls.append("w")
+        if len(calls) <= 2:
+            barrier.wait()  # raises BrokenBarrierError (a failed delegation) if the first two never overlap
+        return {"summary": "done"}
+
+    fabric.register_function("work", sync_work)
+    rep = fabric.run("go")
+    assert rep.ok, rep.result.tree()
+    assert [c.agent for c in rep.result.children] == ["a", "b", "c"]  # plan order
+    assert rep.usage["delegations"] == 3
+    seqs = [e.seq for e in rep.trace]
+    assert seqs == list(range(len(seqs)))  # total order
+    ends = [e.path for e in rep.trace if e.event == "end"]
+    assert ends[-2:] == ["lead/c", "lead"]  # d3 starts only after d1 and d2 ended
+
+
+def test_parallel_default_is_sequential_and_deterministic(registry):
+    fabric, _ = make(registry, _parallel_cfg(1), [json.dumps(PLAN)])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    rep = fabric.run("go")
+    starts = [e.path for e in rep.trace if e.event == "start"]
+    assert starts == ["lead", "lead/a", "lead/b", "lead/c"]
+
+
+def test_parallel_failure_skips_dependents_and_respects_budget(registry):
+    cfg = _parallel_cfg(3)
+    cfg["budget"]["max_delegations"] = 2
+    fabric, _ = make(registry, cfg, [json.dumps(PLAN)])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    rep = fabric.run("go")
+    statuses = {c.agent: c.status for c in rep.result.children}
+    assert statuses == {"a": "ok", "b": "ok", "c": "skipped"}
+    assert rep.usage["delegations"] == 3  # the third charge hit the limit
