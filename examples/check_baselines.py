@@ -18,8 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))  # lets `examples.run_evals` be imported
 
 from agent_fabric.evals import compare_baseline, load_baselines, save_baselines  # noqa: E402
+from coworker_fabric.evals import REPO_EVAL_INCLUDE, run_cases  # noqa: E402
 from coworker_fabric.evals import load_cases as load_context_cases  # noqa: E402
-from coworker_fabric.evals import run_cases  # noqa: E402
 from examples.run_evals import evaluate  # noqa: E402
 
 BASELINES = ROOT / "examples" / "evals" / "baselines.json"
@@ -32,7 +32,9 @@ def planner_rules() -> dict[str, float]:
 
 def context() -> dict[str, float]:
     cases = load_context_cases(ROOT / "examples" / "evals" / "context_cases.yaml")
-    scores = run_cases(ROOT, cases, token_budget=6000, max_files=8, hops=1, relative_cutoff=0.5)
+    scores = run_cases(
+        ROOT, cases, include=REPO_EVAL_INCLUDE, token_budget=6000, max_files=8, hops=1, relative_cutoff=0.5
+    )
     n = len(scores)
     return {
         "mean_score": round(sum(s.score for s in scores) / n, 4),

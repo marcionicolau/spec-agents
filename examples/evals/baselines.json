@@ -2,7 +2,7 @@
   "suites": {
     "context": {
       "mean_recall": 0.9815,
-      "mean_score": 0.9304
+      "mean_score": 0.9426
     },
     "planner_rules": {
       "case:plot_types": 1.0,
