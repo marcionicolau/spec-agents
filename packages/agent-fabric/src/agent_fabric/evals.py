@@ -48,13 +48,16 @@ class EvalReport(BaseModel):
 
     @property
     def mean_score(self) -> float:
+        """Mean case score rounded to 4 decimals (``0.0`` without results)."""
         return round(sum(r.score for r in self.results) / len(self.results), 4) if self.results else 0.0
 
     @property
     def passed(self) -> bool:
+        """Whether every case passed."""
         return all(r.passed for r in self.results)
 
     def table(self) -> str:
+        """Fixed-width text table: one row per case (score, pass/fail, planner attempts, components or error) and the mean."""
         rows = [f"{'case':28} {'score':>5}  ok  attempts  components"]
         rows += [
             f"{r.name:28} {r.score:5.2f}  {'✔' if r.passed else '✘'}   {r.attempts:>8}  "

@@ -46,27 +46,40 @@ class PipelineReport(BaseModel):
 
     @property
     def ok(self) -> bool:
+        """Whether every step succeeded (a repaired step counts as success)."""
         return all(o.status in (StepStatus.OK, StepStatus.REPAIRED) for o in self.outcomes)
 
     @property
     def artifacts(self) -> ArtifactStore:
+        """The `ArtifactStore` of the run, holding every emitted artifact keyed ``<step_id>.<port>`` (empty if nothing ran)."""
         return self._store or ArtifactStore()
 
     def by_id(self, step_id: str) -> StepOutcome:
+        """The outcome of one step by id (raises ``StopIteration`` for an unknown id)."""
         return next(o for o in self.outcomes if o.step_id == step_id)
 
     def failures(self) -> list[StepOutcome]:
+        """Outcomes of steps that failed or were skipped, in execution order."""
         return [o for o in self.outcomes if o.status in (StepStatus.FAILED, StepStatus.SKIPPED)]
 
     def output_values(self) -> dict[str, Any]:
+        """The plan's exposed outputs as ``{name: value}``; outputs whose artifact was not produced are left out."""
         store = self.artifacts
         return {k: store.get(r) for k, r in self.outputs.items() if store.has(r)}
 
 
 class ParamRepairer(Protocol):
+    """Fixes the parameters of a step that failed validation (implemented by `LLMParamRepairer`)."""
+
     def repair(
         self, step: PipelineStep, error: ErrorReport, inputs: PipelineInputs, catalog_entry: dict[str, Any]
-    ) -> dict[str, Any] | None: ...
+    ) -> dict[str, Any] | None:
+        """Propose corrected parameters for a step that failed with a recoverable ``params``/``data`` error.
+
+        Receives the failing step, the located error, the pipeline inputs and the component's catalogue entry. Returns the new
+        ``params`` dict, or ``None`` to give up; the executor revalidates whatever it returns.
+        """
+        ...
 
 
 REPAIRABLE = {ErrorCategory.PARAMS, ErrorCategory.DATA}
@@ -97,6 +110,13 @@ class PipelineExecutor:
         self.on_step = on_step  # optional callback(StepOutcome) after each step - UIs
 
     def run(self, plan: PipelinePlan, inputs: dict[str, Any] | PipelineInputs, depth: int = 0) -> PipelineReport:
+        """Execute a plan and return its `PipelineReport`.
+
+        Steps run in topological order. A step whose dependencies failed or were skipped is skipped with a ``DependencyError``; with
+        ``fail_policy="fail_fast"`` every step after the first failure is skipped. A recoverable parameter or data failure is passed to the
+        repairer (when one is configured) up to ``max_repairs`` times. ``inputs`` may be raw values (their artifact types are inferred) or ready
+        `PipelineInputs`. ``depth`` is the nesting level when running as a step of another pipeline.
+        """
         pin = inputs if isinstance(inputs, PipelineInputs) else PipelineInputs.from_values(inputs, self.registry.types)
         store = ArtifactStore({f"$inputs.{k}": v for k, v in pin.values.items()})
         outcomes: dict[str, StepOutcome] = {}

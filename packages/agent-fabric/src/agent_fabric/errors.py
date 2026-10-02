@@ -92,6 +92,7 @@ class FabricError(Exception):
 
     @property
     def report(self) -> ErrorReport:
+        """The error as a serialisable `ErrorReport` (category, message, component, step id, recoverability and all located details)."""
         return ErrorReport(
             category=self.category,
             message=self.message,
@@ -102,6 +103,7 @@ class FabricError(Exception):
         )
 
     def with_context(self, *, component: str | None = None, step_id: str | None = None) -> FabricError:
+        """Attach the component and step id the error happened in, unless already set; returns the error so it can be re-raised in one expression."""
         self.component = self.component or component
         self.step_id = self.step_id or step_id
         return self

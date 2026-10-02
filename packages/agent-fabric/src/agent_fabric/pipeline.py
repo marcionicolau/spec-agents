@@ -67,6 +67,7 @@ class PipelineStep(BaseModel):
         return v
 
     def step_refs(self) -> set[str]:
+        """Ids of the steps referenced by this step's inputs (``<step>.<port>``; ``$inputs`` and ``$params`` references are not step references)."""
         return {r.split(".")[0] for r in self.inputs.values() if not r.startswith("$")}
 
 
@@ -96,9 +97,11 @@ class PipelinePlan(BaseModel):
         return self
 
     def all_deps(self, step: PipelineStep) -> set[str]:
+        """Ids of all steps this step depends on: explicit ``depends_on`` plus the steps its inputs reference."""
         return set(step.depends_on) | step.step_refs()
 
     def topological_order(self) -> list[PipelineStep]:
+        """Steps ordered so every step follows its dependencies; raises ``ValueError`` naming the cycle if there is one."""
         by_id = {s.id: s for s in self.steps}
         order: list[PipelineStep] = []
         state: dict[str, int] = {}
@@ -134,9 +137,11 @@ class PipelineInputs:
 
     @classmethod
     def from_values(cls, values: dict[str, Any], types: TypeRegistry) -> PipelineInputs:
+        """Build inputs from raw values: each artifact type is inferred from the value and profiled."""
         return cls({k: PortSpec(type=types.infer(v).name) for k, v in values.items()}, values, types)
 
     def to_prompt(self) -> str:
+        """Describe the inputs for a planner prompt: ``$inputs.<name> (<type>)`` followed by the profile (or value preview) of each."""
         lines = []
         for name, spec in self.specs.items():
             prof = self.profiles.get(name)
@@ -365,6 +370,11 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
 
     @classmethod
     def from_spec(cls, pspec: PipelineSpec, registry: Any) -> PipelineComponent:
+        """Build the component class for a `PipelineSpec` and return an instance (called at registration).
+
+        Creates the params model from the spec's parameters, derives the output port types from the producing steps, and registers the pipeline under
+        the spec name, so pipelines can be used wherever components can.
+        """
         fields = {k: (Any, ... if p.required else p.default) for k, p in pspec.params.items()}
         params_model = create_model(f"{pspec.name}_params", __base__=ComponentParams, **fields)  # ty: ignore[no-matching-overload]
         by_id = {s.id: s for s in pspec.steps}
@@ -394,6 +404,13 @@ class PipelineComponent(Component[ComponentParams, PipelineResult]):
         return sub(cspec, registry.types)
 
     def compute(self, inputs: dict[str, Any], params: ComponentParams, ctx: StepContext) -> PipelineResult:
+        """Run the pipeline as one step of an outer pipeline.
+
+        Instantiates the spec with the step's parameters, validates the plan against the bound inputs (inner errors are re-located as
+        ``pipeline.<step_id>...``), executes it one nesting level deeper (at most ``MAX_NESTING``) with the caller's LLM backend and step callback,
+        and emits the declared outputs. A failed inner step makes this step fail with the inner errors; the result lists each step's status and
+        result and aggregates warnings.
+        """
         from .executor import PipelineExecutor, StepStatus
 
         if ctx.depth >= MAX_NESTING:
