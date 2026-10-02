@@ -90,7 +90,9 @@ def test_name_collisions_are_reported(registry, tmp_path):
 def test_cli_export_skills(tmp_path):
     from rich.console import Console
 
-    args = build_parser().parse_args(["export-skills", "--out", str(tmp_path / "out"), "--skills", str(NOTES)])
+    args = build_parser().parse_args(
+        ["export-skills", "--out", str(tmp_path / "out"), "--skills", str(NOTES), "--no-discover"]
+    )
     console = Console(file=__import__("io").StringIO(), width=200)
     assert cmd_export_skills(args, console) == 0
     assert "3 skill(s) exported" in console.file.getvalue()

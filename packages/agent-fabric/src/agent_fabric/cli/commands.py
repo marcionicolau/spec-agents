@@ -16,7 +16,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def _registry(a: Any) -> Any:
-    reg = build_registry([domain_loader(d) for d in a.domains])
+    reg = build_registry([domain_loader(d) for d in a.domains], discover=not getattr(a, "no_discover", False))
     for d in a.skills:
         reg.load_domain(d)
     return reg
@@ -97,7 +97,7 @@ def cmd_lint(a: Any, console: Console) -> int:
     from ..lint import collect_issues
     from .render import issues_table
 
-    issues = collect_issues(a.domains, a.agents, a.schemas)
+    issues = collect_issues(a.domains, a.agents, a.schemas, discover=not getattr(a, "no_discover", False))
     if issues:
         console.print(issues_table(issues))
     else:

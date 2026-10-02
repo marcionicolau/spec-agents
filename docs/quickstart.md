@@ -11,7 +11,7 @@ uv sync --all-packages --group dev        # add --all-extras for PydanticAI, DSP
 uv run agent-fabric catalog --skills examples/notes/skills
 ```
 
-`catalog` lists every registered component and pipeline: here the three Markdown-only skills of the `notes` demo domain.
+`catalog` lists every registered component and pipeline: the three Markdown-only skills of the `notes` demo domain plus every domain pack installed in the environment (found through the `agent_fabric.domains` entry point; `--no-discover` turns that off).
 
 ## 2. Run a pipeline of deterministic components
 

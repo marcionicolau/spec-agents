@@ -2,13 +2,14 @@
 
 ```text
 agent-fabric run <config_dir> [--input name=path ...] "instruction"
-agent-fabric lint [--domains ref|dir ...] [--agents dir] [--schemas mod:MAP ...] [--strict]
-agent-fabric catalog [--domains ref|dir ...] [--skills dir ...]
+agent-fabric lint [--domains ref|dir ...] [--agents dir] [--schemas mod:MAP ...] [--strict] [--no-discover]
+agent-fabric catalog [--domains ref|dir ...] [--skills dir ...] [--no-discover]
 agent-fabric agents <config_dir>
 agent-fabric export-skills --out DIR [--domains ref|dir ...] [--skills dir ...]
 ```
 
-`python -m agent_fabric.cli` accepts the same subcommands.
+Installed domain packs (entry point ``agent_fabric.domains``) are loaded automatically; ``--no-discover`` turns that off, and ``--domains`` /
+``--skills`` add to them. `python -m agent_fabric.cli` accepts the same subcommands.
 """
 
 from __future__ import annotations
@@ -25,6 +26,11 @@ def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--domains", nargs="*", default=[], help="module:register refs or spec dirs (code-free packs)")
     p.add_argument("--skills", nargs="*", default=[], help="extra spec directories (skills/<name>/SKILL.md)")
     p.add_argument("--schemas", nargs="*", default=[], help="module:MAPPING of output schemas")
+    p.add_argument(
+        "--no-discover",
+        action="store_true",
+        help="do not load the domain packs installed in this environment (the agent_fabric.domains entry point)",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:

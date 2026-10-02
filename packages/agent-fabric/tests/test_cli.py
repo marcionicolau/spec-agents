@@ -116,3 +116,55 @@ def test_live_view_renders_agents_steps_and_events():
     text = out(console)
     for needle in ("note_taker", "agents", "pipeline steps", "events", "summarize_notes"):
         assert needle in text
+
+
+# ------------------------------------------------------------------ installed packs are discovered
+def test_catalog_discovers_installed_packs_by_default():
+    console = cap()
+    assert cmd_catalog(args("catalog"), console) == 0
+    text = out(console)
+    assert "summary" in text and "keywords" in text  # statistics and text packs, no flags needed
+
+
+def test_no_discover_restores_isolation():
+    console = cap()
+    assert cmd_catalog(args("catalog", "--no-discover", "--skills", f"{NOTES}/skills"), console) == 0
+    text = out(console)
+    assert "summarize_notes" in text  # explicit skills still load
+    assert "linear_model" not in text and "keywords" not in text  # installed packs are not
+
+
+def test_domains_flag_is_additive_and_idempotent_with_discovery():
+    console = cap()
+    assert cmd_catalog(args("catalog", "--domains", "stat_fabric.domain:register"), console) == 0
+    assert out(console).count("linear_model") == 1  # loaded twice (flag + discovery), listed once
+
+
+def test_lint_command_discovers_but_module_stays_explicit():
+    from agent_fabric.lint import collect_issues
+
+    cmd = collect_issues(["stat_fabric.domain:register"], discover=True)
+    explicit = collect_issues(["stat_fabric.domain:register"])
+    assert isinstance(cmd, list) and isinstance(explicit, list)
+
+
+def test_incompatible_installed_pack_is_reported_and_can_be_skipped(monkeypatch, capsys):
+    from importlib import metadata
+
+    from agent_fabric import API_LEVEL, requires_api
+
+    @requires_api(API_LEVEL + 1)
+    def register(registry):  # pragma: no cover - never reached
+        return []
+
+    class EP:
+        name = "future-pack"
+
+        def load(self):
+            return register
+
+    monkeypatch.setattr(metadata, "entry_points", lambda group: [EP()])
+    assert main(["catalog"]) == 2  # FabricError -> located message, exit code 2
+    printed = capsys.readouterr().out
+    assert "Incompatible domain pack" in printed and "future-pack" in printed
+    assert main(["catalog", "--no-discover", "--skills", f"{NOTES}/skills"]) == 0

@@ -308,16 +308,19 @@ def _load_callable(ref: str) -> Any:
     return getattr(importlib.import_module(mod), attr or "register")
 
 
-def collect_issues(domains: Iterable[str], agents: str | None = None, schemas: Iterable[str] = ()) -> list[LintIssue]:
+def collect_issues(
+    domains: Iterable[str], agents: str | None = None, schemas: Iterable[str] = (), discover: bool = False
+) -> list[LintIssue]:
     """Load everything and return all issues (raises ``FabricError`` if a domain fails to load).
 
     ``domains`` entries are ``module:register`` references or plain spec directories
     (code-free packs). ``skill_dirs`` from the agents config are loaded too, so
-    Markdown-only skills are linted like any component."""
+    Markdown-only skills are linted like any component. With ``discover`` the domain packs installed in the environment are loaded too
+    (the ``agent-fabric lint`` command does; ``python -m agent_fabric.lint`` stays explicit so a run lints exactly what it names)."""
     from . import build_registry
     from .agents import AgentFabric, AgentsConfig
 
-    registry = build_registry(list(domains))
+    registry = build_registry(list(domains), discover=discover)
     issues: list[LintIssue] = []
     fabric = None
     if agents:
