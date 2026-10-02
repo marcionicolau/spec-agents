@@ -1,5 +1,5 @@
 [project]
-name = "statistics"
+name = "spec-agents-statistics"
 dynamic = ["version"]
 description = "Statistics domain pack for agent-fabric: summary, linear_model, anova, time_series, pca, clustering"
 requires-python = ">=3.12"
@@ -18,7 +18,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "agent-fabric>=0.0.1,<1",
+  "spec-agents-core>=0.0.1,<1",
   "pandas>=2.1",
   "scipy>=1.12",
   "statsmodels>=0.14.2",
@@ -43,7 +43,7 @@ build-backend = "hatchling.build"
 package = true
 
 [tool.uv.sources]
-agent-fabric = { workspace = true }
+spec-agents-core = { workspace = true }
 
 # version = latest "statistics-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
 [tool.hatch.version]

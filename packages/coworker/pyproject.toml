@@ -1,5 +1,5 @@
 [project]
-name = "coworker"
+name = "spec-agents-coworker"
 dynamic = ["version"]
 description = "Coworker domain pack for agent-fabric: repo_index, context_select, context_pack, code_review, patch_propose"
 requires-python = ">=3.12"
@@ -18,7 +18,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "agent-fabric>=0.0.1,<1",
+  "spec-agents-core>=0.0.1,<1",
 ]
 
 [project.entry-points."agent_fabric.domains"]
@@ -39,7 +39,7 @@ build-backend = "hatchling.build"
 package = true
 
 [tool.uv.sources]
-agent-fabric = { workspace = true }
+spec-agents-core = { workspace = true }
 
 # version = latest "coworker-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
 [tool.hatch.version]

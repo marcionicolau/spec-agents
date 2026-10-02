@@ -1,18 +1,19 @@
-# agent-fabric
+# spec-agents-core (`agent_fabric`)
 
 Domain-agnostic core for **spec-driven pipelines and hierarchical agents**. Components, pipelines and agents are declared in Markdown
 with YAML frontmatter (`SKILL.md`, `AGENT.md`, `fabric.md`); the frontmatter is a contract validated by Pydantic and the body is guidance
 injected into prompts on demand. LLMs plan, delegate, repair and interpret — **they never compute**: every result comes from
 deterministic `Component.compute()` code run by the `PipelineExecutor`.
 
-> **Status:** pre-release, not published to an index yet. From a checkout of the repository use `uv sync --all-packages`;
-> the `pip install` lines below describe the intended published names.
+> **Status:** pre-release. Until the first PyPI release, install a wheel from the
+> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
+> the `pip install` lines below are the PyPI names.
 
 ## Install
 ```bash
-pip install agent-fabric                      # core: pydantic, numpy, pyyaml, rich
-pip install "agent-fabric[tabular]"           # + pandas (dataframe artifact types)
-pip install "agent-fabric[all]"               # + PydanticAI, DSPy, CrewAI, LangChain adapters
+pip install spec-agents-core                  # core: pydantic, numpy, pyyaml, rich (import name: agent_fabric)
+pip install "spec-agents-core[tabular]"       # + pandas (dataframe artifact types)
+pip install "spec-agents-core[all]"           # + PydanticAI, DSPy, CrewAI, LangChain adapters
 ```
 Domain packs ([statistics](../statistics/README.md), [lakehouse](../lakehouse/README.md), [coworker](../coworker/README.md),
 [text-pack](../text-pack/README.md)) register themselves through the `agent_fabric.domains` entry point.

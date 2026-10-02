@@ -1,5 +1,5 @@
 [project]
-name = "lakehouse"
+name = "spec-agents-lakehouse"
 dynamic = ["version"]
 description = "Lakehouse domain pack for agent-fabric: source_inspect, medallion_plan, airflow_dag_render, dag_check"
 requires-python = ">=3.12"
@@ -18,7 +18,7 @@ classifiers = [
   "Typing :: Typed",
 ]
 dependencies = [
-  "agent-fabric>=0.0.1,<1",
+  "spec-agents-core>=0.0.1,<1",
   "openpyxl>=3.1",
   "requests>=2.31",
 ]
@@ -41,7 +41,7 @@ build-backend = "hatchling.build"
 package = true
 
 [tool.uv.sources]
-agent-fabric = { workspace = true }
+spec-agents-core = { workspace = true }
 
 # version = latest "lakehouse-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
 [tool.hatch.version]

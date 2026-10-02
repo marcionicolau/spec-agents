@@ -32,13 +32,22 @@ version without a `.dev` suffix) and attaches the wheel and sdist to the GitHub 
 secret, no index. Install a release with
 `uv pip install https://github.com/marcionicolau/spec-agents/releases/download/<pkg>-vX.Y.Z/<wheel file>` (or `gh release download <pkg>-vX.Y.Z --repo marcionicolau/spec-agents`).
 
-**Not published to PyPI.** `statistics`, `lakehouse`, `coworker` and `text-pack` are already taken on PyPI by unrelated projects (only `agent-fabric`
-is free). Decision: when publishing is scheduled the four packs are renamed `agent-fabric-statistics`, `agent-fabric-lakehouse`,
-`agent-fabric-coworker` and `agent-fabric-text` (import names and entry points stay), and release assets are uploaded with trusted publishing (OIDC).
-Tracked in #76.
+**PyPI names and publishing.** The short names (`statistics`, `lakehouse`, `coworker`, `text-pack`) are taken on PyPI by unrelated projects, so the
+distributions are published as **`spec-agents-core`** (import `agent_fabric`), **`spec-agents-statistics`** (`stat_fabric`), **`spec-agents-lakehouse`**
+(`lake_fabric`), **`spec-agents-coworker`** (`coworker_fabric`) and **`spec-agents-text`** (`text_pack`). Only `[project] name` carries these names: package
+directories, git tags (`agent-fabric-v0.5.0`, `statistics-v0.2.0`, ...), release-please components, PR scopes and labels keep the short names, and the
+`agent-fabric` CLI and the `agent_fabric.domains` entry-point group are unchanged.
+
+The `publish` job of `release.yml` uploads each released package's verified wheel and sdist (the artifact built by `assets`) with trusted publishing
+(OIDC, no stored token, attestations on) through the `pypi` environment. It is **off until the repository variable `PYPI_PUBLISH` is `true`**. One-time setup:
+1. On PyPI (and TestPyPI to rehearse), add a *pending publisher* for each of the five names: owner `marcionicolau`, repository `spec-agents`, workflow `release.yml`,
+   environment `pypi` (https://pypi.org/manage/account/publishing/). If the repository is ever renamed, update these.
+2. In GitHub: Settings -> Environments -> create `pypi` (optionally with yourself as required reviewer to gate each upload).
+3. Rehearse: set the variable `PYPI_REPOSITORY_URL` to `https://test.pypi.org/legacy/` and `PYPI_PUBLISH` to `true`, merge a release PR, check TestPyPI; then unset
+   `PYPI_REPOSITORY_URL` for the real index.
 
 The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so release PRs trigger CI); rotate it by re-running
-`gh secret set RELEASE_PLEASE_TOKEN`. Packages are not published to an index yet.
+`gh secret set RELEASE_PLEASE_TOKEN`. Until `PYPI_PUBLISH` is enabled, GitHub Releases are the only distribution.
 
 ## CI
 `.github/workflows/ci.yml` runs path-scoped package tests (Python 3.12/3.13), lint (ruff, actionlint), spec lint, wheel build + check

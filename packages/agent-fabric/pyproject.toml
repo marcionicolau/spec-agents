@@ -1,5 +1,5 @@
 [project]
-name = "agent-fabric"
+name = "spec-agents-core"
 dynamic = ["version"]
 description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy"
 requires-python = ">=3.12"
@@ -28,7 +28,7 @@ dependencies = [
 agent-fabric = "agent_fabric.cli:main"
 
 [project.optional-dependencies]
-all = ["agent-fabric[tabular,pydantic-ai,dspy,crewai,langchain]"]
+all = ["spec-agents-core[tabular,pydantic-ai,dspy,crewai,langchain]"]
 crewai = ["crewai>=0.100"]
 dspy = ["dspy>=3.0"]
 langchain = ["langchain-core>=0.3"]

@@ -51,7 +51,7 @@ def _load_input(spec: str) -> tuple[str, Any]:
                     ErrorDetail(
                         type="missing_dependency",
                         msg="import pandas failed",
-                        hint="pip install 'agent-fabric[tabular]'",
+                        hint="pip install 'spec-agents-core[tabular]'",
                     )
                 ],
             ) from exc
