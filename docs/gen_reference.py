@@ -58,5 +58,32 @@ for dist, (module, summary) in PACKAGES.items():
             f.write(f"\n## `{name}`\n\n::: {name}\n    options:\n      heading_level: 3\n")
     mkdocs_gen_files.set_edit_path(page, f"packages/{dist}/src/{module}")
     nav_lines.append(f"- [{dist}]({dist}.md) - {summary} ({len(names)} modules)")
+
+
+def cli_reference() -> str:
+    """Help text of every ``agent-fabric`` subcommand, straight from the argparse parser."""
+    import argparse
+
+    from agent_fabric.cli import build_parser
+
+    parser = build_parser()
+    sub = next(a for a in parser._actions if isinstance(a, argparse._SubParsersAction))
+    out = [
+        "# CLI reference",
+        "",
+        "Generated from the argument parser (`agent-fabric --help`).",
+        "",
+        "```text",
+        parser.format_help().rstrip(),
+        "```",
+    ]
+    for name, p in sub.choices.items():
+        out += ["", f"## `agent-fabric {name}`", "", "```text", p.format_help().rstrip(), "```"]
+    return "\n".join(out) + "\n"
+
+
+with mkdocs_gen_files.open("reference/cli.md", "w") as f:
+    f.write(cli_reference())
+nav_lines.append("- [CLI](cli.md) - the `agent-fabric` command")
 with mkdocs_gen_files.open("reference/index.md", "w") as f:
     f.write("\n".join(nav_lines) + "\n")
