@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.0...coworker-v0.2.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* document the spec-agents-* distribution names in the coworker and text-pack READMEs ([#101](https://github.com/marcionicolau/spec-agents/issues/101)) ([361c412](https://github.com/marcionicolau/spec-agents/commit/361c41276a23587808cd48f91953b9b132dbffba)), closes [#76](https://github.com/marcionicolau/spec-agents/issues/76)
+
 ## [0.2.0](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.1.0...coworker-v0.2.0) (2026-10-02)
 
 
