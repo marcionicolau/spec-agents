@@ -77,6 +77,12 @@ class AgentFabric:
     def builder(
         cls, kind: str, backend: str = "fabric", *, accepts_sub_agents: bool = False, requires: tuple[str, ...] = ()
     ) -> Callable[[Factory], Factory]:
+        """Class decorator that registers a builder for an agent ``kind`` and ``backend``.
+
+        The builder is ``(fabric, name, spec, children) -> BaseAgent``. ``accepts_sub_agents`` allows the kind to own sub-agents; ``requires`` names spec fields
+        that must be set (e.g. ``pipeline``, ``function``). This is how new kinds and backends are added.
+        """
+
         def deco(fn: Factory) -> Factory:
             cls._builders[(kind, backend)] = BuilderInfo(fn, accepts_sub_agents, requires)
             return fn
@@ -85,22 +91,26 @@ class AgentFabric:
 
     @classmethod
     def kinds(cls) -> dict[str, list[str]]:
+        """Registered builders as ``{kind: [backends]}``, sorted."""
         out: dict[str, list[str]] = {}
         for k, b in cls._builders:
             out.setdefault(k, []).append(b)
         return {k: sorted(v) for k, v in out.items()}
 
     def register_schema(self, name: str, model: type[BaseModel]) -> None:
+        """Register a Pydantic model that ``llm`` agents can use as ``output_schema`` by name; cached agents are dropped and the tree is revalidated on the next run."""
         self._schemas[name] = model
         self._agents.clear()
         self._validated = False
 
     def register_function(self, name: str, fn: Callable[..., Any]) -> None:
+        """Register a callable ``(task, inputs) -> dict`` for ``kind: function`` agents; cached agents are dropped and the tree is revalidated on the next run."""
         self._functions[name] = fn
         self._agents.clear()
         self._validated = False
 
     def schema(self, name: str) -> type[BaseModel]:
+        """The registered output schema by name; raises a `SpecError` with a suggestion when unknown."""
         if name not in self._schemas:
             raise SpecError(
                 f"Unknown output schema '{name}'",
@@ -109,6 +119,7 @@ class AgentFabric:
         return self._schemas[name]
 
     def function(self, name: str) -> Callable[..., Any]:
+        """The registered function by name for ``kind: function`` agents; raises a `SpecError` with a suggestion when unknown."""
         if name not in self._functions:
             raise SpecError(
                 f"Unknown function '{name}'",
@@ -119,6 +130,7 @@ class AgentFabric:
     # ------------------------------------------------------------ LLM plumbing
     @property
     def llm_backend(self) -> LLMBackend:
+        """The LLM backend of this fabric: the injected one, else a `LiteLLMProxyBackend` created from the config on first use."""
         if self._backend is None:
             from ..llm.backends import LiteLLMProxyBackend
 
@@ -126,12 +138,14 @@ class AgentFabric:
         return self._backend
 
     def model_for(self, spec: AgentSpec) -> str:
+        """LiteLLM alias for an agent: its own ``model``, else the planner alias for planners and supervisors and the interpreter alias for other kinds."""
         s = self.config.llm
         return spec.model or {"planner": s.planner_model, "supervisor": s.planner_model}.get(
             spec.kind, s.interpreter_model
         )
 
     def settings_for(self, spec: AgentSpec) -> LLMSettings:
+        """`LLMSettings` for an agent: the config's settings with the agent's ``model``, ``temperature`` and ``max_retries`` overrides applied."""
         upd: dict[str, Any] = {}
         if spec.model:
             upd.update(planner_model=spec.model, interpreter_model=spec.model)
@@ -142,6 +156,7 @@ class AgentFabric:
         return self.config.llm.model_copy(update=upd)
 
     def pydantic_ai_model(self, spec: AgentSpec) -> Any:
+        """The PydanticAI model for an agent, pointing at the LiteLLM proxy (``options.model_object`` overrides it for tests and custom providers). Requires the ``pydantic-ai`` extra."""
         if "model_object" in spec.options:  # tests / custom providers
             return spec.options["model_object"]
         from pydantic_ai.models.openai import OpenAIChatModel
@@ -164,6 +179,11 @@ class AgentFabric:
                         importlib.import_module(mod)
 
     def validate(self) -> list[ErrorDetail]:
+        """Check the whole tree before a run; returns every problem found (empty list = valid).
+
+        Covers unknown kind, backend, fallback, sub-agent, pipeline, function, output schema and domain (with suggestions), self-reference, duplicates, sub-agents on
+        leaf kinds, supervisors without sub-agents, cycles and depth over ``budget.max_depth``.
+        """
         self._load_lazy_backends()
         cfg, errors = self.config, []
         kinds = self.kinds()
@@ -321,6 +341,10 @@ class AgentFabric:
 
     # ------------------------------------------------------------ building
     def build(self, name: str) -> BaseAgent:
+        """Build (and cache) the agent ``name`` and its sub-agents.
+
+        Validates the whole tree on first use and raises an `AgentConfigError` listing every problem, or for an unknown agent name.
+        """
         if self._validate and not self._validated:
             errs = self.validate()
             if errs:
@@ -363,6 +387,12 @@ class AgentFabric:
         on_event: Any = None,
         on_step: Any = None,
     ) -> AgentRunReport:
+        """Run the agent tree on an instruction and return an `AgentRunReport`.
+
+        ``inputs`` seed the blackboard by name. The root is ``root`` or the config's root agent (an `AgentConfigError` when it cannot be determined).
+        The run gets its own budget and trace; ``on_event`` is called for every trace event and ``on_step`` for every pipeline step outcome (for live views).
+        ``session_id`` selects the memory session. Failures of agents are reported in the result, not raised.
+        """
         roots = [root] if root else self.config.roots()
         if len(roots) != 1:
             raise AgentConfigError(
