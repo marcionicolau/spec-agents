@@ -36,4 +36,4 @@ body:
     id: versions
     attributes:
       label: Versions
-      description: "Output of `uv pip list | grep -E \"agent-fabric|statistics|lakehouse|coworker\"` and Python version."
+      description: "Output of `uv pip list | grep spec-agents` and Python version."

@@ -15,70 +15,13 @@ resolution-markers = [
 
 [manifest]
 members = [
-    "agent-fabric",
-    "coworker",
-    "lakehouse",
-    "spec-agents",
-    "statistics",
-    "text-pack",
+    "spec-agents-core",
+    "spec-agents-coworker",
+    "spec-agents-lakehouse",
+    "spec-agents-statistics",
+    "spec-agents-text",
+    "spec-agents-workspace",
 ]
-
-[[package]]
-name = "agent-fabric"
-source = { editable = "packages/agent-fabric" }
-dependencies = [
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "rich" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "crewai" },
-    { name = "dspy" },
-    { name = "langchain-core" },
-    { name = "pandas" },
-    { name = "pydantic-ai-slim", extra = ["openai"] },
-]
-crewai = [
-    { name = "crewai" },
-]
-dspy = [
-    { name = "dspy" },
-]
-langchain = [
-    { name = "langchain-core" },
-]
-proxy = [
-    { name = "litellm", extra = ["proxy"] },
-]
-pydantic-ai = [
-    { name = "pydantic-ai-slim", extra = ["openai"] },
-]
-tabular = [
-    { name = "pandas" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "crewai", marker = "extra == 'all'", specifier = ">=0.100" },
-    { name = "crewai", marker = "extra == 'crewai'", specifier = ">=0.100" },
-    { name = "dspy", marker = "extra == 'all'", specifier = ">=3.0" },
-    { name = "dspy", marker = "extra == 'dspy'", specifier = ">=3.0" },
-    { name = "langchain-core", marker = "extra == 'all'", specifier = ">=0.3" },
-    { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=0.3" },
-    { name = "litellm", extras = ["proxy"], marker = "extra == 'proxy'", specifier = ">=1.60" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "pandas", marker = "extra == 'all'", specifier = ">=2.1" },
-    { name = "pandas", marker = "extra == 'tabular'", specifier = ">=2.1" },
-    { name = "pydantic", specifier = ">=2.7" },
-    { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'all'", specifier = ">=1.0" },
-    { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
-    { name = "rich", specifier = ">=13.7.1" },
-]
-provides-extras = ["all", "crewai", "dspy", "langchain", "proxy", "pydantic-ai", "tabular"]
 
 [[package]]
 name = "aiohappyeyeballs"
@@ -853,16 +796,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/5a/35/b98cdc354c952402132e675a87f2cc3227fb68f959c84aaa491fbe15933d/coverage-7.16.2-cp315-cp315t-win_arm64.whl", hash = "sha256:b88841e654f09732804809e435b3e005a929ffd9998b872b7b213957b8759cb8", size = 227064, upload-time = "2026-09-27T12:28:57.075Z" },
     { url = "https://files.pythonhosted.org/packages/3f/0c/7a64e1ac90541a8edf50daef0914848011fb057a5bf55284a4811e21939a/coverage-7.16.2-py3-none-any.whl", hash = "sha256:11d28e9123a9156cb405d8d27b44256c9a58fb5decc2073a8f17862057e3aa0f", size = 215754, upload-time = "2026-09-27T12:28:59.075Z" },
 ]
-
-[[package]]
-name = "coworker"
-source = { editable = "packages/coworker" }
-dependencies = [
-    { name = "agent-fabric" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "agent-fabric", editable = "packages/agent-fabric" }]
 
 [[package]]
 name = "crewai"
@@ -1826,22 +1759,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ca/57/b07b96353f902aa1bdbe00e878e3a12a137977d03a962479785576aa8ec9/kubernetes-36.0.3.tar.gz", hash = "sha256:36993ed25ce59b789c9341473a228fcf268504a2fec7c2b2b1531d73072e5ce7", size = 2337528, upload-time = "2026-07-13T20:38:12.128Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5b/30/a96d47df739689ac0001ade0afefc16e3b477fc2fb426b568515fdc8afce/kubernetes-36.0.3-py2.py3-none-any.whl", hash = "sha256:8fde9241c4b298e6374a069dcf728359b4e72c2fb29489a975ba4e1c047cf10f", size = 4618066, upload-time = "2026-07-13T20:38:10.172Z" },
-]
-
-[[package]]
-name = "lakehouse"
-source = { editable = "packages/lakehouse" }
-dependencies = [
-    { name = "agent-fabric" },
-    { name = "openpyxl" },
-    { name = "requests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent-fabric", editable = "packages/agent-fabric" },
-    { name = "openpyxl", specifier = ">=3.1" },
-    { name = "requests", specifier = ">=2.31" },
 ]
 
 [[package]]
@@ -4322,7 +4239,120 @@ wheels = [
 ]
 
 [[package]]
-name = "spec-agents"
+name = "spec-agents-core"
+source = { editable = "packages/agent-fabric" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rich" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "crewai" },
+    { name = "dspy" },
+    { name = "langchain-core" },
+    { name = "pandas" },
+    { name = "pydantic-ai-slim", extra = ["openai"] },
+]
+crewai = [
+    { name = "crewai" },
+]
+dspy = [
+    { name = "dspy" },
+]
+langchain = [
+    { name = "langchain-core" },
+]
+proxy = [
+    { name = "litellm", extra = ["proxy"] },
+]
+pydantic-ai = [
+    { name = "pydantic-ai-slim", extra = ["openai"] },
+]
+tabular = [
+    { name = "pandas" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "crewai", marker = "extra == 'all'", specifier = ">=0.100" },
+    { name = "crewai", marker = "extra == 'crewai'", specifier = ">=0.100" },
+    { name = "dspy", marker = "extra == 'all'", specifier = ">=3.0" },
+    { name = "dspy", marker = "extra == 'dspy'", specifier = ">=3.0" },
+    { name = "langchain-core", marker = "extra == 'all'", specifier = ">=0.3" },
+    { name = "langchain-core", marker = "extra == 'langchain'", specifier = ">=0.3" },
+    { name = "litellm", extras = ["proxy"], marker = "extra == 'proxy'", specifier = ">=1.60" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", marker = "extra == 'all'", specifier = ">=2.1" },
+    { name = "pandas", marker = "extra == 'tabular'", specifier = ">=2.1" },
+    { name = "pydantic", specifier = ">=2.7" },
+    { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'all'", specifier = ">=1.0" },
+    { name = "pydantic-ai-slim", extras = ["openai"], marker = "extra == 'pydantic-ai'", specifier = ">=1.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+    { name = "rich", specifier = ">=13.7.1" },
+]
+provides-extras = ["all", "crewai", "dspy", "langchain", "proxy", "pydantic-ai", "tabular"]
+
+[[package]]
+name = "spec-agents-coworker"
+source = { editable = "packages/coworker" }
+dependencies = [
+    { name = "spec-agents-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "spec-agents-core", editable = "packages/agent-fabric" }]
+
+[[package]]
+name = "spec-agents-lakehouse"
+source = { editable = "packages/lakehouse" }
+dependencies = [
+    { name = "openpyxl" },
+    { name = "requests" },
+    { name = "spec-agents-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "openpyxl", specifier = ">=3.1" },
+    { name = "requests", specifier = ">=2.31" },
+    { name = "spec-agents-core", editable = "packages/agent-fabric" },
+]
+
+[[package]]
+name = "spec-agents-statistics"
+source = { editable = "packages/statistics" }
+dependencies = [
+    { name = "pandas" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "spec-agents-core" },
+    { name = "statsmodels" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pandas", specifier = ">=2.1" },
+    { name = "scikit-learn", specifier = ">=1.4" },
+    { name = "scipy", specifier = ">=1.12" },
+    { name = "spec-agents-core", editable = "packages/agent-fabric" },
+    { name = "statsmodels", specifier = ">=0.14.2" },
+]
+
+[[package]]
+name = "spec-agents-text"
+source = { editable = "packages/text-pack" }
+dependencies = [
+    { name = "spec-agents-core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "spec-agents-core", editable = "packages/agent-fabric" }]
+
+[[package]]
+name = "spec-agents-workspace"
 version = "0.0.0"
 source = { virtual = "." }
 
@@ -4386,26 +4416,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/ce/20/08dfcd9c983f6a6f4a1000d934b9e6d626cff8d2eeb77a89a68eef20a2b7/starlette-0.46.2.tar.gz", hash = "sha256:7f7361f34eed179294600af672f565727419830b54b7b084efe44bb82d2fccd5", size = 2580846, upload-time = "2025-04-13T13:56:17.942Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/0c/9d30a4ebeb6db2b25a841afbb80f6ef9a854fc3b41be131d249a977b4959/starlette-0.46.2-py3-none-any.whl", hash = "sha256:595633ce89f8ffa71a015caed34a5b2dc1c0cdb3f0f1fbd1e69339cf2abeec35", size = 72037, upload-time = "2025-04-13T13:56:16.21Z" },
-]
-
-[[package]]
-name = "statistics"
-source = { editable = "packages/statistics" }
-dependencies = [
-    { name = "agent-fabric" },
-    { name = "pandas" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "statsmodels" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agent-fabric", editable = "packages/agent-fabric" },
-    { name = "pandas", specifier = ">=2.1" },
-    { name = "scikit-learn", specifier = ">=1.4" },
-    { name = "scipy", specifier = ">=1.12" },
-    { name = "statsmodels", specifier = ">=0.14.2" },
 ]
 
 [[package]]
@@ -4486,16 +4496,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/47/c6/ee486fd809e357697
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d7/c1/eb8f9debc45d3b7918a32ab756658a0904732f75e555402972246b0b8e71/tenacity-9.1.4-py3-none-any.whl", hash = "sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55", size = 28926, upload-time = "2026-02-07T10:45:32.24Z" },
 ]
-
-[[package]]
-name = "text-pack"
-source = { editable = "packages/text-pack" }
-dependencies = [
-    { name = "agent-fabric" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "agent-fabric", editable = "packages/agent-fabric" }]
 
 [[package]]
 name = "threadpoolctl"

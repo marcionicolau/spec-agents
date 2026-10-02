@@ -73,9 +73,16 @@ jobs:
           PKG: ${{ steps.pkg.outputs.pkg }}
           VERSION: ${{ steps.pkg.outputs.version }}
         run: |
-          uv build --package "$PKG" --out-dir dist
+          # the distribution name (PyPI name) comes from the package's pyproject, not from its directory
+          DIST=$(python3 -c "import sys, tomllib; print(tomllib.load(open(f'packages/{sys.argv[1]}/pyproject.toml', 'rb'))['project']['name'])" "$PKG")
+          uv build --package "$DIST" --out-dir dist
           uv run --no-project python tools/check_wheels.py dist --expect-version "$VERSION"
           ls -l dist
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-${{ steps.pkg.outputs.pkg }}
+          path: dist/
+          retention-days: 7
       - name: Attach to the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -100,3 +107,35 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           REPO: ${{ github.repository }}
         run: python3 tools/release_sync.py --repo "$REPO"
+
+  publish:
+    # Publish the verified wheel + sdist of each released package to PyPI with trusted publishing (OIDC, no stored token).
+    # Off until the repository variable PYPI_PUBLISH is 'true' (set it after the pending publishers exist on PyPI and the `pypi`
+    # environment is created). Set PYPI_REPOSITORY_URL to https://test.pypi.org/legacy/ to rehearse on TestPyPI.
+    needs: [release-please, assets]
+    if: needs.release-please.outputs.releases_created == 'true' && vars.PYPI_PUBLISH == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJSON(needs.release-please.outputs.paths_released) }}
+    environment:
+      name: pypi
+    permissions:
+      id-token: write # trusted publishing
+      contents: read
+    steps:
+      - name: Package directory
+        id: pkg
+        env:
+          RELEASE_PATH: ${{ matrix.path }}
+        run: echo "pkg=${RELEASE_PATH#packages/}" >> "$GITHUB_OUTPUT"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: dist-${{ steps.pkg.outputs.pkg }}
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist/
+          repository-url: ${{ vars.PYPI_REPOSITORY_URL || 'https://upload.pypi.org/legacy/' }}

@@ -7,6 +7,7 @@ uv build --all-packages --out-dir dist && python tools/check_wheels.py dist
 from __future__ import annotations
 
 import sys
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -21,6 +22,15 @@ def source_skills(dist_name: str) -> set[str]:
     return out
 
 
+def package_dir(dist_name: str) -> str:
+    """Directory under packages/ of the distribution ``dist_name`` (read from each package's pyproject.toml)."""
+    for pyproject in (ROOT / "packages").glob("*/pyproject.toml"):
+        name = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["name"]
+        if name.replace("_", "-").lower() == dist_name:
+            return pyproject.parent.name
+    raise SystemExit(f"no package with distribution name {dist_name!r} under packages/")
+
+
 def wheel_version(wheel: Path) -> str:
     """Version part of a wheel file name (``name-version-tags.whl``)."""
     return wheel.name.split("-")[1]
@@ -32,7 +42,7 @@ def main(dist_dir: str, expect_version: str | None = None) -> int:
     if not wheels:
         problems.append(f"no wheels in {dist_dir}")
     for wheel in wheels:
-        dist_name = wheel.name.split("-")[0].replace("_", "-")
+        dist_name = wheel.name.split("-")[0].replace("_", "-").lower()
         with zipfile.ZipFile(wheel) as z:
             names = set(z.namelist())
         if not any(n.endswith("/licenses/LICENSE") for n in names):
@@ -40,7 +50,7 @@ def main(dist_dir: str, expect_version: str | None = None) -> int:
         if not any(n.endswith("/py.typed") for n in names):
             problems.append(f"{wheel.name}: py.typed missing")
         shipped = {n.split("/", 1)[1] for n in names if "/skills/" in n and n.endswith(".md")}
-        for rel in sorted(source_skills(dist_name) - shipped):
+        for rel in sorted(source_skills(package_dir(dist_name)) - shipped):
             problems.append(f"{wheel.name}: {rel} missing from wheel")
         if expect_version is not None and wheel_version(wheel) != expect_version:
             problems.append(f"{wheel.name}: version {wheel_version(wheel)} != expected {expect_version}")

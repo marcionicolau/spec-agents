@@ -104,6 +104,7 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
 ## 4. Conventions
 
 - Dependencies are managed with `uv` in a workspace: add with `uv add --package <dist> <dep>` (dist names =
+  `spec-agents-core`/`spec-agents-statistics`/`spec-agents-lakehouse`/`spec-agents-coworker`/`spec-agents-text`; directories, tags and PR scopes use
   `agent-fabric`/`statistics`/`lakehouse`/`coworker`/`text-pack`), never `pip install` (it desyncs `uv.lock`).
 - **Commits are conventional with package scopes**: `feat(statistics): …`, `fix(agent-fabric): …`. PR titles are linted
   (`pr-title` workflow) and, squash-merged, become the commit that **release-please** reads: it keeps one release PR per
@@ -119,7 +120,7 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
   `just contracts`) fails a PR whose contract diff (params, ports, outputs, defaults) lacks the matching bump.
 - **Core API level**: packs declare the core API they were written for with `@requires_api(n)` on `register`; the loaders reject a pack
   that needs a newer `agent_fabric.API_LEVEL` (see `docs/maintenance.md#core-api-level`). Bump it only for breaking changes to the pack-facing API.
-- Packs depend on the core with a bounded range (`agent-fabric>=0.0.1,<1`); widen it deliberately when the core makes a
+- Packs depend on the core with a bounded range (`spec-agents-core>=0.0.1,<1`); widen it deliberately when the core makes a
   breaking change. License: MIT (root `LICENSE`, copied into each package).
 - Python ≥ 3.12, `from __future__ import annotations`, type hints, ruff line length 120. Generics use PEP 695 syntax
   (`class Component[P: ComponentParams, R: ComponentResult]`, `def f[T](...)`, `type X = ...`), not `TypeVar`/`Generic`.

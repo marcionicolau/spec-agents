@@ -26,17 +26,18 @@ The same pages live in [`docs/`](docs/README.md).
 A [uv](https://docs.astral.sh/uv/) monorepo under `packages/`. Each package has its own version, derived from its `<package>-vX.Y.Z` git tag
 (release-please + `uv-dynamic-versioning`), and its own README.
 
-| Package (dist) | Import | What it is |
+| Package (PyPI name) | Import | What it is |
 | --- | --- | --- |
-| [`agent-fabric`](packages/agent-fabric) | `agent_fabric` | Core: specs, registry, pipelines, executor, agents, LLM planners, memory, CLI |
-| [`statistics`](packages/statistics) | `stat_fabric` | Summary, linear model, ANOVA, time series, PCA and clustering |
-| [`lakehouse`](packages/lakehouse) | `lake_fabric` | Generation and verification of Airflow DAGs (Trino/Iceberg, medallion layers) |
-| [`coworker`](packages/coworker) | `coworker_fabric` | Pair programming: context selection, static review, patch proposals |
-| [`text-pack`](packages/text-pack) | `text_pack` | A minimal text domain; the template for new packs |
+| [`spec-agents-core`](packages/agent-fabric) | `agent_fabric` | Core: specs, registry, pipelines, executor, agents, LLM planners, memory, CLI |
+| [`spec-agents-statistics`](packages/statistics) | `stat_fabric` | Summary, linear model, ANOVA, time series, PCA and clustering |
+| [`spec-agents-lakehouse`](packages/lakehouse) | `lake_fabric` | Generation and verification of Airflow DAGs (Trino/Iceberg, medallion layers) |
+| [`spec-agents-coworker`](packages/coworker) | `coworker_fabric` | Pair programming: context selection, static review, patch proposals |
+| [`spec-agents-text`](packages/text-pack) | `text_pack` | A minimal text domain; the template for new packs |
 
-The packages are **not published to an index** (PyPI) yet: every [GitHub Release](https://github.com/marcionicolau/spec-agents/releases)
-carries the wheel and sdist of its package. A pack declares the core API level it was written for (`@requires_api(1)`, compared with
-`agent_fabric.API_LEVEL`) and the loader rejects incompatible packs with a located error.
+Install from PyPI (`pip install spec-agents-core`, plus the packs you need; the import names are in the table) once the first release is
+published there. Until then every [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) carries the wheel and sdist of its package.
+Git tags and PR scopes use the short package names (`agent-fabric-v0.5.0`, `feat(statistics): ...`). A pack declares the core API level it was
+written for (`@requires_api(1)`, compared with `agent_fabric.API_LEVEL`) and the loader rejects incompatible packs with a located error.
 
 ## Markdown specs: contract + guidance
 

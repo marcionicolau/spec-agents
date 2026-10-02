@@ -91,7 +91,7 @@ def test_version_comes_from_the_installed_distribution():
 
     import agent_fabric
 
-    assert agent_fabric.__version__ == metadata.version("agent-fabric")
+    assert agent_fabric.__version__ == metadata.version("spec-agents-core")
 
 
 def test_docstring_debt_only_shrinks():

@@ -7,7 +7,7 @@ from importlib import metadata as _metadata
 
 try:
     __version__ = _metadata.version(
-        "agent-fabric"
+        "spec-agents-core"
     )  # dynamic: derived from the latest agent-fabric-v* git tag at build time
 except _metadata.PackageNotFoundError:  # pragma: no cover - source tree without an installed distribution
     __version__ = "0.0.0"

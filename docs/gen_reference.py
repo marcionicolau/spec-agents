@@ -12,7 +12,14 @@ from pathlib import Path
 import mkdocs_gen_files
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGES = {  # dist name -> (module, one-line description)
+PYPI_NAMES = {
+    "agent-fabric": "spec-agents-core",
+    "statistics": "spec-agents-statistics",
+    "lakehouse": "spec-agents-lakehouse",
+    "coworker": "spec-agents-coworker",
+    "text-pack": "spec-agents-text",
+}
+PACKAGES = {  # package directory -> (module, one-line description)
     "agent-fabric": (
         "agent_fabric",
         "Generic core: specs, registry, pipelines, executor, agents, LLM planning, memory, CLI.",
@@ -52,12 +59,12 @@ for dist, (module, summary) in PACKAGES.items():
     page = f"reference/{dist}.md"
     with mkdocs_gen_files.open(page, "w") as f:
         f.write(
-            f"# {dist}\n\n{summary}\n\nImport name: `{module}`. Only names listed in a module's `__all__` are public API.\n"
+            f"# {PYPI_NAMES[dist]}\n\n{summary}\n\nPyPI name: `{PYPI_NAMES[dist]}`. Import name: `{module}`. Only names listed in a module's `__all__` are public API.\n"
         )
         for name in names:
             f.write(f"\n## `{name}`\n\n::: {name}\n    options:\n      heading_level: 3\n")
     mkdocs_gen_files.set_edit_path(page, f"packages/{dist}/src/{module}")
-    nav_lines.append(f"- [{dist}]({dist}.md) - {summary} ({len(names)} modules)")
+    nav_lines.append(f"- [{PYPI_NAMES[dist]}]({dist}.md) - {summary} ({len(names)} modules)")
 
 
 def cli_reference() -> str:

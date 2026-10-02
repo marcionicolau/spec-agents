@@ -173,7 +173,7 @@ class MissingOptionalDependency(DependencyError):
                 ErrorDetail(
                     type="missing_dependency",
                     msg=f"import of '{package}' failed",
-                    hint=f"pip install 'agent-fabric[{extra}]'",
+                    hint=f"pip install 'spec-agents-core[{extra}]'",
                 )
             ],
         )

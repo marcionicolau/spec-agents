@@ -65,19 +65,19 @@ packages/<domain>/             uv workspace members; dist name = spec `domain:`,
     evals.py                   planner regression evals (score shared with DSPy metric)
     scaffold.py                templates for SKILL.md / AGENT.md (python -m agent_fabric.scaffold)
     cli/                       agent-fabric CLI (rich): run (live view), lint, catalog, agents, scaffold
-  statistics/src/stat_fabric/    STATISTICS PACK (dist 'statistics')
+  statistics/src/stat_fabric/    STATISTICS PACK (dist 'spec-agents-statistics')
     components/                summary, linear_model, anova, time_series, pca, clustering (code)
     skills/<name>/SKILL.md       contracts + guidance for the 6 components and 3 pipelines
                                  (exploratory_analysis, experiment_analysis, full_study); pca/references/
     rules.py                   StatsRulePlanner (planner backend 'stats_rules');  schemas.py (Review)
     domain.py                  register(registry)  (entry point agent_fabric.domains:statistics)
     app.py                     StatisticalAnalysisFabric facade
-  lakehouse/src/lake_fabric/     LAKEHOUSE PACK (dist 'lakehouse'): source_inspect, medallion_plan,
+  lakehouse/src/lake_fabric/     LAKEHOUSE PACK (dist 'spec-agents-lakehouse'): source_inspect, medallion_plan,
                                airflow_dag_render, dag_check (+ python_source type, medallion.py SQL
                                builders, render.py, generate.py CLI); pipelines ingest_to_lakehouse, medallion_design
-  coworker/src/coworker_fabric/  COWORKER PACK (dist 'coworker'): repo_index, context_select, context_pack,
+  coworker/src/coworker_fabric/  COWORKER PACK (dist 'spec-agents-coworker'): repo_index, context_select, context_pack,
                                code_review, patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
-packages/text-pack/src/text_pack/ TEXT PACK (dist 'text-pack'): text_stats, keywords, document_digest – proves genericity
+packages/text-pack/src/text_pack/ TEXT PACK (dist 'spec-agents-text'): text_stats, keywords, document_digest – proves genericity
 packages/<pkg>/tests/            pack tests (statistics, lakehouse, coworker; agent-fabric: CLI + prompt domain)
 packages/<pkg>/config/           lakehouse: fabric.md + lakehouse_team, dag_engineer, dag_reviewer, schema_designer
                                  coworker:  fabric.md + pair_programmer, context_scout, code_critic, patch_author

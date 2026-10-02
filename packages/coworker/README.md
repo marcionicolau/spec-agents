@@ -1,4 +1,4 @@
-# coworker
+# spec-agents-coworker (`coworker_fabric`)
 
 Coworker (pair-programming) domain pack for [agent-fabric](../agent-fabric/README.md): `repo_index`, `context_select`, `context_pack`,
 `code_review`, `patch_propose` and the pipelines `improve_code` and `propose_patch`. Context selection is measured (BM25-flavoured scorer,
@@ -8,12 +8,13 @@ as a unified diff.
 Only the working directory and the directories in `COWORKER_ALLOWED_ROOTS` can be indexed or patched; all paths go through
 `analysis.safe_path`.
 
-> **Status:** pre-release, not published to an index yet. From a checkout of the repository use `uv sync --all-packages`;
-> the `pip install` lines below describe the intended published names.
+> **Status:** pre-release. Until the first PyPI release, install a wheel from the
+> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
+> the `pip install` lines below are the PyPI names.
 
 ## Install
 ```bash
-pip install coworker
+pip install spec-agents-coworker
 python -m coworker_fabric.evals --root .      # deterministic context-selection eval
 ```
 Demo agent team (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`): `config/` in the repository.

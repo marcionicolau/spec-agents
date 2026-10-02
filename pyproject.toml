@@ -1,5 +1,5 @@
 [project]
-name = "spec-agents"
+name = "spec-agents-workspace"
 version = "0.0.0"
 description = "Metarepo: agent-fabric core + domain plugin packs (statistics, lakehouse, coworker)"
 requires-python = ">=3.12"
