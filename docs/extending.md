@@ -8,6 +8,22 @@
 > guidance body plus a generated `## Contract` section, `references/` copied) and validates it; CI runs it on every PR. The fabric
 > `SKILL.md` stays the single source of truth; nothing is read back from the export.
 
+## Declaring the core API level (every pack)
+
+A pack states which core API it was written for by decorating its ``register`` function:
+
+```python
+from agent_fabric import requires_api
+
+
+@requires_api(1)
+def register(registry): ...
+```
+
+`build_registry` and the `agent_fabric.domains` entry-point discovery refuse a pack that needs a newer level than the core implements
+(`API_LEVEL`) or targets a retired one (below `API_LEVEL_MIN`) with a located `SpecError` (`pack_needs_newer_core`, `pack_api_retired`).
+A pack without the decorator still loads, unchecked. Policy: [maintenance](maintenance.md#core-api-level).
+
 ## Adding a component (any domain)
 
 1. **Skill** `<pack>/skills/<name>/SKILL.md`, where `<pack>` = `packages/<domain>/src/<module>`

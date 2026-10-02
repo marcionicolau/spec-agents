@@ -191,8 +191,12 @@ class Registry:
     def discover_domains(self) -> list[str]:
         """Load every installed domain pack advertised through the ``agent_fabric.domains`` entry point; returns the entry point names loaded."""
         found = []
+        from .compat import check_pack_api
+
         for ep in metadata.entry_points(group=DOMAIN_ENTRY_POINT):
-            ep.load()(self)
+            register = ep.load()
+            check_pack_api(register, ep.name)
+            register(self)
             found.append(ep.name)
         return found
 

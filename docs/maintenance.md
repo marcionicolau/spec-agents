@@ -8,6 +8,17 @@
 | Coworker scorer / `context_select` change          | `python -m coworker_fabric.evals --root .` (deterministic, labeled cases in `examples/evals/context_cases.yaml`; also asserted in `packages/coworker/tests/test_coworker.py`); add a case for every retrieval bug you fix |
 | New skill / agent                                  | `scaffold` → fill sections → `lint --strict` → tests for its checks                                                                                                                                     |
 
+## Core API level
+`agent_fabric.API_LEVEL` is an integer that versions what packs build against: `Component` and its hooks, `Registry`, the `SKILL.md`
+contract and artifact types, and the `register(registry)` entry point. It is independent of the package version.
+
+- **Bump `API_LEVEL`** (in `agent_fabric/compat.py`) only for a *breaking* change of that surface; additions never bump it. In the same PR
+  update every pack in the repository (`@requires_api(<new level>)`) after porting it; `tests/test_pack_api_level.py` fails otherwise.
+- **Retire a level** by raising `API_LEVEL_MIN`, at least one release after announcing it, so out-of-tree packs get time to move.
+- **Pack dependency ranges** stay a coarse guard (`agent-fabric>=0.0.1,<1` while pre-1.0). Widen them deliberately, and let the API
+  level carry the precise compatibility: a pack for an older level keeps working until that level is retired.
+- A pack that never declared a level loads unchecked; new packs must declare one.
+
 ## Public API surface
 A name is public only if it is in the `__all__` of its module (and of the package `__init__` when re-exported). Internal helpers,
 prompt templates, regexes and constants stay out. `tests/test_public_api.py` checks that every `__all__` name exists and is unique, that
