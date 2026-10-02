@@ -1,5 +1,5 @@
 {
-  "packages/agent-fabric": "0.5.1",
+  "packages/agent-fabric": "0.6.0",
   "packages/statistics": "0.2.1",
   "packages/lakehouse": "0.2.1",
   "packages/coworker": "0.2.1",
