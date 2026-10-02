@@ -2,6 +2,6 @@
   "packages/agent-fabric": "0.5.1",
   "packages/statistics": "0.2.1",
   "packages/lakehouse": "0.2.1",
-  "packages/coworker": "0.2.0",
+  "packages/coworker": "0.2.1",
   "packages/text-pack": "0.2.0"
 }
