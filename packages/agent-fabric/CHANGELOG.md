@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.5.1...agent-fabric-v0.6.0) (2026-10-02)
+
+
+### Features
+
+* **agent-fabric:** the CLI discovers installed domain packs by default ([#106](https://github.com/marcionicolau/spec-agents/issues/106)) ([cb8a75e](https://github.com/marcionicolau/spec-agents/commit/cb8a75ede568bc8460363685bd50d40e6041b4b2)), closes [#104](https://github.com/marcionicolau/spec-agents/issues/104)
+
 ## [0.5.1](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.5.0...agent-fabric-v0.5.1) (2026-10-02)
 
 
