@@ -159,7 +159,7 @@ python examples/run_evals.py --domain coworker --mode live
 One interface (rich: colours, tables, a live view with a spinner; `--plain` or a non-TTY gives plain text):
 
 ```bash
-agent-fabric catalog --skills examples/notes/skills            # table: name, kind, domain, params, ports
+agent-fabric catalog --skills examples/notes/skills            # table: name, kind, domain, params, ports (installed packs are discovered; --no-discover to skip)
 agent-fabric agents examples/notes                             # agent tree + validation
 agent-fabric lint --agents examples/research_team --domains stat_fabric.domain:register --strict   # coloured issue table
 agent-fabric run examples/notes "Summarise the meeting" --input transcript=meeting.txt             # live view on a TTY
