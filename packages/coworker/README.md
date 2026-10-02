@@ -12,6 +12,17 @@ Only the working directory and the directories in `COWORKER_ALLOWED_ROOTS` can b
 > [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
 > the `pip install` lines below are the PyPI names.
 
+## Names
+
+| | |
+| --- | --- |
+| PyPI distribution | `spec-agents-coworker` |
+| Import name | `coworker_fabric` |
+| Directory in the monorepo | `packages/coworker` |
+| Release tag / PR scope | `coworker-vX.Y.Z` / `coworker` |
+
+The distribution is named `spec-agents-coworker` because the shorter names are taken on PyPI; the import name and the entry point do not change.
+
 ## Install
 ```bash
 pip install spec-agents-coworker
