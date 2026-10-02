@@ -72,8 +72,17 @@ def score_selection(case: ContextCase, selected: list[str], tokens: int) -> Case
     )
 
 
-def run_cases(root: str | Path, cases: list[ContextCase], **select_params: Any) -> list[CaseScore]:
-    """Index ``root`` once, then run ``context_select`` for every case with ``select_params`` (budget, hops, ...)."""
+# Files the labelled cases of this repository can refer to. Indexing everything (docs/, tools/, examples/) lets new files that merely share
+# vocabulary with a task outrank the right ones, so the score would drift with unrelated additions.
+REPO_EVAL_INCLUDE = ["packages/**/*.py", "tests/**/*.py"]
+
+
+def run_cases(
+    root: str | Path, cases: list[ContextCase], *, include: list[str] | None = None, **select_params: Any
+) -> list[CaseScore]:
+    """Index ``root`` once, then run ``context_select`` for every case with ``select_params`` (budget, hops, ...).
+
+    ``include`` limits the indexed files (globs relative to ``root``); the default is the indexer's own default (every ``.py`` file)."""
     from .domain import register
 
     os.environ.setdefault("COWORKER_ALLOWED_ROOTS", str(Path(root).resolve()))
@@ -85,7 +94,7 @@ def run_cases(root: str | Path, cases: list[ContextCase], **select_params: Any) 
         comp.execute(inputs, params, StepContext(store, "e", comp.spec, registry.types))
         return store
 
-    index = execute("repo_index", {}, {"root": str(root)}).get("e.index")
+    index = execute("repo_index", {}, {"root": str(root), **({"include": include} if include else {})}).get("e.index")
     out = []
     for case in cases:
         params = {"task": case.task, "focus_files": case.focus_files, **select_params}
@@ -119,6 +128,12 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--hops", type=int, default=1)
     ap.add_argument("--cutoff", type=float, default=0.5, help="relative_cutoff passed to context_select")
     ap.add_argument(
+        "--include",
+        nargs="+",
+        default=REPO_EVAL_INCLUDE,
+        help="globs (relative to --root) of the files to index; default: this repository's packages and tests",
+    )
+    ap.add_argument(
         "--sweep", nargs="+", type=float, help="print the summary line for each relative_cutoff value and exit"
     )
     a = ap.parse_args(argv)
@@ -129,13 +144,25 @@ def main(argv: list[str] | None = None) -> None:
                 f"cutoff {c:4.2f}  "
                 + table(
                     run_cases(
-                        a.root, cases, token_budget=a.budget, max_files=a.max_files, hops=a.hops, relative_cutoff=c
+                        a.root,
+                        cases,
+                        include=a.include,
+                        token_budget=a.budget,
+                        max_files=a.max_files,
+                        hops=a.hops,
+                        relative_cutoff=c,
                     )
                 ).splitlines()[-1]
             )
         return
     scores = run_cases(
-        a.root, load_cases(a.cases), token_budget=a.budget, max_files=a.max_files, hops=a.hops, relative_cutoff=a.cutoff
+        a.root,
+        load_cases(a.cases),
+        include=a.include,
+        token_budget=a.budget,
+        max_files=a.max_files,
+        hops=a.hops,
+        relative_cutoff=a.cutoff,
     )
     print(table(scores))
     sys.exit(0 if all(s.recall >= c.min_recall for s, c in zip(scores, load_cases(a.cases))) else 1)
@@ -146,6 +173,7 @@ if __name__ == "__main__":
 
 
 __all__ = [
+    "REPO_EVAL_INCLUDE",
     "CaseScore",
     "ContextCase",
     "load_cases",

@@ -53,17 +53,20 @@ class AgentResult(BaseModel):
     duration_s: float = 0.0
 
     def walk(self) -> Iterator[AgentResult]:
+        """Iterate over this result and all descendants, depth first."""
         yield self
         for c in self.children:
             yield from c.walk()
 
     def find(self, path: str) -> AgentResult:
+        """The result of the agent with this path (or a trailing part of it, or its name) in the tree; raises ``KeyError`` if there is none."""
         for r in self.walk():
             if r.path == path or r.path.endswith("/" + path) or r.agent == path:
                 return r
         raise KeyError(path)
 
     def tree(self, indent: int = 0) -> str:
+        """Indented text outline of this result and its children: agent, kind, status and the first 100 characters of the summary."""
         line = f"{'  ' * indent}- {self.agent} [{self.kind}] {self.status}: {self.summary[:100]}"
         return "\n".join([line] + [c.tree(indent + 1) for c in self.children])
 
@@ -104,6 +107,7 @@ class Budget:
         )
 
     def charge_run(self, path: str, depth: int) -> None:
+        """Count one agent run at tree ``depth``; raises `BudgetExceeded` over ``max_depth`` or ``max_agent_runs``."""
         if depth > self.s.max_depth:
             raise self._exceeded("max_depth", self.s.max_depth, path)
         self.agent_runs += 1
@@ -111,16 +115,19 @@ class Budget:
             raise self._exceeded("max_agent_runs", self.s.max_agent_runs, path)
 
     def charge_delegation(self, path: str, n: int = 1) -> None:
+        """Count ``n`` delegations; raises `BudgetExceeded` over ``max_delegations``."""
         self.delegations += n
         if self.delegations > self.s.max_delegations:
             raise self._exceeded("max_delegations", self.s.max_delegations, path)
 
     def charge_llm(self, path: str, n: int = 1) -> None:
+        """Count ``n`` LLM calls; raises `BudgetExceeded` over ``max_llm_calls``."""
         self.llm_calls += n
         if self.llm_calls > self.s.max_llm_calls:
             raise self._exceeded("max_llm_calls", self.s.max_llm_calls, path)
 
     def usage(self) -> dict[str, int]:
+        """Current counts as ``{agent_runs, delegations, llm_calls}``."""
         return {"agent_runs": self.agent_runs, "delegations": self.delegations, "llm_calls": self.llm_calls}
 
 
@@ -138,16 +145,19 @@ class RunContext:
     on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
 
     def event(self, path: str, event: EventKind, detail: str = "") -> None:
+        """Append a trace event (detail cut at 200 characters) and notify ``on_event``."""
         e = TraceEvent(at=round(time.perf_counter() - self.t0, 4), path=path, event=event, detail=detail[:200])
         self.trace.append(e)
         if self.on_event is not None:
             self.on_event(e)
 
     def put(self, key: str, value: Any) -> str:
+        """Write a value on the blackboard and return its key."""
         self.blackboard[key] = value
         return key
 
     def collect(self, keys: list[str]) -> dict[str, Any]:
+        """Values of the given blackboard keys; raises `DependencyError` with a suggestion for each key that is missing."""
         missing = [k for k in keys if k not in self.blackboard]
         if missing:
             raise DependencyError(
@@ -166,6 +176,7 @@ class RunContext:
         return {k: self.blackboard[k] for k in keys}
 
     def metered(self, backend: LLMBackend, path: str) -> MeteredBackend:
+        """Wrap a backend so its calls are charged to this run's budget and traced at ``path``."""
         return MeteredBackend(backend, self, path)
 
 
@@ -183,6 +194,7 @@ class MeteredBackend:
         json_mode: bool = False,
         temperature: float | None = None,
     ) -> str:
+        """Charge one LLM call to the budget, trace it and delegate to the wrapped backend; `BudgetExceeded` stops the call before it is made."""
         self.ctx.budget.charge_llm(self.path)
         self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
         self.ctx.event(self.path, "llm_call", model or "")
@@ -199,10 +211,12 @@ class AgentRunReport(BaseModel):
 
     @property
     def blackboard(self) -> dict[str, Any]:
+        """The blackboard at the end of the run: user inputs plus agent outputs (``<path>``) and artifacts (``<path>.<name>``)."""
         return self._blackboard
 
     @property
     def ok(self) -> bool:
+        """Whether the root agent finished with status ``ok``."""
         return self.result.status == "ok"
 
 

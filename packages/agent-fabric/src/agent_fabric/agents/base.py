@@ -29,6 +29,13 @@ class BaseAgent(ABC):
 
     # ------------------------------------------------------------------ template method
     def run(self, task: AgentTask, ctx: RunContext, parent_path: str = "", depth: int = 0) -> AgentResult:
+        """Run the agent on a task: the template method every agent goes through.
+
+        Records the start and end events, charges the run budget (``max_depth`` and ``max_agent_runs``) and calls the kind-specific ``_run``. A
+        `BudgetExceeded` or other `FabricError` becomes a ``failed`` result carrying the located error; when a ``fallback`` backend is configured it is
+        tried first and the fallback is noted in ``notes``. Records LLM calls and duration, and, when memory is configured, the instruction, the answer and a
+        `RunSummary` under ``<session>/<path>``. Does not raise `FabricError`s: they end up in the result.
+        """
         path = f"{parent_path}/{self.name}" if parent_path else self.name
         t0 = time.perf_counter()
         ctx.event(path, "start", task.instruction)
@@ -77,20 +84,25 @@ class BaseAgent(ABC):
     # ------------------------------------------------------------------ helpers
     @property
     def kind(self) -> str:
+        """The agent kind (``supervisor``, ``planner``, ``pipeline``, ``llm`` or ``function``)."""
         return self.spec.kind
 
     @property
     def settings(self) -> LLMSettings:
+        """`LLMSettings` for this agent: the run's settings with the agent's own model, temperature and retries applied."""
         return self.fabric.settings_for(self.spec)
 
     @property
     def model(self) -> str:
+        """LiteLLM alias this agent uses (its own ``model``, else the default for its kind)."""
         return self.fabric.model_for(self.spec)
 
     def llm(self, ctx: RunContext, path: str) -> MeteredBackend:
+        """The LLM backend for this agent, metered so every call is charged to the run budget and traced at ``path``."""
         return ctx.metered(self.fabric.llm_backend, path)
 
     def result(self, path: str, status: Status, **kw: Any) -> AgentResult:
+        """Build an `AgentResult` for this agent at ``path`` with the given status and extra fields."""
         return AgentResult(agent=self.name, path=path, kind=self.kind, status=status, **kw)
 
     def system_prompt(self) -> str:
@@ -108,9 +120,11 @@ class BaseAgent(ABC):
         return "\n\n".join(parts) or f"You are the '{self.name}' agent."
 
     def input_keys(self, task: AgentTask, ctx: RunContext) -> list[str]:
+        """Blackboard keys this agent reads: the task's own inputs, else the spec's ``inputs``, else every key the run started with."""
         return task.inputs or self.spec.inputs or list(ctx.input_keys)
 
     def describe_inputs(self, values: dict[str, Any]) -> str:
+        """Describe input values for a prompt: JSON, number and ``any`` values are shown compacted (up to 2500 characters), other types through their artifact profile."""
         types = self.fabric.registry.types
         lines = []
         for key, v in values.items():
@@ -122,9 +136,11 @@ class BaseAgent(ABC):
         return "\n".join(lines) or "(none)"
 
     def memory_context(self, ctx: RunContext, path: str) -> str:
+        """Text of this agent's recent runs in the session, for routers and planners."""
         return memory_context(ctx.memory, namespaced(ctx.session_id, path))
 
     def card(self) -> dict[str, Any]:
+        """Short description of the agent for parent routers: name, kind, role, what it does and, for supervisors, its sub-agents."""
         return {
             "name": self.name,
             "kind": self.kind,

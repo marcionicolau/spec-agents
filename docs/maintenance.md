@@ -18,7 +18,7 @@ pre-1.0 rule (minor bump) and are noted in the PR title scope.
 
 ## Eval baselines
 `examples/evals/baselines.json` stores the scores of the deterministic suites: the statistics rules planner (per case and mean;
-`treatment_effect` fails on purpose) and coworker context selection (means). `just evals-check` (CI, `specs` job) fails when a
+`treatment_effect` fails on purpose) and coworker context selection (means). The context suite indexes only `packages/**/*.py` and `tests/**/*.py` (`REPO_EVAL_INCLUDE`): its labelled cases refer to those files, and new files elsewhere (docs/, tools/, examples/) that merely share vocabulary with a task would otherwise change the score for unrelated reasons. `just evals-check` (CI, `specs` job) fails when a
 score drops below `baseline - tolerance` (0.02), or when a case is added or removed without refreshing the file. To refresh after
 an intended change run `just evals-update` and commit the diff in the same PR, so the new baseline is reviewed. Scores above
 baseline + tolerance are reported as improvements: refresh them too, so the gain is protected.

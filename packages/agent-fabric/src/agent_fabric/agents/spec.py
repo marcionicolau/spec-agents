@@ -114,6 +114,10 @@ class AgentsConfig(BaseModel):
 
     @classmethod
     def from_dir(cls, directory: str | Path) -> AgentsConfig:
+        """Load a config directory: ``fabric.md`` (root, budget, LLM settings, ``skill_dirs``) and ``agents/<name>/AGENT.md``.
+
+        ``skill_dirs`` are resolved relative to the directory. All problems in all files are reported together, located by relative path.
+        """
         root = Path(directory)
         details: list[ErrorDetail] = []
         header: dict[str, Any] = {}
@@ -205,6 +209,7 @@ class AgentsConfig(BaseModel):
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> AgentsConfig:
+        """Load a legacy single-file YAML config; relative ``skill_dirs`` are resolved against the file's directory."""
         path = Path(path)
         raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
         if isinstance(raw.get("skill_dirs"), list):
@@ -215,18 +220,21 @@ class AgentsConfig(BaseModel):
 
     @classmethod
     def from_dict(cls, raw: dict[str, Any], source: str = "<dict>") -> AgentsConfig:
+        """Validate a plain dict (the shape of a legacy YAML config); raises an `AgentConfigError` with located details."""
         try:
             return cls.model_validate(raw)
         except ValidationError as exc:
             raise AgentConfigError(f"Invalid agents config {source}", details_from_pydantic(exc)) from exc
 
     def roots(self) -> list[str]:
+        """Candidate root agents: the configured ``root``, else every agent that is nobody's sub-agent."""
         if self.root:
             return [self.root]
         children = {c for a in self.agents.values() for c in a.sub_agents}
         return [n for n in self.agents if n not in children]
 
     def by_kind(self, kind: str) -> list[str]:
+        """Names of the agents of a kind."""
         return [n for n, a in self.agents.items() if a.kind == kind]
 
 

@@ -350,14 +350,14 @@ def test_context_selection_quality_on_this_repository(cw, monkeypatch):
     """Regression guard on the labeled cases: tuning the scorer must not lose recall or ranking."""
     from pathlib import Path
 
-    from coworker_fabric.evals import load_cases, run_cases
+    from coworker_fabric.evals import REPO_EVAL_INCLUDE, load_cases, run_cases
 
     root = Path(__file__).resolve().parents[3]
     monkeypatch.setenv("COWORKER_ALLOWED_ROOTS", str(root))
     cases = load_cases(root / "examples" / "evals" / "context_cases.yaml")
     missing = [p for c in cases for p in c.expected if not (root / p).exists()]
     assert not missing, f"cases reference files that no longer exist: {missing}"
-    scores = run_cases(root, cases, token_budget=6000, max_files=8, relative_cutoff=0.5)
+    scores = run_cases(root, cases, include=REPO_EVAL_INCLUDE, token_budget=6000, max_files=8, relative_cutoff=0.5)
     n = len(scores)
     assert sum(s.recall for s in scores) / n >= 0.95, [(s.name, s.missing) for s in scores if s.missing]
     assert sum(s.score for s in scores) / n >= 0.92
