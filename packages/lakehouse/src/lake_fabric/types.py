@@ -21,6 +21,7 @@ class PythonSourceProfile(BaseModel):
     preview: str
 
     def to_prompt(self) -> str:
+        """One-line description of the code (line count and a preview) for planner and interpreter prompts."""
         return f"python source: {self.n_lines} lines; starts: {self.preview!r}"
 
 
@@ -33,6 +34,7 @@ class PythonSourceType(ArtifactType):
     specificity = 0  # a plain str is inferred as 'text'; this type is only reached through declared ports
 
     def profile(self, value: str) -> PythonSourceProfile:
+        """Profile a Python source string: number of lines and the first 60 characters."""
         return PythonSourceProfile(n_lines=value.count("\n") + 1, preview=value.strip()[:60])
 
     def static_check(

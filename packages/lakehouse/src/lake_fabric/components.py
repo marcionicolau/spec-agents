@@ -189,6 +189,12 @@ class SourceInspect(Component[SourceInspectParams, SourceInspectResult]):
         return [dict(zip(header, r)) for _, r in zip(range(params.sample_rows), rows) if any(v is not None for v in r)]
 
     def compute(self, inputs: dict, params: SourceInspectParams, ctx: StepContext) -> SourceInspectResult:
+        """Infer column names and types of a source from a sample of its records.
+
+        Reads the sample from the declared input or the source itself (CSV, JSON, XLSX, API or MCP tool), merges value kinds per column, sanitises
+        column names into safe identifiers and records the null rate. Raises ``ValueError`` when there are no records. Warns about empty columns and
+        samples under 20 rows. Emits the ``schema`` output.
+        """
         records = self._records(inputs, params)
         if not records:
             raise ValueError("the source has no records to infer a schema from")
@@ -326,6 +332,11 @@ class MedallionPlan(Component[MedallionPlanParams, MedallionPlanResult]):
         return errs
 
     def compute(self, inputs: dict, params: MedallionPlanParams, ctx: StepContext) -> MedallionPlanResult:
+        """Design the bronze, silver and gold tables and the SQL that loads them from an inferred schema.
+
+        Delegates to ``build_layout`` with the parameters (catalog, table, schemas, business keys, load mode, partitioning, gold aggregation).
+        Emits the ``layout`` output. Warns when there are no business keys, because silver then cannot be de-duplicated and re-runs append duplicates.
+        """
         columns = [
             {"name": c["name"], "source_name": c["source_name"], "type": c["type"]} for c in inputs["schema"]["columns"]
         ]
@@ -537,6 +548,12 @@ class AirflowDagRender(Component[AirflowDagRenderParams, AirflowDagRenderResult]
         return errs
 
     def compute(self, inputs: dict, params: AirflowDagRenderParams, ctx: StepContext) -> AirflowDagRenderResult:
+        """Render the Airflow DAG file for a medallion layout and a source.
+
+        Builds the config from the validated parameters and the ``layout`` input (columns and SQL) and renders it into the static DAG template; no
+        value is interpolated into code or SQL text. With ``watermark_column`` the DAG loads incrementally. Emits the ``code`` output; the result
+        lists the DAG id, source type, task ids and line count.
+        """
         layout = inputs["layout"]
         src = params.source
         source = src.model_dump()
@@ -709,6 +726,11 @@ class DagCheck(Component[DagCheckParams, DagCheckResult]):
         return _analyse(inputs["code"], ALLOWED_IMPORTS | set(params.extra_imports))[0]
 
     def compute(self, inputs: dict, params: DagCheckParams, ctx: StepContext) -> DagCheckResult:
+        """Statically check a generated Airflow DAG file; the checks gate the DAG before it is used.
+
+        Rejects disallowed imports, dangerous calls (``eval``, ``exec``, subprocess), embedded secrets and destructive SQL, and verifies the
+        required medallion tasks exist. Warns when ``catchup`` is enabled (backfills every interval) or ``retries`` is 0.
+        """
         _, info = _analyse(inputs["code"], ALLOWED_IMPORTS | set(params.extra_imports))
         code = inputs["code"]
         warns = []

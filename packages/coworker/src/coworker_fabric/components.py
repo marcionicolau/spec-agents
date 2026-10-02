@@ -116,6 +116,12 @@ class RepoIndex(Component[RepoIndexParams, RepoIndexResult]):
         return errs
 
     def compute(self, inputs: dict, params: RepoIndexParams, ctx: StepContext) -> RepoIndexResult:
+        """Index a code repository: files, token sizes, Python symbols with complexity, and the import graph.
+
+        Walks ``root`` with the ``include`` globs, skipping excluded directories, files over ``max_file_kb`` and anything resolving outside the root;
+        at most ``max_files`` files are indexed (a warning reports the cut). For Python files it records symbols and a stemmed vocabulary and resolves
+        imports between indexed modules into edges. Emits the ``index`` output.
+        """
         root = Path(params.root).resolve()
         skip = SKIP_DIRS | set(params.exclude_dirs)
         found: dict[str, Path] = {}
@@ -269,6 +275,14 @@ class ContextSelect(Component[ContextSelectParams, ContextSelectResult]):
         return errs
 
     def compute(self, inputs: dict, params: ContextSelectParams, ctx: StepContext) -> ContextSelectResult:
+        """Choose the files worth reading for a task within a token budget.
+
+        Scores every indexed file from three signals: focus files and their import neighbours up to ``hops`` away, test files paired with a
+        focus file, and BM25-style term relevance to the task (tests are down-weighted unless asked for). Candidates below ``relative_cutoff`` of the
+        best score are dropped, then files are taken in score order until ``max_files`` or ``token_budget`` is reached. Files over a quarter of
+        the budget contribute only their matching symbols (line ranges) when ``partial_files`` is set. Warns when relevant files did not fit.
+        Emits the ``context`` output (root, task and selected files).
+        """
         index = inputs["index"]
         files = {f["path"]: f for f in index["files"]}
         neighbours: dict[str, set[str]] = defaultdict(set)
@@ -412,6 +426,11 @@ class ContextPack(Component[ContextPackParams, ContextPackResult]):
         return errs
 
     def compute(self, inputs: dict, params: ContextPackParams, ctx: StepContext) -> ContextPackResult:
+        """Bundle the selected files into one Markdown document ready to paste into a prompt.
+
+        Each file becomes a fenced block headed by its path and the reasons it was selected; partially selected files include only their line
+        ranges. Files longer than ``max_chars_per_file`` are truncated and reported in ``truncated``. Emits the ``bundle`` output.
+        """
         root = Path(inputs["context"]["root"])
         parts, truncated = [f"# Context for: {inputs['context']['task']}", ""], []
         for s in inputs["context"]["selected"]:
@@ -496,6 +515,13 @@ class CodeReview(Component[CodeReviewParams, CodeReviewResult]):
         return errs
 
     def compute(self, inputs: dict, params: CodeReviewParams, ctx: StepContext) -> CodeReviewResult:
+        """Statically review the Python files of the selected context.
+
+        Applies the review rules (function length, complexity, parameter count, risky exception handling, unused imports, ...) to every selected
+        ``.py`` file read through ``safe_path`` (nothing outside the root). For partially selected files only findings inside the selected line
+        ranges are kept. Disabled rules are dropped, findings are sorted by severity and cut to ``max_findings`` (a warning says how many).
+        Emits the ``findings`` output. Nothing is executed or written.
+        """
         root = Path(inputs["context"]["root"])
         found: list[dict[str, Any]] = []
         n = 0
@@ -703,6 +729,11 @@ class PatchPropose(Component[PatchProposeParams, PatchProposeResult]):
         return errs
 
     def compute(self, inputs: dict, params: PatchProposeParams, ctx: StepContext) -> PatchProposeResult:
+        """Apply the proposed edits in memory and return them as a unified diff.
+
+        Edits are validated against the real files and restricted to the files of the selected context (a warning is returned when no context is
+        bound). Emits the ``diff`` output and reports additions and deletions per file. Nothing is written to disk.
+        """
         texts, _ = _apply(params, inputs.get("context"))
         diff, files = [], []
         for path, (before, after) in texts.items():
