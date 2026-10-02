@@ -150,6 +150,7 @@ class RunContext:
     t0: float = field(default_factory=time.perf_counter)
     on_event: Any = None  # optional listener(TraceEvent) - UIs render a live view from it
     on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
+    on_delta: Any = None  # optional listener(path, text) - streamed answer text of LLM calls, for live views
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)  # guards trace/blackboard/counters
 
     def event(self, path: str, event: EventKind, detail: str = "") -> None:
@@ -210,8 +211,20 @@ class MeteredBackend:
         json_mode: bool = False,
         temperature: float | None = None,
     ) -> str:
-        """Charge one LLM call to the budget, trace it and delegate to the wrapped backend; `BudgetExceeded` stops the call before it is made."""
+        """Charge one LLM call to the budget, trace it and delegate to the wrapped backend; `BudgetExceeded` stops the call before it is made.
+
+        When the run has an ``on_delta`` listener and the backend can ``stream``, the answer is streamed to the listener and joined, so the
+        return value is the same as without streaming.
+        """
         self._charge(model)
+        stream = getattr(self.inner, "stream", None)
+        if self.ctx.on_delta is not None and callable(stream):
+            parts: list[str] = []
+            for delta in stream(messages, model=model, json_mode=json_mode, temperature=temperature):
+                parts.append(delta)
+                with self.ctx.lock:
+                    self.ctx.on_delta(self.path, delta)
+            return "".join(parts)
         return self.inner.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
 
     def _charge(self, model: str | None) -> None:

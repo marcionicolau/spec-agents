@@ -12,7 +12,7 @@ import os
 import urllib.error
 import urllib.request
 from collections import deque
-from collections.abc import AsyncIterator, Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable, Iterator
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
@@ -68,7 +68,18 @@ class AsyncLLMBackend(Protocol):
 
 
 class StreamingLLMBackend(Protocol):
-    """Backend that can stream an answer as text deltas."""
+    """Backend that can stream an answer as text deltas (``stream`` blocking, ``astream`` async)."""
+
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> Iterator[str]:
+        """Yield the answer as text deltas; their concatenation equals what ``complete`` would return."""
+        ...
 
     def astream(
         self,
@@ -163,6 +174,39 @@ class LiteLLMProxyBackend:
             self.complete, messages, model=model, json_mode=json_mode, temperature=temperature
         )
 
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> Iterator[str]:
+        """Stream a chat completion (server-sent events) and yield the text deltas as they arrive.
+
+        Blocking; failures are raised as `DependencyError` exactly like `complete`, a malformed event is ``bad_response``.
+        """
+        req = self._request(messages, model, json_mode, temperature, stream=True)
+        try:
+            with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
+                for raw in resp:
+                    line = raw.decode(errors="replace").strip()
+                    if not line.startswith("data:"):
+                        continue
+                    data = line[5:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        delta = json.loads(data)["choices"][0]["delta"].get("content") or ""
+                    except (KeyError, IndexError, TypeError, ValueError) as exc:
+                        raise DependencyError(
+                            "Unexpected stream event from proxy", [ErrorDetail(type="bad_response", msg=data[:300])]
+                        ) from exc
+                    if delta:
+                        yield delta
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise self._dependency_error(exc) from exc
+
     async def astream(
         self,
         messages: list[Message],
@@ -171,41 +215,20 @@ class LiteLLMProxyBackend:
         json_mode: bool = False,
         temperature: float | None = None,
     ) -> AsyncIterator[str]:
-        """Stream a chat completion (server-sent events) and yield the text deltas as they arrive.
-
-        Failures are raised as `DependencyError` exactly like `complete`; a malformed event is ``bad_response``.
-        """
-        req = self._request(messages, model, json_mode, temperature, stream=True)
+        """Async `stream`: the blocking read runs in a worker thread and deltas are handed to the event loop."""
         loop = asyncio.get_running_loop()
         queue: asyncio.Queue[str | BaseException | None] = asyncio.Queue()
 
         def pump() -> None:
             try:
-                with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
-                    for raw in resp:
-                        line = raw.decode(errors="replace").strip()
-                        if not line.startswith("data:"):
-                            continue
-                        data = line[5:].strip()
-                        if data == "[DONE]":
-                            break
-                        try:
-                            delta = json.loads(data)["choices"][0]["delta"].get("content") or ""
-                        except (KeyError, IndexError, TypeError, ValueError) as exc:
-                            raise DependencyError(
-                                "Unexpected stream event from proxy",
-                                [ErrorDetail(type="bad_response", msg=data[:300])],
-                            ) from exc
-                        if delta:
-                            loop.call_soon_threadsafe(queue.put_nowait, delta)
+                for delta in self.stream(messages, model=model, json_mode=json_mode, temperature=temperature):
+                    loop.call_soon_threadsafe(queue.put_nowait, delta)
             except DependencyError as exc:
                 loop.call_soon_threadsafe(queue.put_nowait, exc)
-            except (urllib.error.URLError, TimeoutError, OSError) as exc:
-                loop.call_soon_threadsafe(queue.put_nowait, self._dependency_error(exc))
             finally:
                 loop.call_soon_threadsafe(queue.put_nowait, None)
 
-        task = asyncio.get_running_loop().run_in_executor(None, pump)
+        task = loop.run_in_executor(None, pump)
         try:
             while (item := await queue.get()) is not None:
                 if isinstance(item, BaseException):
@@ -295,6 +318,20 @@ class ScriptedBackend:
         """Async `complete`: same script, same recorded ``calls``; runs inline (deterministic, no thread)."""
         return self.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
 
+    def stream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+        chunk_size: int = 16,
+    ) -> Iterator[str]:
+        """Yield the next scripted response in ``chunk_size``-character deltas."""
+        text = self.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
+        for i in range(0, len(text), chunk_size):
+            yield text[i : i + chunk_size]
+
     async def astream(
         self,
         messages: list[Message],
@@ -304,10 +341,11 @@ class ScriptedBackend:
         temperature: float | None = None,
         chunk_size: int = 16,
     ) -> AsyncIterator[str]:
-        """Yield the next scripted response in ``chunk_size``-character deltas."""
-        text = self.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
-        for i in range(0, len(text), chunk_size):
-            yield text[i : i + chunk_size]
+        """Async `stream` (inline, deterministic)."""
+        for delta in self.stream(
+            messages, model=model, json_mode=json_mode, temperature=temperature, chunk_size=chunk_size
+        ):
+            yield delta
 
 
 __all__ = [

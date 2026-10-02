@@ -54,6 +54,11 @@ delegations at the same time, in threads. Delegations run in waves (all dependen
 event carries a `seq` giving the run a total order. Counters, trace and blackboard are lock-protected. Keep your own
 function agents and backends thread-safe when you raise it.
 
+**Streaming**: `fabric.run(..., on_delta=fn)` (and the CLI live view) receives `fn(path, text)` for the answer text of every
+LLM call as it is generated, when the backend can `stream()` (`LiteLLMProxyBackend`, `ScriptedBackend`); other backends just
+don't stream. The returned text, the budget and the trace are identical with or without a listener. Async callers can use
+`acomplete`/`astream` on the backends (`AsyncLLMBackend`, `StreamingLLMBackend`; `SyncToAsyncBackend` adapts any sync one).
+
 **Fallbacks**: build-time and run-time; recorded in `result.notes` and trace (`fallback` event).
 **Memory**: per agent at `<session>/<path>`; routers/planners receive their last runs as context.
 

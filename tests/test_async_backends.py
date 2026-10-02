@@ -128,3 +128,28 @@ def test_proxy_astream_unreachable():
     with pytest.raises(DependencyError) as e:
         asyncio.run(collect(b.astream(MSG)))
     assert e.value.report.details[0].type == "connection_error"
+
+
+def test_proxy_sync_stream(proxy):
+    assert list(proxy.stream(MSG)) == ["Hel", "lo ", "world"]
+
+
+def test_metered_complete_streams_to_on_delta_and_returns_same_text():
+    seen: list[tuple[str, str]] = []
+    ctx = RunContext(session_id="s", budget=Budget(BudgetSettings()), on_delta=lambda p, t: seen.append((p, t)))
+    text = "a fairly long scripted answer"
+    assert ctx.metered(ScriptedBackend([text]), "root/w").complete(MSG) == text
+    assert len(seen) > 1 and {p for p, _ in seen} == {"root/w"} and "".join(t for _, t in seen) == text
+    assert ctx.budget.llm_calls == 1
+
+
+def test_metered_without_listener_or_stream_support_does_not_stream():
+    class Plain:
+        def complete(self, messages, **kw):
+            return "plain"
+
+    seen: list[str] = []
+    ctx = RunContext(session_id="s", budget=Budget(BudgetSettings()), on_delta=lambda p, t: seen.append(t))
+    assert ctx.metered(Plain(), "p").complete(MSG) == "plain" and seen == []
+    quiet = RunContext(session_id="s", budget=Budget(BudgetSettings()))
+    assert quiet.metered(ScriptedBackend(["x"]), "p").complete(MSG) == "x"
