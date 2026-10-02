@@ -5,9 +5,8 @@ with YAML frontmatter (`SKILL.md`, `AGENT.md`, `fabric.md`); the frontmatter is 
 injected into prompts on demand. LLMs plan, delegate, repair and interpret — **they never compute**: every result comes from
 deterministic `Component.compute()` code run by the `PipelineExecutor`.
 
-> **Status:** pre-release. Until the first PyPI release, install a wheel from the
-> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
-> the `pip install` lines below are the PyPI names.
+> **Install:** `pip install spec-agents-core` ([PyPI](https://pypi.org/project/spec-agents-core/)); wheels and sdists are also attached to each
+> [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) (`agent-fabric-vX.Y.Z`).
 
 ## Names
 

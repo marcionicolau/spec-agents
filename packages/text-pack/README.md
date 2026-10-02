@@ -3,9 +3,8 @@
 Small text domain pack for [agent-fabric](../agent-fabric/README.md): components `text_stats` and `keywords`, pipeline `document_digest`.
 It needs no pandas and no other pack, which makes it the proof that the core is domain-agnostic, and a minimal template for new packs.
 
-> **Status:** pre-release. Until the first PyPI release, install a wheel from the
-> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
-> the `pip install` lines below are the PyPI names.
+> **Install:** `pip install spec-agents-text` ([PyPI](https://pypi.org/project/spec-agents-text/)); wheels and sdists are also attached to each
+> [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) (`text-pack-vX.Y.Z`).
 
 ## Names
 

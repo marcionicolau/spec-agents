@@ -8,9 +8,8 @@ as a unified diff.
 Only the working directory and the directories in `COWORKER_ALLOWED_ROOTS` can be indexed or patched; all paths go through
 `analysis.safe_path`.
 
-> **Status:** pre-release. Until the first PyPI release, install a wheel from the
-> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
-> the `pip install` lines below are the PyPI names.
+> **Install:** `pip install spec-agents-coworker` ([PyPI](https://pypi.org/project/spec-agents-coworker/)); wheels and sdists are also attached to each
+> [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) (`coworker-vX.Y.Z`).
 
 ## Names
 

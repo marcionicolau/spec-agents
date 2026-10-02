@@ -7,9 +7,8 @@ Airflow DAGs** that load Trino/Iceberg tables in bronze, silver and gold layers.
 Generated code is never trusted twice: values are `pprint`-ed into a static template, SQL identifiers are validated and quoted, credentials
 live in Airflow connections, and `dag_check` rejects unsafe files. Incremental loads and pagination never load partial data silently.
 
-> **Status:** pre-release. Until the first PyPI release, install a wheel from the
-> [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
-> the `pip install` lines below are the PyPI names.
+> **Install:** `pip install spec-agents-lakehouse` ([PyPI](https://pypi.org/project/spec-agents-lakehouse/)); wheels and sdists are also attached to each
+> [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) (`lakehouse-vX.Y.Z`).
 
 ## Names
 
