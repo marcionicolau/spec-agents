@@ -7,6 +7,17 @@ It needs no pandas and no other pack, which makes it the proof that the core is 
 > [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
 > the `pip install` lines below are the PyPI names.
 
+## Names
+
+| | |
+| --- | --- |
+| PyPI distribution | `spec-agents-text` |
+| Import name | `text_pack` |
+| Directory in the monorepo | `packages/text-pack` |
+| Release tag / PR scope | `text-pack-vX.Y.Z` / `text-pack` |
+
+The distribution is named `spec-agents-text` because the shorter names are taken on PyPI; the import name and the entry point do not change.
+
 ## Install
 ```bash
 pip install spec-agents-text
