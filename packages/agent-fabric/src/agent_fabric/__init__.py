@@ -14,8 +14,11 @@ except _metadata.PackageNotFoundError:  # pragma: no cover - source tree without
 
 
 def domain_loader(ref: str) -> Callable:
-    """Resolve a domain reference: 'module:register' callable, or an existing directory
-    loaded as a code-free spec pack (skills/<name>/SKILL.md, no Python required)."""
+    """Resolve a domain reference.
+
+    'module:register' callable, or an existing directory loaded as a code-free spec pack
+    (skills/<name>/SKILL.md, no Python required).
+    """
     from pathlib import Path
 
     p = Path(ref)
@@ -28,8 +31,10 @@ def domain_loader(ref: str) -> Callable:
 
 
 def build_registry(domains: Iterable[Callable | str] = (), discover: bool = False):
-    """Create a Registry and load domain packs (callables ``register(registry)`` or
-    references resolved by :func:`domain_loader`)."""
+    """Create a Registry and load domain packs.
+
+    ``domains`` are callables ``register(registry)`` or references resolved by :func:`domain_loader`.
+    """
     from .compat import check_pack_api
     from .registry import Registry
 

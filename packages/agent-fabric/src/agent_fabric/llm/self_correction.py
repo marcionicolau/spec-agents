@@ -147,9 +147,12 @@ def structured_completion[T](
     extract: Callable[[str], Any] = extract_json,
     feedback_extra: Callable[[ErrorReport, Any], str] | None = None,
 ) -> Corrected[T]:
-    """Ask, extract, validate; on failure feed the ErrorReport back. ``extract`` defaults to JSON extraction;
-    pass ``extract_text`` for free-text answers that still go through ``parse`` validation.
-    ``feedback_extra(report, data)`` may append targeted guidance (e.g. a skill's common mistakes)."""
+    """Ask, extract, validate; on failure feed the ErrorReport back.
+
+    ``extract`` defaults to JSON extraction; pass ``extract_text`` for free-text answers that still go through
+    ``parse`` validation. ``feedback_extra(report, data)`` may append targeted guidance (e.g. a skill's common
+    mistakes).
+    """
     base: list[Message] = [{"role": "system", "content": system}, {"role": "user", "content": user}]
     messages = list(base)
     attempts: list[Attempt] = []

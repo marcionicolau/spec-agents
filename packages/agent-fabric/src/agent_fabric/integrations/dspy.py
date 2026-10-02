@@ -46,9 +46,11 @@ def configure_dspy(settings: LLMSettings | None = None, model: str | None = None
 if dspy is not None:
 
     class PlanPipeline(dspy.Signature):
-        """Design a pipeline from the catalogue. Use only listed components, parameters, ports and columns.
-        Reference data as "$inputs.<name>" or "<step_id>.<output>". If validator_feedback is not 'none',
-        fix exactly those errors."""
+        """Design a pipeline from the catalogue.
+
+        Use only listed components, parameters, ports and columns. Reference data as "$inputs.<name>" or
+        "<step_id>.<output>". If validator_feedback is not 'none', fix exactly those errors.
+        """
 
         objective: str = dspy.InputField()
         pipeline_inputs: str = dspy.InputField()

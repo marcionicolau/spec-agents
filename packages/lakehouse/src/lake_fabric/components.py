@@ -36,8 +36,11 @@ _DOTTED = r"^[A-Za-z0-9_\-]+(\.[A-Za-z0-9_\-]+)*$"
 
 
 class Pagination(BaseModel):
-    """How an API is paged. ``next_link``: the response holds the URL of the next page; ``cursor``: it holds a token
-    sent back as ``cursor_param``; ``page``: page numbers from 1 in ``page_param`` until an empty page."""
+    """How an API is paged.
+
+    ``next_link``: the response holds the URL of the next page; ``cursor``: it holds a token sent back as
+    ``cursor_param``; ``page``: page numbers from 1 in ``page_param`` until an empty page.
+    """
 
     model_config = ConfigDict(extra="forbid")
 

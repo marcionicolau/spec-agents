@@ -1,3 +1,5 @@
+"""Time-series analysis over dated observations (``time_series`` component)."""
+
 from __future__ import annotations
 
 from typing import Literal

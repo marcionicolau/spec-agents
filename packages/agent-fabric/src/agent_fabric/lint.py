@@ -1,4 +1,4 @@
-"""Drift lint for SKILL.md / AGENT.md: keeps natural-language guidance consistent with the contracts.
+r"""Drift lint for SKILL.md / AGENT.md: keeps natural-language guidance consistent with the contracts.
 
 Loading already rejects anything that breaks a contract (bad frontmatter, unknown ports,
 invalid trees). The lint adds what loading cannot know - *prose* that drifted:
@@ -316,7 +316,8 @@ def collect_issues(
     ``domains`` entries are ``module:register`` references or plain spec directories
     (code-free packs). ``skill_dirs`` from the agents config are loaded too, so
     Markdown-only skills are linted like any component. With ``discover`` the domain packs installed in the environment are loaded too
-    (the ``agent-fabric lint`` command does; ``python -m agent_fabric.lint`` stays explicit so a run lints exactly what it names)."""
+    (the ``agent-fabric lint`` command does; ``python -m agent_fabric.lint`` stays explicit so a run lints exactly what it names).
+    """
     from . import build_registry
     from .agents import AgentFabric, AgentsConfig
 

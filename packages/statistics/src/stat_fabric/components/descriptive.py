@@ -1,3 +1,5 @@
+"""Descriptive statistics: column-wise numeric/categorical summaries (``summary`` component)."""
+
 from __future__ import annotations
 
 import pandas as pd

@@ -1,3 +1,5 @@
+"""Agent memory: per-agent run summaries scoped by session and path."""
+
 from .base import InMemoryMemory, MemoryPort, RunSummary, memory_context, namespaced
 
 __all__ = ["InMemoryMemory", "LangChainMemory", "MemoryPort", "RunSummary", "memory_context", "namespaced"]
