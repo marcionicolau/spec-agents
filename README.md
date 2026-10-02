@@ -193,7 +193,8 @@ print(render_markdown(report))
 
 ## Contributing, security and license
 
-- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md). PR titles are conventional with a package scope, and `main` only takes squash-merged PRs with `ci-ok` green.
+- **Roadmap and planning:** [ROADMAP.md](ROADMAP.md), the [project board](https://github.com/users/marcionicolau/projects/14) and [GOVERNANCE.md](GOVERNANCE.md).
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). PR titles are conventional with a package scope, and `main` only takes squash-merged PRs with `ci-ok` green.
 - **Security:** do not open a public issue; use the [private vulnerability report](https://github.com/marcionicolau/spec-agents/security/advisories/new) ([SECURITY.md](SECURITY.md)).
 - **License:** [MIT](LICENSE).
 - **Coding assistants:** [CLAUDE.md](CLAUDE.md) (rules) and [docs/](docs/README.md) (procedures).
