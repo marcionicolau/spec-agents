@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.5.0...agent-fabric-v0.5.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* document the spec-agents-* distribution names in the package READMEs ([#96](https://github.com/marcionicolau/spec-agents/issues/96)) ([fffad88](https://github.com/marcionicolau/spec-agents/commit/fffad88e5c8405bb01c7d9dddf66b7cf52a13e28)), closes [#76](https://github.com/marcionicolau/spec-agents/issues/76)
+
 ## [0.5.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.4.0...agent-fabric-v0.5.0) (2026-10-02)
 
 
