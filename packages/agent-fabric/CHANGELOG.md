@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.7.0...agent-fabric-v0.8.0) (2026-10-02)
+
+
+### Features
+
+* **agent-fabric:** async and streaming LLM backends ([#111](https://github.com/marcionicolau/spec-agents/issues/111)) ([ed67381](https://github.com/marcionicolau/spec-agents/commit/ed67381eb085b401c462a28ea956858fc0564688))
+* **agent-fabric:** run independent router delegations in parallel ([#112](https://github.com/marcionicolau/spec-agents/issues/112)) ([cf82389](https://github.com/marcionicolau/spec-agents/commit/cf8238979560c98ebd4c716c9c2060761282f7cd))
+* **agent-fabric:** stream LLM answer text to the live view ([#113](https://github.com/marcionicolau/spec-agents/issues/113)) ([a6fba84](https://github.com/marcionicolau/spec-agents/commit/a6fba84c4f093119cbf77edf01c9ef68dec3e9e9))
+
 ## [0.7.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.6.0...agent-fabric-v0.7.0) (2026-10-02)
 
 
