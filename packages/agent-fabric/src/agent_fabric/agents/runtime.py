@@ -10,14 +10,14 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 from ..errors import BudgetExceeded, DependencyError, ErrorDetail, ErrorReport, suggest
-from ..llm.backends import LLMBackend, Message
+from ..llm.backends import LLMBackend, Message, SyncToAsyncBackend
 from ..memory.base import MemoryPort
 
 type Status = Literal["ok", "partial", "failed", "skipped"]
@@ -195,10 +195,49 @@ class MeteredBackend:
         temperature: float | None = None,
     ) -> str:
         """Charge one LLM call to the budget, trace it and delegate to the wrapped backend; `BudgetExceeded` stops the call before it is made."""
+        self._charge(model)
+        return self.inner.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
+
+    def _charge(self, model: str | None) -> None:
         self.ctx.budget.charge_llm(self.path)
         self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
         self.ctx.event(self.path, "llm_call", model or "")
-        return self.inner.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
+
+    async def acomplete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
+        """Async `complete`: charged and traced before the ``await`` (so concurrent calls never race on the budget).
+
+        Uses the wrapped backend's ``acomplete`` when it has one, else runs its ``complete`` in a worker thread.
+        """
+        self._charge(model)
+        return await self._async_inner().acomplete(messages, model=model, json_mode=json_mode, temperature=temperature)
+
+    async def astream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream the answer as text deltas; one call is charged and traced up front. Backends without ``astream`` yield one delta."""
+        self._charge(model)
+        async for delta in self._async_inner().astream(
+            messages, model=model, json_mode=json_mode, temperature=temperature
+        ):
+            yield delta
+
+    def _async_inner(self) -> Any:
+        inner = self.inner
+        if hasattr(inner, "acomplete") and hasattr(inner, "astream"):
+            return inner
+        return SyncToAsyncBackend(inner)
 
 
 class AgentRunReport(BaseModel):

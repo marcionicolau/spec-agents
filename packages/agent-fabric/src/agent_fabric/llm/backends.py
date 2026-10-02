@@ -6,12 +6,13 @@ timeouts); this code only knows *aliases* such as ``local-planner``.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import os
 import urllib.error
 import urllib.request
 from collections import deque
-from collections.abc import Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
@@ -51,6 +52,72 @@ class LLMBackend(Protocol):
         ...
 
 
+class AsyncLLMBackend(Protocol):
+    """Async twin of `LLMBackend`; same arguments and the same `DependencyError` failures."""
+
+    async def acomplete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
+        """Return the model's answer text for a chat ``messages`` list (see `LLMBackend.complete`)."""
+        ...
+
+
+class StreamingLLMBackend(Protocol):
+    """Backend that can stream an answer as text deltas."""
+
+    def astream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
+        """Yield the answer as text deltas; their concatenation equals what ``complete`` would return."""
+        ...
+
+
+class SyncToAsyncBackend:
+    """Adapts any sync `LLMBackend` to `AsyncLLMBackend` by running ``complete`` in a worker thread.
+
+    ``astream`` yields the whole answer as a single delta, so streaming consumers work with any backend.
+    """
+
+    def __init__(self, inner: LLMBackend) -> None:
+        self.inner = inner
+
+    async def acomplete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
+        """Run the wrapped backend's ``complete`` in a worker thread and return its text."""
+        return await asyncio.to_thread(
+            self.inner.complete, messages, model=model, json_mode=json_mode, temperature=temperature
+        )
+
+    async def astream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
+        """Yield the complete answer as one delta."""
+        text = await self.acomplete(messages, model=model, json_mode=json_mode, temperature=temperature)
+        if text:
+            yield text
+
+
 class LiteLLMProxyBackend:
     """Minimal OpenAI-compatible client (stdlib only) for the LiteLLM proxy."""
 
@@ -70,6 +137,87 @@ class LiteLLMProxyBackend:
         ``model`` defaults to the planner alias of the settings. Raises `DependencyError` with a hint for an HTTP error (``http_error``), an unreachable
         proxy (``connection_error``) or an unexpected response shape (``bad_response``).
         """
+        req = self._request(messages, model, json_mode, temperature, stream=False)
+        try:
+            with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
+                payload = json.loads(resp.read())
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise self._dependency_error(exc) from exc
+        try:
+            return payload["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError) as exc:
+            raise DependencyError(
+                "Unexpected response shape from proxy", [ErrorDetail(type="bad_response", msg=str(payload)[:300])]
+            ) from exc
+
+    async def acomplete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
+        """Async `complete`: the blocking request runs in a worker thread so other coroutines keep running."""
+        return await asyncio.to_thread(
+            self.complete, messages, model=model, json_mode=json_mode, temperature=temperature
+        )
+
+    async def astream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> AsyncIterator[str]:
+        """Stream a chat completion (server-sent events) and yield the text deltas as they arrive.
+
+        Failures are raised as `DependencyError` exactly like `complete`; a malformed event is ``bad_response``.
+        """
+        req = self._request(messages, model, json_mode, temperature, stream=True)
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue[str | BaseException | None] = asyncio.Queue()
+
+        def pump() -> None:
+            try:
+                with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
+                    for raw in resp:
+                        line = raw.decode(errors="replace").strip()
+                        if not line.startswith("data:"):
+                            continue
+                        data = line[5:].strip()
+                        if data == "[DONE]":
+                            break
+                        try:
+                            delta = json.loads(data)["choices"][0]["delta"].get("content") or ""
+                        except (KeyError, IndexError, TypeError, ValueError) as exc:
+                            raise DependencyError(
+                                "Unexpected stream event from proxy",
+                                [ErrorDetail(type="bad_response", msg=data[:300])],
+                            ) from exc
+                        if delta:
+                            loop.call_soon_threadsafe(queue.put_nowait, delta)
+            except DependencyError as exc:
+                loop.call_soon_threadsafe(queue.put_nowait, exc)
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                loop.call_soon_threadsafe(queue.put_nowait, self._dependency_error(exc))
+            finally:
+                loop.call_soon_threadsafe(queue.put_nowait, None)
+
+        task = asyncio.get_running_loop().run_in_executor(None, pump)
+        try:
+            while (item := await queue.get()) is not None:
+                if isinstance(item, BaseException):
+                    raise item
+                yield item
+        finally:
+            await asyncio.shield(task)
+
+    # ------------------------------------------------------------------ helpers
+    def _request(
+        self, messages: list[Message], model: str | None, json_mode: bool, temperature: float | None, *, stream: bool
+    ) -> urllib.request.Request:
         body: dict[str, Any] = {
             "model": model or self.s.planner_model,
             "messages": messages,
@@ -77,18 +225,19 @@ class LiteLLMProxyBackend:
         }
         if json_mode:
             body["response_format"] = {"type": "json_object"}
-        req = urllib.request.Request(
+        if stream:
+            body["stream"] = True
+        return urllib.request.Request(
             self.s.base_url.rstrip("/") + "/chat/completions",
             data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.s.api_key}"},
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(req, timeout=self.s.timeout_s) as resp:
-                payload = json.loads(resp.read())
-        except urllib.error.HTTPError as exc:
+
+    def _dependency_error(self, exc: Exception) -> DependencyError:
+        if isinstance(exc, urllib.error.HTTPError):
             detail = exc.read().decode(errors="replace")[:500]
-            raise DependencyError(
+            return DependencyError(
                 f"LiteLLM proxy returned HTTP {exc.code}",
                 [
                     ErrorDetail(
@@ -97,24 +246,17 @@ class LiteLLMProxyBackend:
                         hint="check model alias in config/litellm_config.yaml and that Ollama has pulled it",
                     )
                 ],
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            raise DependencyError(
-                "LiteLLM proxy is unreachable",
-                [
-                    ErrorDetail(
-                        type="connection_error",
-                        msg=str(exc)[:300],
-                        hint=f"start it: litellm --config config/litellm_config.yaml (expected at {self.s.base_url})",
-                    )
-                ],
-            ) from exc
-        try:
-            return payload["choices"][0]["message"]["content"] or ""
-        except (KeyError, IndexError, TypeError) as exc:
-            raise DependencyError(
-                "Unexpected response shape from proxy", [ErrorDetail(type="bad_response", msg=str(payload)[:300])]
-            ) from exc
+            )
+        return DependencyError(
+            "LiteLLM proxy is unreachable",
+            [
+                ErrorDetail(
+                    type="connection_error",
+                    msg=str(exc)[:300],
+                    hint=f"start it: litellm --config config/litellm_config.yaml (expected at {self.s.base_url})",
+                )
+            ],
+        )
 
 
 class ScriptedBackend:
@@ -142,11 +284,39 @@ class ScriptedBackend:
         nxt = self.responses.popleft()
         return nxt if isinstance(nxt, str) else nxt(messages)
 
+    async def acomplete(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+    ) -> str:
+        """Async `complete`: same script, same recorded ``calls``; runs inline (deterministic, no thread)."""
+        return self.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
+
+    async def astream(
+        self,
+        messages: list[Message],
+        *,
+        model: str | None = None,
+        json_mode: bool = False,
+        temperature: float | None = None,
+        chunk_size: int = 16,
+    ) -> AsyncIterator[str]:
+        """Yield the next scripted response in ``chunk_size``-character deltas."""
+        text = self.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
+        for i in range(0, len(text), chunk_size):
+            yield text[i : i + chunk_size]
+
 
 __all__ = [
+    "AsyncLLMBackend",
     "LLMBackend",
     "LLMSettings",
     "LiteLLMProxyBackend",
     "Message",
     "ScriptedBackend",
+    "StreamingLLMBackend",
+    "SyncToAsyncBackend",
 ]
