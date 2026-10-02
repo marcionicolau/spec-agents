@@ -4,14 +4,14 @@ Guidance for Claude Code and other coding agents working in this repository.
 Read §1 first. The exact procedures live in [docs/](docs/README.md): **read the matching document before you
 add a component, pipeline or agent, or before you change guidance text**.
 
-| You are about to…                                  | Read first                                           |
-| -------------------------------------------------- | ---------------------------------------------------- |
-| add a component, a `runtime: prompt` skill, a pipeline | [docs/extending.md](docs/extending.md)           |
-| add or change an agent / sub-agent tree            | [docs/agents.md](docs/agents.md)                     |
-| touch errors, `loc`/`type`/`hint`                  | [docs/error-model.md](docs/error-model.md)           |
-| change a contract, SKILL.md/AGENT.md prose, evals, or the lakehouse/coworker packs | [docs/maintenance.md](docs/maintenance.md) |
-| understand the layers, the run flow, the layout    | [docs/architecture.md](docs/architecture.md)         |
-| cut a release, label an issue, bump a version      | [docs/releasing.md](docs/releasing.md)               |
+| You are about to…                                                                  | Read first                                   |
+| ---------------------------------------------------------------------------------- | -------------------------------------------- |
+| add a component, a `runtime: prompt` skill, a pipeline                             | [docs/extending.md](docs/extending.md)       |
+| add or change an agent / sub-agent tree                                            | [docs/agents.md](docs/agents.md)             |
+| touch errors, `loc`/`type`/`hint`                                                  | [docs/error-model.md](docs/error-model.md)   |
+| change a contract, SKILL.md/AGENT.md prose, evals, or the lakehouse/coworker packs | [docs/maintenance.md](docs/maintenance.md)   |
+| understand the layers, the run flow, the layout                                    | [docs/architecture.md](docs/architecture.md) |
+| cut a release, label an issue, bump a version                                      | [docs/releasing.md](docs/releasing.md)       |
 
 ---
 
@@ -77,6 +77,7 @@ python -m agent_fabric.lint --domains coworker_fabric.domain:register --agents p
 python -m lake_fabric.generate params.json --sample records.json --out dags   # DAG file, no LLM involved
 python -m agent_fabric.scaffold skill my_step --dir packages/statistics/src/stat_fabric/skills --domain statistics
 python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --domain notes   # code-free skill
+python -m agent_fabric.scaffold pack my-pack   # new domain pack under packages/ + repo wiring (release-please, labels, isort)
 python examples/run_evals.py --mode live    # before merging guidance/model changes (PRs get `stage:needs-eval`)
 just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
 just docs                                  # build the documentation site (mkdocs-material, strict); `just docs-serve` previews
