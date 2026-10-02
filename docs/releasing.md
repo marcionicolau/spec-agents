@@ -20,6 +20,17 @@ that package (`pattern-prefix = "<package>-"`; other packages' tags are ignored)
 4. Paths outside `packages/<pkg>/` never trigger a release; cross-cutting changes use `chore`, `ci`, `docs`, `deps`.
 5. `SKILL.md` `version:` fields are contracts, not releases: bump them by hand (minor = new optional field, major = breaking).
 
+**Distribution (GitHub Releases only).** After release-please creates a release, the `assets` job of `release.yml` checks out that tag, builds the
+package (`uv build --package <pkg>`), verifies it with `tools/check_wheels.py --expect-version <version>` (skills, LICENSE, `py.typed`, exact
+version without a `.dev` suffix) and attaches the wheel and sdist to the GitHub Release, using the job-scoped `GITHUB_TOKEN`: no long-lived
+secret, no index. Install a release with
+`uv pip install https://github.com/marcionicolau/spec-agents/releases/download/<pkg>-vX.Y.Z/<wheel file>` (the repo is private, so use `gh release download`).
+
+**Not published to PyPI.** `statistics`, `lakehouse`, `coworker` and `text-pack` are already taken on PyPI by unrelated projects (only `agent-fabric`
+is free). Decision: when publishing is scheduled the four packs are renamed `agent-fabric-statistics`, `agent-fabric-lakehouse`,
+`agent-fabric-coworker` and `agent-fabric-text` (import names and entry points stay), and release assets are uploaded with trusted publishing (OIDC).
+Tracked in #76.
+
 The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so release PRs trigger CI); rotate it by re-running
 `gh secret set RELEASE_PLEASE_TOKEN`. Packages are not published to an index yet.
 

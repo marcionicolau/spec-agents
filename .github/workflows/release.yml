@@ -7,9 +7,7 @@ on:
 # release-please opens/updates one release PR per package; merging it tags and creates the GitHub Release.
 # Use a PAT or GitHub App token (RELEASE_PLEASE_TOKEN) if the release PR must trigger CI; GITHUB_TOKEN-created
 # PRs do not start other workflows.
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: release-${{ github.ref }}
@@ -19,9 +17,65 @@ jobs:
   release-please:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    permissions:
+      contents: write # tags and GitHub Releases
+      pull-requests: write # release PRs
+    outputs:
+      releases_created: ${{ steps.rp.outputs.releases_created }}
+      paths_released: ${{ steps.rp.outputs.paths_released }}
+      tags: ${{ toJSON(steps.rp.outputs) }}
     steps:
-      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+      - id: rp
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN || secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  assets:
+    # Build each released package at its tag and attach wheel + sdist to its GitHub Release. Packages are not published to an index
+    # (see docs/releasing.md); the GitHub Release is the distribution for now.
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        path: ${{ fromJSON(needs.release-please.outputs.paths_released) }}
+    permissions:
+      contents: write # upload assets to the release
+    steps:
+      - name: Resolve package and tag
+        id: pkg
+        env:
+          RP_OUTPUTS: ${{ needs.release-please.outputs.tags }}
+          RELEASE_PATH: ${{ matrix.path }}
+        run: |
+          pkg="${RELEASE_PATH#packages/}"
+          tag=$(jq -r --arg k "${RELEASE_PATH}--tag_name" '.[$k] // empty' <<<"$RP_OUTPUTS")
+          if [ -z "$tag" ] || [[ ! "$pkg" =~ ^[a-z0-9-]+$ ]]; then echo "::error::no tag or invalid package for $RELEASE_PATH"; exit 1; fi
+          echo "pkg=$pkg" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag##*-v}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.pkg.outputs.tag }}
+          fetch-depth: 0 # version comes from git tags
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.19"
+      - name: Build and verify
+        env:
+          PKG: ${{ steps.pkg.outputs.pkg }}
+          VERSION: ${{ steps.pkg.outputs.version }}
+        run: |
+          uv build --package "$PKG" --out-dir dist
+          uv run --no-project python tools/check_wheels.py dist --expect-version "$VERSION"
+          ls -l dist
+      - name: Attach to the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.pkg.outputs.tag }}
+        run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
