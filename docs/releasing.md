@@ -39,10 +39,22 @@ directories, git tags (`agent-fabric-v0.5.0`, `statistics-v0.2.0`, ...), release
 `agent-fabric` CLI and the `agent_fabric.domains` entry-point group are unchanged.
 
 The `publish` job of `release.yml` uploads each released package's verified wheel and sdist (the artifact built by `assets`) with trusted publishing
-(OIDC, no stored token, attestations on) through the `pypi` environment. It is **off until the repository variable `PYPI_PUBLISH` is `true`**. One-time setup:
-1. On PyPI (and TestPyPI to rehearse), add a *pending publisher* for each of the five names: owner `marcionicolau`, repository `spec-agents`, workflow `release.yml`,
-   environment `pypi` (https://pypi.org/manage/account/publishing/). If the repository is ever renamed, update these.
-2. In GitHub: Settings -> Environments -> create `pypi` (optionally with yourself as required reviewer to gate each upload).
+(OIDC, no stored token, attestations on) through a **per-package environment** (`pypi-<package>`). It is **off until the repository variable `PYPI_PUBLISH` is `true`**.
+PyPI accepts a given pending-publisher configuration (owner, repository, workflow, environment) for only one new project name, so the five packages cannot all use
+the same environment: each has its own. One-time setup:
+1. On PyPI (and TestPyPI to rehearse), add a *pending publisher* for each name (https://pypi.org/manage/account/publishing/); owner `marcionicolau`, repository
+   `spec-agents`, workflow `release.yml`, and the environment of that row:
+
+   | PyPI project | Environment |
+   | --- | --- |
+   | `spec-agents-core` | `pypi-agent-fabric` |
+   | `spec-agents-statistics` | `pypi-statistics` |
+   | `spec-agents-lakehouse` | `pypi-lakehouse` |
+   | `spec-agents-coworker` | `pypi-coworker` |
+   | `spec-agents-text` | `pypi-text-pack` |
+
+   If the repository is ever renamed, update these.
+2. In GitHub the five environments already exist (Settings -> Environments); optionally add yourself as a required reviewer to gate each upload.
 3. Rehearse: set the variable `PYPI_REPOSITORY_URL` to `https://test.pypi.org/legacy/` and `PYPI_PUBLISH` to `true`, merge a release PR, check TestPyPI; then unset
    `PYPI_REPOSITORY_URL` for the real index.
 
