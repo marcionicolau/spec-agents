@@ -121,6 +121,7 @@ class Corrected[T]:
 
     @property
     def n_attempts(self) -> int:
+        """Number of model calls used, including the successful one."""
         return len(self.attempts)
 
 

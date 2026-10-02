@@ -127,6 +127,10 @@ class DSPyPlanner:
         self.program = program or DSPyPlanProgram(registry, domains, max_attempts)
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Plan with the DSPy program; the proposal is validated by the same validators as the other planners.
+
+        Raises a non-recoverable `PlanValidationError` with the last rejection when the program produced no valid plan.
+        """
         pred = self.program(
             objective=objective + (f"\nPrevious runs:\n{memory_context}" if memory_context else ""), inputs=inputs
         )

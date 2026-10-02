@@ -25,6 +25,11 @@ class LLMParamRepairer:
     def repair(
         self, step: PipelineStep, error: ErrorReport, inputs: PipelineInputs, catalog_entry: dict[str, Any]
     ) -> dict[str, Any] | None:
+        """Ask the model for corrected parameters of a failed step.
+
+        The model sees the located error, the profiles of the inputs bound to the step, the component's parameter schema and its documented common mistakes,
+        and answers ``{"params": {...}}``. The answer is validated and self-corrected; returns ``None`` when no valid repair is produced.
+        """
         comp = self.registry.get(step.component)
         bindings = resolve_bindings(step, comp, inputs)
         bound = {

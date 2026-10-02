@@ -28,6 +28,7 @@ class RunSummary(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat(timespec="seconds"))
 
     def to_text(self) -> str:
+        """One-line text of the run for prompts: timestamp, agent, objective, input signature, step statuses and the first headlines."""
         st = ", ".join(f"{k}={v}" for k, v in self.status.items())
         heads = " | ".join(self.headlines[:4])
         who = f"{self.agent}: " if self.agent else ""
@@ -35,11 +36,25 @@ class RunSummary(BaseModel):
 
 
 class MemoryPort(Protocol):
-    def add_message(self, session_id: str, role: Role, content: str) -> None: ...
-    def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]: ...
-    def remember_run(self, session_id: str, summary: RunSummary) -> None: ...
-    def recent_runs(self, session_id: str, last_n: int = 3) -> list[RunSummary]: ...
-    def clear(self, session_id: str) -> None: ...
+    def add_message(self, session_id: str, role: Role, content: str) -> None:
+        """Append a chat message (``user``, ``assistant`` or ``system``) to the session."""
+        ...
+
+    def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]:
+        """The last ``last_n`` chat messages of the session as ``(role, content)`` pairs, oldest first."""
+        ...
+
+    def remember_run(self, session_id: str, summary: RunSummary) -> None:
+        """Store the summary of a finished run (objective, steps, status, headlines; never raw data)."""
+        ...
+
+    def recent_runs(self, session_id: str, last_n: int = 3) -> list[RunSummary]:
+        """The last ``last_n`` run summaries of the session, oldest first; routers and planners receive them as context."""
+        ...
+
+    def clear(self, session_id: str) -> None:
+        """Forget everything stored for the session."""
+        ...
 
 
 class InMemoryMemory:
@@ -50,22 +65,28 @@ class InMemoryMemory:
         self._runs: dict[str, list[RunSummary]] = defaultdict(list)
 
     def add_message(self, session_id: str, role: Role, content: str) -> None:
+        """Append a chat message to the session."""
         self._msgs[session_id].append((role, content))
 
     def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]:
+        """The last ``last_n`` chat messages of the session as ``(role, content)`` pairs, oldest first."""
         return self._msgs[session_id][-last_n:]
 
     def remember_run(self, session_id: str, summary: RunSummary) -> None:
+        """Store the summary of a finished run in the session."""
         self._runs[session_id].append(summary)
 
     def recent_runs(self, session_id: str, last_n: int = 3) -> list[RunSummary]:
+        """The last ``last_n`` run summaries of the session, oldest first."""
         return self._runs[session_id][-last_n:]
 
     def clear(self, session_id: str) -> None:
+        """Forget the messages and run summaries of the session."""
         self._msgs.pop(session_id, None)
         self._runs.pop(session_id, None)
 
     def sessions(self) -> list[str]:
+        """Sorted ids of every session that has messages or runs."""
         return sorted(set(self._msgs) | set(self._runs))
 
 
