@@ -45,15 +45,18 @@ class LangChainMemory:
 
     # ---- MemoryPort
     def add_message(self, session_id: str, role: Role, content: str) -> None:
+        """Append a chat message to the session's LangChain history as a human, AI or system message."""
         cls = {"user": self._lc.HumanMessage, "assistant": self._lc.AIMessage, "system": self._lc.SystemMessage}[role]
         self._store(session_id).add_message(cls(content=content))
 
     def history(self, session_id: str, last_n: int = 10) -> list[tuple[Role, str]]:
+        """The last chat messages of the session (at most ``window``) as ``(role, content)`` pairs; run summaries are not included."""
         role_of = {"human": "user", "ai": "assistant", "system": "system"}
         msgs = [m for m in self._store(session_id).messages if m.additional_kwargs.get("kind") != KIND]
         return [(role_of.get(m.type, "assistant"), str(m.content)) for m in msgs[-min(last_n, self.window) :]]  # ty: ignore[invalid-return-type]
 
     def remember_run(self, session_id: str, summary: RunSummary) -> None:
+        """Store a run summary as an AI message in the session's history, tagged so it is kept apart from chat messages."""
         self._store(session_id).add_message(
             self._lc.AIMessage(
                 content=summary.to_text(), additional_kwargs={"kind": KIND, "payload": summary.model_dump()}
@@ -61,6 +64,7 @@ class LangChainMemory:
         )
 
     def recent_runs(self, session_id: str, last_n: int = 3) -> list[RunSummary]:
+        """The last ``last_n`` run summaries of the session, read back from the messages that carry them."""
         runs = [
             RunSummary.model_validate(m.additional_kwargs["payload"])
             for m in self._store(session_id).messages
@@ -69,6 +73,7 @@ class LangChainMemory:
         return runs[-last_n:]
 
     def clear(self, session_id: str) -> None:
+        """Clear the session's LangChain history (messages and run summaries)."""
         self._store(session_id).clear()
 
     # ---- LangChain interop

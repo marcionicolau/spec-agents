@@ -31,7 +31,12 @@ class Interpretation(BaseModel):
 
 
 class Interpreter(Protocol):
-    def interpret(self, outcome: StepOutcome, objective: str, registry: Any) -> Interpretation | None: ...
+    def interpret(self, outcome: StepOutcome, objective: str, registry: Any) -> Interpretation | None:
+        """Interpret the outcome of one step in the light of the objective.
+
+        Returns an `Interpretation` (headline, findings, caveats, confidence), or ``None`` for a step without a result. Interpreters explain results; they never compute them.
+        """
+        ...
 
 
 # ------------------------------------------------------------------ grounding
@@ -108,6 +113,11 @@ class LLMInterpreter:
         self.backend, self.s, self.check_grounding = backend, settings or LLMSettings(), check_grounding
 
     def interpret(self, outcome: StepOutcome, objective: str, registry: Any) -> Interpretation | None:
+        """Interpret a step result with the model, using the skill's interpretation guide.
+
+        The model answers a JSON `Interpretation`; with ``check_grounding`` every number in the text must appear in the result or the parameters, otherwise
+        the answer is rejected and corrected. Returns ``None`` when the step has no result.
+        """
         if outcome.result is None:
             return None
         spec = registry.spec(outcome.component)
@@ -145,6 +155,10 @@ class RuleInterpreter:
     """Deterministic interpretation via each component's ``summarize`` hook; no LLM needed."""
 
     def interpret(self, outcome: StepOutcome, objective: str, registry: Any) -> Interpretation | None:
+        """Interpret a step without a model, from the component's own ``summarize`` (headline and findings).
+
+        Confidence is ``high`` without warnings, ``medium`` with one or two and ``low`` with more; a repaired step adds a caveat. Returns ``None`` for a step without a result.
+        """
         r = outcome.result
         if r is None:
             return None

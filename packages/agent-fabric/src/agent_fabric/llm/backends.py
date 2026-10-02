@@ -42,7 +42,13 @@ class LLMBackend(Protocol):
         model: str | None = None,
         json_mode: bool = False,
         temperature: float | None = None,
-    ) -> str: ...
+    ) -> str:
+        """Return the model's answer text for a chat ``messages`` list.
+
+        ``model`` is a LiteLLM alias (backend default when ``None``), ``json_mode`` asks for a JSON object and ``temperature`` overrides the
+        backend default. Failures are raised as `DependencyError`.
+        """
+        ...
 
 
 class LiteLLMProxyBackend:
@@ -59,6 +65,11 @@ class LiteLLMProxyBackend:
         json_mode: bool = False,
         temperature: float | None = None,
     ) -> str:
+        """POST a chat completion to the LiteLLM proxy (OpenAI-compatible ``/chat/completions``) and return the message text.
+
+        ``model`` defaults to the planner alias of the settings. Raises `DependencyError` with a hint for an HTTP error (``http_error``), an unreachable
+        proxy (``connection_error``) or an unexpected response shape (``bad_response``).
+        """
         body: dict[str, Any] = {
             "model": model or self.s.planner_model,
             "messages": messages,
@@ -121,6 +132,10 @@ class ScriptedBackend:
         json_mode: bool = False,
         temperature: float | None = None,
     ) -> str:
+        """Return the next scripted response; a callable response receives the messages.
+
+        Every call is recorded in ``calls`` (messages, model, json_mode). Raises ``AssertionError`` when the script is exhausted. For offline tests and demos.
+        """
         self.calls.append({"messages": [dict(m) for m in messages], "model": model, "json_mode": json_mode})
         if not self.responses:
             raise AssertionError("ScriptedBackend ran out of responses")

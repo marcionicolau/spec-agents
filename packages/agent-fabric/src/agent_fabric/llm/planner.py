@@ -31,7 +31,13 @@ class PlanningOutcome(BaseModel):
 
 
 class Planner(Protocol):
-    def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome: ...
+    def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Plan a pipeline for ``objective`` over the declared ``inputs``.
+
+        ``memory_context`` is a short text of earlier runs of the session. Returns a `PlanningOutcome` with a validated `PipelinePlan`, the planner's
+        name, the number of attempts and the rejected attempts; raises `PlanValidationError` when no valid plan is produced.
+        """
+        ...
 
 
 def parse_scoped(raw: Any, registry: Any, inputs: PipelineInputs, domains: Iterable[str] | None) -> PipelinePlan:
@@ -109,6 +115,14 @@ class LLMPlanner:
         self.domains = list(domains) if domains else None
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Plan a pipeline for ``objective`` over the declared ``inputs``.
+
+        ``memory_context`` is a short text of earlier runs of the session. Returns a `PlanningOutcome` with a validated `PipelinePlan`, the planner's
+        name, the number of attempts and the rejected attempts; raises `PlanValidationError` when no valid plan is produced.
+
+        The model sees the catalogue of the allowed domains and answers a JSON plan; rejected plans are returned to it with the located errors and known
+        pitfalls of the components, up to ``max_correction_attempts``.
+        """
         system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context)
         res = structured_completion(
             self.backend,
@@ -149,6 +163,7 @@ class PydanticAIPlanner:
         self.domains = list(domains) if domains else None
 
     def build_model(self) -> Any:
+        """The PydanticAI model for the planner alias, pointing at the LiteLLM proxy (an injected model takes precedence)."""
         if self._model is not None:
             return self._model
         from pydantic_ai.models.openai import OpenAIChatModel
@@ -159,6 +174,14 @@ class PydanticAIPlanner:
         )
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Plan a pipeline for ``objective`` over the declared ``inputs``.
+
+        ``memory_context`` is a short text of earlier runs of the session. Returns a `PlanningOutcome` with a validated `PipelinePlan`, the planner's
+        name, the number of attempts and the rejected attempts; raises `PlanValidationError` when no valid plan is produced.
+
+        Uses a PydanticAI agent whose output validator runs the plan validators and asks the model to retry with the located errors, up to
+        ``max_correction_attempts``. Requires the ``pydantic-ai`` extra.
+        """
         from pydantic_ai import Agent, ModelRetry, RunContext
         from pydantic_ai.output import NativeOutput, PromptedOutput, ToolOutput
 
@@ -195,6 +218,10 @@ class TemplatePlanner:
         self.registry, self.pspec, self.params = registry, registry.pipeline(pipeline), params or {}
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Instantiate a registered pipeline spec with fixed parameters; no model is involved.
+
+        The objective replaces the template's when it has at least 3 characters. The plan is validated against the inputs.
+        """
         raw = self.pspec.instantiate(self.params)
         raw["objective"] = objective if len(objective) >= 3 else raw["objective"]
         return PlanningOutcome(plan=parse_plan(raw, self.registry, inputs), planner=f"template:{self.pspec.name}")
