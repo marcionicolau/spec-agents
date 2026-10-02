@@ -61,15 +61,19 @@ class ArtifactStore:
         self._data: dict[str, Any] = dict(initial or {})
 
     def put(self, key: str, value: Any) -> None:
+        """Store ``value`` under ``key``, replacing a previous value."""
         self._data[key] = value
 
     def get(self, key: str) -> Any:
+        """The value stored under ``key`` (keys are ``<step_id>.<port>``, or ``$inputs.<name>`` for pipeline inputs); ``KeyError`` if absent."""
         return self._data[key]
 
     def has(self, key: str) -> bool:
+        """Whether a value is stored under ``key``."""
         return key in self._data
 
     def keys(self) -> list[str]:
+        """All keys, in insertion order."""
         return list(self._data)
 
 
@@ -101,6 +105,11 @@ class StepContext:
         self.on_step = on_step  # propagated to nested pipelines
 
     def emit(self, name: str, value: Any) -> None:
+        """Store a declared extra output of the component as ``<step_id>.<name>``.
+
+        Raises a `SpecError` for an output that is not declared in the spec (``undeclared_output``) or whose value does not match the declared artifact type
+        (``output_type_mismatch``).
+        """
         port = self.spec.outputs.get(name)
         if port is None:
             raise SpecError(
@@ -140,7 +149,13 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
 
     # ------------------------------------------------------------------ hooks
     @abstractmethod
-    def compute(self, inputs: dict[str, Any], params: P, ctx: StepContext) -> R: ...
+    def compute(self, inputs: dict[str, Any], params: P, ctx: StepContext) -> R:
+        """Compute the result from validated inputs and parameters (the only place results are produced).
+
+        Subclasses implement this. Return the component's `ComponentResult`; store declared extra outputs with ``ctx.emit(name, value)``. Do not call it
+        directly: `execute` validates around it. Raise a `FabricError` subclass for failures a caller can act on.
+        """
+        ...
 
     def extra_checks(self, inputs: dict[str, Any], params: P) -> list[ErrorDetail]:
         """Runtime checks beyond port constraints. Return errors, don't raise."""
@@ -156,6 +171,7 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
 
     # ------------------------------------------------------------------ params
     def parse_params(self, raw: dict[str, Any] | None) -> P:
+        """Validate raw parameters (``None`` = defaults) into the component's ``Params`` model; raises `ParamsValidationError` located under ``params``."""
         try:
             return self.Params.model_validate(raw or {})  # ty: ignore[invalid-return-type]
         except ValidationError as exc:
@@ -167,6 +183,11 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
 
     # ------------------------------------------------------------------ validation
     def static_checks(self, bound: dict[str, BaseModel | None], params: P) -> list[ErrorDetail]:
+        """Plan-time checks from the profiles of the bound inputs; returns every problem found.
+
+        Reports required ports that are not bound (``port_unbound``), applies each artifact type's static checks to the profile, and adds `extra_static`.
+        ``bound`` maps each bound port to its profile, or ``None`` when the profile is not known yet.
+        """
         errors: list[ErrorDetail] = []
         for port, ps in self.spec.inputs.items():
             if port not in bound:
@@ -188,6 +209,11 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         return errors + self.extra_static(bound, params)
 
     def validate_inputs(self, inputs: dict[str, Any], params: P) -> None:
+        """Check the runtime inputs before `compute`; raises `DataValidationError` listing every problem.
+
+        Order: artifact types (``wrong_artifact_type``), then static checks on the profiles, then the types' runtime checks on the real values, then `extra_checks`;
+        later stages run only when the earlier ones found nothing.
+        """
         errors: list[ErrorDetail] = []
         bound: dict[str, BaseModel | None] = {}
         for port, ps in self.spec.inputs.items():
@@ -220,6 +246,13 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
 
     # ------------------------------------------------------------------ template method
     def execute(self, inputs: dict[str, Any], raw_params: dict[str, Any] | None, ctx: StepContext) -> R:
+        """Run the component: the template method every step goes through.
+
+        Parses the parameters (`ParamsValidationError`), validates the inputs (types, static and runtime port constraints, ``extra_checks``;
+        `DataValidationError` with every problem), calls `compute`, re-validates the result against the ``Result`` model, adds non-deprecation library
+        warnings as ``[library] ...`` result warnings and stores the JSON result under ``<step_id>.result``. Any `FabricError` is re-raised with the component
+        and step id attached.
+        """
         try:
             params = self.parse_params(raw_params)
             self.validate_inputs(inputs, params)
