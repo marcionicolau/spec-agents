@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import AsyncIterator, Iterator
 from dataclasses import dataclass, field
@@ -33,6 +34,7 @@ type EventKind = Literal["start", "end", "llm_call", "delegate", "fallback", "sk
 
 class TraceEvent(BaseModel):
     at: float
+    seq: int = Field(0, description="position in the run's trace (total order, also when delegations run in parallel)")
     path: str
     event: EventKind
     detail: str = ""
@@ -78,6 +80,7 @@ class BudgetSettings(BaseModel):
     max_agent_runs: int = Field(60, ge=1)
     max_delegations: int = Field(25, ge=0)
     max_llm_calls: int = Field(60, ge=0)
+    max_parallel: int = Field(1, ge=1, description="independent router delegations that may run at the same time")
 
 
 class Budget:
@@ -91,6 +94,7 @@ class Budget:
         self.s = s
         self.agent_runs = self.delegations = self.llm_calls = 0
         self.exhausted: str | None = None  # name of the first limit hit; supervisors stop delegating
+        self._lock = threading.RLock()  # delegations may run in parallel threads
 
     def _exceeded(self, what: str, limit: int, path: str) -> BudgetExceeded:
         self.exhausted = self.exhausted or what
@@ -108,23 +112,26 @@ class Budget:
 
     def charge_run(self, path: str, depth: int) -> None:
         """Count one agent run at tree ``depth``; raises `BudgetExceeded` over ``max_depth`` or ``max_agent_runs``."""
-        if depth > self.s.max_depth:
-            raise self._exceeded("max_depth", self.s.max_depth, path)
-        self.agent_runs += 1
-        if self.agent_runs > self.s.max_agent_runs:
-            raise self._exceeded("max_agent_runs", self.s.max_agent_runs, path)
+        with self._lock:
+            if depth > self.s.max_depth:
+                raise self._exceeded("max_depth", self.s.max_depth, path)
+            self.agent_runs += 1
+            if self.agent_runs > self.s.max_agent_runs:
+                raise self._exceeded("max_agent_runs", self.s.max_agent_runs, path)
 
     def charge_delegation(self, path: str, n: int = 1) -> None:
         """Count ``n`` delegations; raises `BudgetExceeded` over ``max_delegations``."""
-        self.delegations += n
-        if self.delegations > self.s.max_delegations:
-            raise self._exceeded("max_delegations", self.s.max_delegations, path)
+        with self._lock:
+            self.delegations += n
+            if self.delegations > self.s.max_delegations:
+                raise self._exceeded("max_delegations", self.s.max_delegations, path)
 
     def charge_llm(self, path: str, n: int = 1) -> None:
         """Count ``n`` LLM calls; raises `BudgetExceeded` over ``max_llm_calls``."""
-        self.llm_calls += n
-        if self.llm_calls > self.s.max_llm_calls:
-            raise self._exceeded("max_llm_calls", self.s.max_llm_calls, path)
+        with self._lock:
+            self.llm_calls += n
+            if self.llm_calls > self.s.max_llm_calls:
+                raise self._exceeded("max_llm_calls", self.s.max_llm_calls, path)
 
     def usage(self) -> dict[str, int]:
         """Current counts as ``{agent_runs, delegations, llm_calls}``."""
@@ -143,17 +150,26 @@ class RunContext:
     t0: float = field(default_factory=time.perf_counter)
     on_event: Any = None  # optional listener(TraceEvent) - UIs render a live view from it
     on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
+    lock: threading.RLock = field(default_factory=threading.RLock, repr=False)  # guards trace/blackboard/counters
 
     def event(self, path: str, event: EventKind, detail: str = "") -> None:
         """Append a trace event (detail cut at 200 characters) and notify ``on_event``."""
-        e = TraceEvent(at=round(time.perf_counter() - self.t0, 4), path=path, event=event, detail=detail[:200])
-        self.trace.append(e)
-        if self.on_event is not None:
-            self.on_event(e)
+        with self.lock:
+            e = TraceEvent(
+                at=round(time.perf_counter() - self.t0, 4),
+                seq=len(self.trace),
+                path=path,
+                event=event,
+                detail=detail[:200],
+            )
+            self.trace.append(e)
+            if self.on_event is not None:
+                self.on_event(e)
 
     def put(self, key: str, value: Any) -> str:
         """Write a value on the blackboard and return its key."""
-        self.blackboard[key] = value
+        with self.lock:
+            self.blackboard[key] = value
         return key
 
     def collect(self, keys: list[str]) -> dict[str, Any]:
@@ -200,7 +216,8 @@ class MeteredBackend:
 
     def _charge(self, model: str | None) -> None:
         self.ctx.budget.charge_llm(self.path)
-        self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
+        with self.ctx.lock:
+            self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
         self.ctx.event(self.path, "llm_call", model or "")
 
     async def acomplete(

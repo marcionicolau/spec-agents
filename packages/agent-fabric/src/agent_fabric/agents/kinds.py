@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -472,7 +473,9 @@ class SupervisorAgent(BaseAgent):
 
         for d in plan.delegations:
             visit(d.id)
-        for did in order:
+
+        def prepare(did: str) -> Callable[[], AgentResult] | None:
+            """Settle a delegation's skip/charge/inputs in plan order; returns the job to run, or ``None`` once skipped."""
             d = by_id[did]
             child = self.children[d.agent]
             child_path = f"{path}/{d.agent}"
@@ -482,19 +485,35 @@ class SupervisorAgent(BaseAgent):
                 why = "budget exhausted" if budget_hit else f"depends on failed delegation(s) {blocked}"
                 ctx.event(child_path, "skip", why)
                 done[did] = child.result(child_path, "skipped", summary=why)
-                continue
+                return None
             try:
                 ctx.budget.charge_delegation(path)
             except FabricError as exc:
                 done[did] = child.result(child_path, "skipped", summary=exc.message, error=exc.report)
-                continue
+                return None
             inputs = [
                 done[k[1:]].artifacts[0] if k.startswith("@") and done[k[1:]].artifacts else k
                 for k in d.inputs
                 if not (k.startswith("@") and not done[k[1:]].artifacts)
             ]
             ctx.event(path, "delegate", f"{d.id} -> {d.agent}")
-            done[did] = child.run(AgentTask(instruction=d.instruction, inputs=inputs), ctx, path, depth + 1)
+            return lambda: child.run(AgentTask(instruction=d.instruction, inputs=inputs), ctx, path, depth + 1)
+
+        workers = ctx.budget.s.max_parallel
+        if workers <= 1:
+            for did in order:
+                if (job := prepare(did)) is not None:
+                    done[did] = job()
+        else:  # waves of delegations whose dependencies are all done; each wave runs in parallel threads
+            pending = list(order)
+            while pending:
+                wave = [n for n in pending if deps[n] <= done.keys()]
+                pending = [n for n in pending if n not in wave]
+                jobs = [(n, job) for n in wave if (job := prepare(n)) is not None]
+                with ThreadPoolExecutor(max_workers=max(1, min(workers, len(jobs)))) as pool:
+                    futures = [(n, pool.submit(job)) for n, job in jobs]
+                    for n, fut in futures:  # agents never raise FabricError (it becomes a failed result)
+                        done[n] = fut.result()
         return [done[d.id] for d in plan.delegations]
 
     # ---------------------------------------------------------------- synthesis
