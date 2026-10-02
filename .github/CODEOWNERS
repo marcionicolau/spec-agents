@@ -1,6 +1,5 @@
 # Review routing by area (matches the pkg:* labels). Last matching pattern wins.
-# NOTE: on a private repo without GitHub Pro this file is informational: it cannot be enforced
-# (no "require review from Code Owners"), and automatic review requests may not fire.
+# Ownership map; reviews are requested from the owners, but approval is not required by the `main` ruleset (single maintainer).
 *                               @marcionicolau
 
 /packages/agent-fabric/         @marcionicolau

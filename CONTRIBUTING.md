@@ -20,7 +20,7 @@ Every issue gets one of each: `pkg:*` (package or area), `stage:*` (triage → n
 automatically; PRs get `pkg:` labels from the files they touch. Labels are defined in [.github/labels.yml](.github/labels.yml).
 
 ## Pull requests
-- Run `just hooks` once: it blocks direct pushes to `main` (the repo has no server-side branch protection).
+- `main` is protected by a ruleset: only squash-merged PRs with `ci-ok` and `conventional-title` passing. `just hooks` adds a local guard against pushing to `main` by mistake.
 - Branch from `main`; one concern per PR.
 - **The PR title is the commit message** (squash merge) and must be conventional with a package scope:
   `feat(statistics): …`, `fix(agent-fabric): …`. Scopes: `agent-fabric`, `statistics`, `lakehouse`, `coworker`; cross-cutting changes use

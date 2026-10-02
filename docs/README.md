@@ -3,8 +3,8 @@
 This folder is also the source of the documentation site (mkdocs-material + mkdocstrings): `just docs` builds it into `build/site`
 (warnings fail the build), `just docs-serve` previews it. The **API reference** pages are generated from the code at build time
 (`docs/gen_reference.py`): one page per package, listing only the names in each module's `__all__`, rendered from the docstrings
-(Google style). CI builds the site on every PR and keeps it as the `docs-site` artifact; it is not published (no GitHub Pages on a
-private repo on the free plan).
+(Google style). CI builds the site on every PR and keeps it as the `docs-site` artifact; pushes to `main` publish it to GitHub Pages
+(`.github/workflows/docs.yml`): https://marcionicolau.github.io/spec-agents/.
 
 | Document                                  | Contents                                                                                           |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |

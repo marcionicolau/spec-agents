@@ -1,4 +1,5 @@
 site_name: agent-fabric
+site_url: https://marcionicolau.github.io/spec-agents/
 site_description: Spec-driven pipelines and hierarchical agents; domain packs for statistics, lakehouse, coworker and text.
 repo_url: https://github.com/marcionicolau/spec-agents
 edit_uri: edit/main/docs/

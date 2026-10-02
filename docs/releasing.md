@@ -24,7 +24,7 @@ that package (`pattern-prefix = "<package>-"`; other packages' tags are ignored)
 package (`uv build --package <pkg>`), verifies it with `tools/check_wheels.py --expect-version <version>` (skills, LICENSE, `py.typed`, exact
 version without a `.dev` suffix) and attaches the wheel and sdist to the GitHub Release, using the job-scoped `GITHUB_TOKEN`: no long-lived
 secret, no index. Install a release with
-`uv pip install https://github.com/marcionicolau/spec-agents/releases/download/<pkg>-vX.Y.Z/<wheel file>` (the repo is private, so use `gh release download`).
+`uv pip install https://github.com/marcionicolau/spec-agents/releases/download/<pkg>-vX.Y.Z/<wheel file>` (or `gh release download <pkg>-vX.Y.Z --repo marcionicolau/spec-agents`).
 
 **Not published to PyPI.** `statistics`, `lakehouse`, `coworker` and `text-pack` are already taken on PyPI by unrelated projects (only `agent-fabric`
 is free). Decision: when publishing is scheduled the four packs are renamed `agent-fabric-statistics`, `agent-fabric-lakehouse`,
@@ -39,13 +39,19 @@ The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so re
 (skills, LICENSE, `py.typed`), an all-extras job (no skipped tests, coverage floor, `ty` type check) and a lowest-versions job.
 Branch protection should require the single gate job **`ci-ok`** and the PR-title check **`conventional-title`**. Locally: `just check`.
 
-## Branch protection (free plan, private repo)
-GitHub rulesets and branch protection need a public repo or GitHub Pro, so nothing is enforced server-side. What is in place instead:
-- Repository merge settings: squash merge only (title = PR title, which release-please reads), head branches deleted after merge.
-- `just hooks` installs `tools/hooks/pre-push`, which refuses direct pushes to `main` (`ALLOW_MAIN_PUSH=1` to override on purpose).
-- Merge from the CLI after checking the gate: `gh pr checks <n>` must show `ci-ok` and `conventional-title` passing, then `gh pr merge <n> --squash`.
-- `.github/CODEOWNERS` documents who owns which area; it becomes enforceable if the repo goes public or to Pro
-  (then add a ruleset requiring `ci-ok` + `conventional-title`, linear history, no force-push, and Code Owner review).
+## Branch protection (rulesets)
+The repository is public, so two rulesets are enforced server-side:
+- **`main`**: no deletion, no force-push, linear history, changes only through a pull request that is **squash-merged**, and the checks
+  **`ci-ok`** and **`conventional-title`** must pass. Zero approvals are required (single maintainer); a repository admin can bypass through a
+  PR when needed. Release PRs from release-please go through the same rules.
+- **`release-tags`** (`*-v*`): release tags cannot be deleted, moved or updated (admins can bypass, e.g. to redo a bad release).
+
+Other settings: squash merge only (title = PR title, which release-please reads), head branches deleted after merge, secret scanning with push
+protection, Dependabot alerts and security updates, private vulnerability reporting, and workflow runs from first-time outside contributors need
+approval. Default workflow permissions are read-only. `just hooks` still installs `tools/hooks/pre-push`, a local guard against pushing to
+`main` by mistake. `.github/CODEOWNERS` documents ownership by area (review is not required).
+
+Documentation is published to GitHub Pages by `.github/workflows/docs.yml` on pushes to `main`: https://marcionicolau.github.io/spec-agents/.
 
 ## Workflow hardening
 Every `uses:` is pinned to a commit SHA with the tag in a trailing comment; dependabot (weekly, 7-day cooldown) bumps both. `zizmor` and
