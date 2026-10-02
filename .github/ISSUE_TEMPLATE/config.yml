@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Roadmap and how to propose a feature
+    url: https://github.com/marcionicolau/spec-agents/blob/main/ROADMAP.md
+    about: Check what is planned before opening a feature request.
   - name: Security vulnerability
     url: https://github.com/marcionicolau/spec-agents/security/advisories/new
     about: Report privately; do not open a public issue.

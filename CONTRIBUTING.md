@@ -14,6 +14,12 @@ uv run ruff check . && uv run ruff format --check .
 `just docs` builds the site (guides in `docs/` + API reference generated from docstrings, Google style); `just docs-serve` previews it.
 Public names must be in `__all__` and have a docstring (`tests/test_public_api.py`); the build fails on broken references.
 
+## Proposing changes and planning
+Start with an issue (feature or spec-change form), say the problem first, and check the [roadmap](ROADMAP.md) and the
+[project board](https://github.com/users/marcionicolau/projects/14). The maintainer triages it, sets package, priority, size and a
+[milestone](ROADMAP.md#milestones); designs for larger ideas are agreed in the issue (`stage:needs-design`) before code. See
+[GOVERNANCE.md](GOVERNANCE.md) for roles and decisions. Participation is covered by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
 ## Issues and labels
 Every issue gets one of each: `pkg:*` (package or area), `stage:*` (triage → needs-design → ready → in-progress → needs-review → released;
 `blocked` and `needs-eval` as needed) and a type (`bug`, `enhancement`, `documentation`, `type:*`). Issue forms apply `stage:triage` and the `pkg:` label

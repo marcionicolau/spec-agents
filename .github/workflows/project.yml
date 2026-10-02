@@ -1,0 +1,30 @@
+name: project
+
+# Add new issues and pull requests to the roadmap project board (https://github.com/users/marcionicolau/projects/14).
+# Needs the PROJECT_TOKEN secret: user-owned Projects v2 are not reachable with GITHUB_TOKEN or fine-grained PATs, so it must be a classic
+# personal access token with only the `project` scope. Without the secret the job is skipped. Status/Priority/Size are set during triage;
+# the board's built-in workflows (Settings -> Workflows) can move items to Done when closed or merged.
+on:
+  issues:
+    types: [opened, transferred]
+  pull_request:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  add-to-project:
+    # plain pull_request: PRs from forks have no secrets, so the board's built-in 'auto-add' workflow (Settings -> Workflows) covers them
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+    steps:
+      - name: Skip when the token is not configured
+        if: env.PROJECT_TOKEN == ''
+        run: echo "PROJECT_TOKEN is not set; the item was not added to the project board"
+      - uses: actions/add-to-project@5afcf98fcd03f1c2f92c3c83f58ae24323cc57fd # v2.0.0
+        if: env.PROJECT_TOKEN != ''
+        with:
+          project-url: https://github.com/users/marcionicolau/projects/14
+          github-token: ${{ secrets.PROJECT_TOKEN }}
