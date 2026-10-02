@@ -55,7 +55,11 @@ the same environment: each has its own. One-time setup:
 
    If the repository is ever renamed, update these.
 2. In GitHub the five environments already exist (Settings -> Environments); optionally add yourself as a required reviewer to gate each upload.
-3. Rehearse: set the variable `PYPI_REPOSITORY_URL` to `https://test.pypi.org/legacy/` and `PYPI_PUBLISH` to `true`, merge a release PR, check TestPyPI; then unset
+3. Publish an existing release (retry, or a release made before PyPI was set up): Actions -> *release* -> *Run workflow* with the tag and the index, or
+   `gh workflow run release.yml -f tag=statistics-v0.2.1 -f index=pypi`. It downloads that release's wheel and sdist, requires them to be `spec_agents_*`
+   builds of exactly that version, and uploads them with the same per-package environment and trusted publisher (already-uploaded files are skipped, so
+   it is safe to repeat). Releases made before the distribution rename carry the old names and are rejected.
+4. Rehearse: set the variable `PYPI_REPOSITORY_URL` to `https://test.pypi.org/legacy/` and `PYPI_PUBLISH` to `true`, merge a release PR, check TestPyPI; then unset
    `PYPI_REPOSITORY_URL` for the real index.
 
 The release workflow authenticates with the `RELEASE_PLEASE_TOKEN` secret (so release PRs trigger CI); rotate it by re-running
