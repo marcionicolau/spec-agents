@@ -8,6 +8,17 @@ validated column names; no model-written code is executed. Also provides `StatsR
 > [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
 > the `pip install` lines below are the PyPI names.
 
+## Names
+
+| | |
+| --- | --- |
+| PyPI distribution | `spec-agents-statistics` |
+| Import name | `stat_fabric` |
+| Directory in the monorepo | `packages/statistics` |
+| Release tag / PR scope | `statistics-vX.Y.Z` / `statistics` |
+
+The distribution is named `spec-agents-statistics` because the shorter names are taken on PyPI; the import name and the entry point do not change.
+
 ## Install
 ```bash
 pip install spec-agents-statistics   # pulls spec-agents-core, pandas, scipy, statsmodels, scikit-learn

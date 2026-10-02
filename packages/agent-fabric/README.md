@@ -9,6 +9,17 @@ deterministic `Component.compute()` code run by the `PipelineExecutor`.
 > [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
 > the `pip install` lines below are the PyPI names.
 
+## Names
+
+| | |
+| --- | --- |
+| PyPI distribution | `spec-agents-core` |
+| Import name | `agent_fabric` |
+| Directory in the monorepo | `packages/agent-fabric` |
+| Release tag / PR scope | `agent-fabric-vX.Y.Z` / `agent-fabric` |
+
+The distribution is named `spec-agents-core` because the shorter names are taken on PyPI; the import name and the entry point do not change.
+
 ## Install
 ```bash
 pip install spec-agents-core                  # core: pydantic, numpy, pyyaml, rich (import name: agent_fabric)
