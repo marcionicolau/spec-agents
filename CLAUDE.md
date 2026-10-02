@@ -80,6 +80,7 @@ python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --dom
 python examples/run_evals.py --mode live    # before merging guidance/model changes (PRs get `stage:needs-eval`)
 just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
 just docs                                  # build the documentation site (mkdocs-material, strict); `just docs-serve` previews
+just release-sync                           # rebuild conflicting release-please PR branches on main (CI does it after each push to main)
 just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills (CI validates it)
 
 uv run agent-fabric catalog --skills examples/notes/skills          # rich table; also accepts --domains ref/dir

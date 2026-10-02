@@ -57,6 +57,11 @@ docs:
 docs-serve:
     DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve
 
+# rebuild conflicting release-please PR branches on main (they all edit the shared manifest); `just release-sync --dry-run` only reports.
+# Needs `gh` authenticated (GH_TOKEN, e.g. `GH_TOKEN=$(gh auth token) just release-sync`); CI does this automatically after each release.
+release-sync *args:
+    python3 tools/release_sync.py --repo marcionicolau/spec-agents {{args}}
+
 # SKILL.md contract changes vs. the base branch must carry a version bump (CI runs this on PRs)
 contracts base="origin/main":
     uv run python -m agent_fabric.contracts --base {{base}}

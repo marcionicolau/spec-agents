@@ -81,3 +81,22 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.pkg.outputs.tag }}
         run: gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  sync-release-prs:
+    # Merging one release PR changes the shared manifest and makes the other open release PRs conflict: rebuild those branches on main.
+    # Needs the PAT (RELEASE_PLEASE_TOKEN): pushes made with GITHUB_TOKEN would not start CI, and the required checks must re-run.
+    needs: release-please
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Rebuild conflicting release PR branches
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python3 tools/release_sync.py --repo "$REPO"
