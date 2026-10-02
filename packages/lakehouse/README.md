@@ -11,6 +11,17 @@ live in Airflow connections, and `dag_check` rejects unsafe files. Incremental l
 > [GitHub Releases](https://github.com/marcionicolau/spec-agents/releases) or use `uv sync --all-packages` in a checkout;
 > the `pip install` lines below are the PyPI names.
 
+## Names
+
+| | |
+| --- | --- |
+| PyPI distribution | `spec-agents-lakehouse` |
+| Import name | `lake_fabric` |
+| Directory in the monorepo | `packages/lakehouse` |
+| Release tag / PR scope | `lakehouse-vX.Y.Z` / `lakehouse` |
+
+The distribution is named `spec-agents-lakehouse` because the shorter names are taken on PyPI; the import name and the entry point do not change.
+
 ## Install and use
 ```bash
 pip install spec-agents-lakehouse
