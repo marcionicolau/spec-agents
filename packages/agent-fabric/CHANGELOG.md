@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.6.0...agent-fabric-v0.7.0) (2026-10-02)
+
+
+### Features
+
+* **agent-fabric:** scaffold whole domain packs with `scaffold pack` ([9e0746f](https://github.com/marcionicolau/spec-agents/commit/9e0746fbaeb325b483258ab95f1dc454ec93c26d))
+* **agent-fabric:** scaffold whole domain packs with scaffold pack ([#108](https://github.com/marcionicolau/spec-agents/issues/108)) ([9e0746f](https://github.com/marcionicolau/spec-agents/commit/9e0746fbaeb325b483258ab95f1dc454ec93c26d))
+
 ## [0.6.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.5.1...agent-fabric-v0.6.0) (2026-10-02)
 
 
