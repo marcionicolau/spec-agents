@@ -55,9 +55,11 @@ jobs:
           pkg="${RELEASE_PATH#packages/}"
           tag=$(jq -r --arg k "${RELEASE_PATH}--tag_name" '.[$k] // empty' <<<"$RP_OUTPUTS")
           if [ -z "$tag" ] || [[ ! "$pkg" =~ ^[a-z0-9-]+$ ]]; then echo "::error::no tag or invalid package for $RELEASE_PATH"; exit 1; fi
-          echo "pkg=$pkg" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "version=${tag##*-v}" >> "$GITHUB_OUTPUT"
+          {
+            echo "pkg=$pkg"
+            echo "tag=$tag"
+            echo "version=${tag##*-v}"
+          } >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.pkg.outputs.tag }}
