@@ -81,6 +81,10 @@ evals-update:
 evals mode="rules":
     uv run python examples/run_evals.py --mode {{mode}}
 
+# start the LiteLLM gateway at http://localhost:<port>/v1 in front of Ollama ($OLLAMA_API_BASE); override: `just litellm 4001 other.yaml`
+litellm port="4000" config="config/litellm_config.yaml":
+    OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://localhost:11434}" LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY:-sk-local-dev}" uv run --all-extras litellm --config {{config}} --port {{port}}
+
 # local guard against direct pushes to main (this repo has no server-side branch protection)
 hooks:
     git config core.hooksPath tools/hooks
