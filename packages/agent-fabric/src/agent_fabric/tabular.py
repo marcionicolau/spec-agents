@@ -48,12 +48,15 @@ class DatasetProfile(BaseModel):
     columns: list[ColumnProfile]
 
     def column(self, name: str) -> ColumnProfile | None:
+        """Profile of the named column, or ``None`` when there is no such column."""
         return next((c for c in self.columns if c.name == name), None)
 
     def names(self, kind: ColumnKind | None = None) -> list[str]:
+        """Column names, optionally only those of a given `ColumnKind`."""
         return [c.name for c in self.columns if kind is None or c.kind == kind]
 
     def to_prompt(self, max_cols: int = 40) -> str:
+        """Compact description for planner prompts: row and column counts, then one line per column (kind, missing share, unique count, examples), cut at ``max_cols`` columns."""
         rows = [f"dataframe: rows={self.n_rows}, columns={self.n_cols}"]
         for c in self.columns[:max_cols]:
             rows.append(
@@ -181,6 +184,7 @@ class DataFrameType(ArtifactType):
     specificity = 2
 
     def profile(self, value: pd.DataFrame) -> DatasetProfile:
+        """Profile a DataFrame (`profile_dataframe`)."""
         return profile_dataframe(value)
 
     def static_check(  # ty: ignore[invalid-method-override]  # narrower profile/constraints types than the generic base
@@ -307,6 +311,7 @@ class SeriesProfile(BaseModel):
     dtype: str
 
     def to_prompt(self) -> str:
+        """One-line description for prompts: name, length and dtype."""
         return f"series '{self.name}': length {self.length}, dtype {self.dtype}"
 
 
@@ -318,6 +323,7 @@ class SeriesType(ArtifactType):
     specificity = 2
 
     def profile(self, value: pd.Series) -> SeriesProfile:
+        """Profile a Series: name, length and dtype."""
         return SeriesProfile(
             name=None if value.name is None else str(value.name), length=len(value), dtype=str(value.dtype)
         )

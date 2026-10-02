@@ -36,18 +36,25 @@ class ArtifactType:
     specificity: ClassVar[int] = 0  # higher wins when inferring the type of a raw value
 
     def accepts(self, value: Any) -> bool:
+        """Whether ``value`` is an instance of this type's Python types."""
         return isinstance(value, self.python_types)
 
     def profile(self, value: Any) -> BaseModel | None:
+        """Summarise a value for planners and static checks without sending the data itself; ``None`` when the type has no profile."""
         return None
 
     def describe(self, profile: BaseModel | None, value: Any = None) -> str:
+        """Short text for prompts: the profile's own description when it has one, else the type name and a preview (at most 200 characters) of the value."""
         to_prompt = getattr(profile, "to_prompt", None)
         if callable(to_prompt):
             return to_prompt()
         return f"{self.name}" if value is None else f"{self.name}: {str(value)[:200]}"
 
     def parse_constraints(self, raw: dict[str, Any], loc: tuple[str | int, ...]) -> BaseModel:
+        """Validate raw port constraints against this type's ``Constraints`` model.
+
+        Raises a `SpecError` located at ``loc`` listing every invalid field.
+        """
         try:
             return self.Constraints.model_validate(raw or {})
         except ValidationError as exc:
@@ -66,6 +73,7 @@ class ArtifactType:
         return []
 
     def compatible(self, target: str) -> bool:
+        """Whether an artifact of this type can feed a port of type ``target`` (the same type, or ``any``)."""
         return target in ("any", self.name)
 
 
@@ -89,6 +97,7 @@ class TextProfile(BaseModel):
     preview: str
 
     def to_prompt(self) -> str:
+        """One-line description for prompts: word and character counts and the start of the text."""
         return f"text: {self.n_words} words, {self.n_chars} chars; starts: {self.preview!r}"
 
 
@@ -105,6 +114,7 @@ class TextType(ArtifactType):
     specificity = 1
 
     def profile(self, value: str) -> TextProfile:
+        """Profile a string: character count, word count and the first 80 characters."""
         return TextProfile(n_chars=len(value), n_words=len(value.split()), preview=value[:80])
 
     def static_check(self, profile, constraints, params, loc):
@@ -133,6 +143,7 @@ class NumberType(ArtifactType):
     specificity = 1
 
     def accepts(self, value: Any) -> bool:
+        """``int`` or ``float``; booleans are not numbers here."""
         return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
@@ -149,9 +160,11 @@ class TypeRegistry:
             self.register(t)
 
     def register(self, t: ArtifactType) -> None:
+        """Register a type under its ``name``, replacing any type with the same name."""
         self._types[t.name] = t
 
     def get(self, name: str) -> ArtifactType:
+        """The artifact type registered under ``name``; raises a `SpecError` with a spelling suggestion for an unknown name."""
         try:
             return self._types[name]
         except KeyError:
@@ -168,12 +181,15 @@ class TypeRegistry:
             ) from None
 
     def has(self, name: str) -> bool:
+        """Whether a type with this name is registered."""
         return name in self._types
 
     def names(self) -> list[str]:
+        """Sorted names of the registered types."""
         return sorted(self._types)
 
     def infer(self, value: Any) -> ArtifactType:
+        """The most specific registered type that accepts ``value`` (highest ``specificity``; ``any`` when nothing else matches)."""
         matches = [t for t in self._types.values() if t.accepts(value)]
         return max(matches, key=lambda t: t.specificity)
 

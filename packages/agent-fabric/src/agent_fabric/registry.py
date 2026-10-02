@@ -62,6 +62,7 @@ class Registry:
 
     # ------------------------------------------------------------ specs
     def add_specs(self, specs: Iterable[AnySpec]) -> None:
+        """Add specs by name; raises a `SpecError` when a name is defined twice with different content (identical re-adds are ignored)."""
         for spec in specs:
             old = self._specs.get(spec.name)
             if old is not None and old != spec:
@@ -70,6 +71,11 @@ class Registry:
 
     # ------------------------------------------------------------ components
     def register(self, cls: type) -> None:
+        """Bind an implementation class to the spec that has its ``spec_name`` and register the component.
+
+        Fails with a `SpecError` listing every mismatch: the class is not a `Component`, no spec exists for it, ``Params``/``Result`` have the wrong base classes,
+        spec parameters and ``Params`` fields differ (``spec_only_param``, ``undocumented_param``), or a port uses an unregistered artifact type.
+        """
         from .component import Component, ComponentParams, ComponentResult
 
         name = getattr(cls, "spec_name", None)
@@ -121,6 +127,7 @@ class Registry:
         self._components[spec.name] = cls(spec, self.types)  # parses port constraints (may raise SpecError)
 
     def register_pipeline(self, pspec: PipelineSpec) -> None:
+        """Validate a `PipelineSpec` against the registry and register it; unless ``expose_as_component`` is false it is also registered as a component, so pipelines can be steps of other pipelines."""
         from .pipeline import PipelineComponent, validate_pipeline_spec
 
         validate_pipeline_spec(pspec, self)
@@ -182,6 +189,7 @@ class Registry:
         return sorted(names)
 
     def discover_domains(self) -> list[str]:
+        """Load every installed domain pack advertised through the ``agent_fabric.domains`` entry point; returns the entry point names loaded."""
         found = []
         for ep in metadata.entry_points(group=DOMAIN_ENTRY_POINT):
             ep.load()(self)
@@ -190,6 +198,7 @@ class Registry:
 
     # ------------------------------------------------------------ queries
     def get(self, name: str) -> Any:
+        """The registered component by name; raises a `SpecError` with a spelling suggestion when unknown."""
         try:
             return self._components[name]
         except KeyError:
@@ -206,9 +215,11 @@ class Registry:
             ) from None
 
     def has(self, name: str) -> bool:
+        """Whether an enabled component with this name is registered."""
         return name in self._components and self._components[name].spec.enabled
 
     def names(self, domains: Iterable[str] | None = None) -> list[str]:
+        """Sorted names of enabled components, optionally limited to the given ``domains`` (``core`` components are always included)."""
         doms = set(domains) if domains else None
         return sorted(
             n
@@ -217,12 +228,15 @@ class Registry:
         )
 
     def domains(self) -> list[str]:
+        """Sorted names of the domains that have at least one registered component."""
         return sorted({c.spec.domain for c in self._components.values()})
 
     def spec(self, name: str) -> Any:
+        """The spec (contract and guidance) of a registered component."""
         return self.get(name).spec
 
     def pipeline(self, name: str) -> PipelineSpec:
+        """The registered `PipelineSpec` by name; raises a `SpecError` with a suggestion when unknown."""
         if name not in self._pipelines:
             raise SpecError(
                 f"Unknown pipeline '{name}'",
@@ -243,6 +257,7 @@ class Registry:
         return g.section(section, max_chars) if section else g.body
 
     def pipelines(self) -> list[str]:
+        """Sorted names of the registered pipelines."""
         return sorted(self._pipelines)
 
     def catalog(self, domains: Iterable[str] | None = None, compact: bool = True) -> list[dict[str, Any]]:
