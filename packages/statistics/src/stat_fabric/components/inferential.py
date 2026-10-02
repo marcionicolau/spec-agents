@@ -119,6 +119,10 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         return head, [f"{x['term']}: estimate {x['estimate']:.4g} (p={x['p_value']:.3g})" for x in sig[:5]]
 
     def extra_data_checks(self, df: pd.DataFrame, params: LinearModelParams) -> list[ErrorDetail]:
+        """``log_response`` needs a strictly positive response, and the complete rows must exceed the number of model terms.
+
+        Errors are ``non_positive_response`` and ``too_many_terms``.
+        """
         d = df[[params.response, *params.predictors]].dropna()
         errors = []
         if params.log_response and (d[params.response] <= 0).any():
@@ -148,6 +152,13 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
     def compute_table(
         self, df: pd.DataFrame, params: LinearModelParams, ctx: StepContext, inputs: dict
     ) -> LinearModelResult:
+        """Fit an ordinary least squares model with a coefficient table and residual diagnostics.
+
+        Terms are built from validated column names (categorical predictors become dummies; optional interactions and ``log_response``). Reports
+        estimates, standard errors, test statistics, p-values and confidence intervals, the fit statistics, and diagnostics: Breusch-Pagan
+        (heteroscedasticity), Jarque-Bera (residual normality), Durbin-Watson (autocorrelation) and variance inflation factors. Warns when a
+        diagnostic fails (and suggests robust standard errors).
+        """
         cols = [params.response, *params.predictors]
         d = df[cols].dropna().copy()
         if params.log_response:
@@ -277,6 +288,10 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         ][:5]
 
     def extra_data_checks(self, df: pd.DataFrame, params: AnovaParams) -> list[ErrorDetail]:
+        """Each factor needs at least 2 levels and every level at least 2 observations (after dropping missing values).
+
+        Errors are ``single_level`` and ``small_group``.
+        """
         d = df[[params.response, *params.factors]].dropna()
         errors = []
         for f in params.factors:
@@ -303,6 +318,12 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
         return errors
 
     def compute_table(self, df: pd.DataFrame, params: AnovaParams, ctx: StepContext, inputs: dict) -> AnovaResult:
+        """One- or two-way ANOVA of the response across the factors.
+
+        Fits an OLS model from validated column names (type 2 or 3 sums of squares, optional interaction for two factors), reports each source
+        with partial eta-squared, Levene's test for equal variances, Shapiro-Wilk on the residuals, group means and, for a single factor with
+        ``posthoc``, Tukey HSD pairwise comparisons.
+        """
         d = df[[params.response, *params.factors]].dropna().copy()
         for f in params.factors:
             d[f] = d[f].astype(str)

@@ -252,6 +252,12 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
     def compute_table(
         self, df: pd.DataFrame, params: ClusteringParams, ctx: StepContext, inputs: dict
     ) -> ClusteringResult:
+        """K-means clustering on standardised features or on a PCA score matrix.
+
+        With a fixed ``k`` it is used as given; otherwise ``k`` is chosen between ``k_min`` and ``k_max`` by the best silhouette score. Reports
+        cluster sizes, centers (in original units when features were standardised) and the silhouette; emits the cluster ``labels`` as a Series.
+        Warns about weak structure (silhouette under 0.25), very small clusters and unstandardised features.
+        """
         if params.features is None:
             data = inputs["matrix"].dropna().astype(float)
             X, space, scaler = data.values, "matrix", None

@@ -84,6 +84,11 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         return s.interpolate(limit_direction="both"), freq
 
     def extra_data_checks(self, df: pd.DataFrame, params: TimeSeriesParams) -> list[ErrorDetail]:
+        """Check that the series can be regularised at the frequency and is long enough.
+
+        Errors are ``bad_frequency`` (unusable ``freq``), ``too_few_periods`` and ``period_too_long`` (a seasonal period needs at least twice as many
+        periods).
+        """
         try:
             s, freq = self._series(df, params)
         except (ValueError, TypeError) as exc:
@@ -119,6 +124,12 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
     def compute_table(
         self, df: pd.DataFrame, params: TimeSeriesParams, ctx: StepContext, inputs: dict
     ) -> TimeSeriesResult:
+        """Regularise the series, test stationarity and fit an ARIMA model with an optional forecast.
+
+        Reports the Augmented Dickey-Fuller test, trend and seasonal strength from an STL decomposition (when the series spans at least two
+        periods), the ARIMA fit and ``horizon`` forecast points with confidence intervals. Warns about non-stationarity with ``d=0``, strong
+        seasonality that plain ARIMA ignores, and series too short for decomposition.
+        """
         s, freq = self._series(df, params)
         warns = []
         adf_stat, adf_p = adfuller(s.values, autolag="AIC")[:2]

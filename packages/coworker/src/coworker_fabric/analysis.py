@@ -457,10 +457,19 @@ class Scorer:
         return min(1.0, total / self.total), hits
 
     def file(self, f: dict[str, Any]) -> tuple[float, list[str]]:
+        """Score a file of the index against the task.
+
+        Combines term matches, path matches (weighted x3) and symbol-name matches (x2), normalised by the file's token count.
+        Returns ``(score, matched_terms)``; a score of ``0`` means no overlap with the task.
+        """
         names = {w for s in f["symbols"] for w in stems(s["name"])}
         return self._score(f.get("terms", {}), set(stems(f["path"])), names, f["tokens"])
 
     def symbol(self, sym: dict[str, Any], f: dict[str, Any]) -> tuple[float, list[str]]:
+        """Score one symbol of a file against the task, using the symbol's own vocabulary and name.
+
+        Returns ``(score, matched_terms)``. Used to pick the matching symbols of files too large to include whole.
+        """
         return self._score(sym.get("terms", {}), set(), set(stems(sym["name"])), int(self.avg_tokens))
 
 

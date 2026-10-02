@@ -73,6 +73,11 @@ class StatisticalAnalysisFabric:
         root: str | None = None,
         extra_inputs: dict[str, Any] | None = None,
     ) -> AgentRunReport:
+        """Run the agent tree on a DataFrame and a question; returns the `AgentRunReport`.
+
+        The frame is bound to the ``data`` input (``extra_inputs`` add more, e.g. ``notes``); ``root`` picks the root agent when the config has
+        several candidates and ``session_id`` selects the memory session.
+        """
         return self.agents.run(objective, {"data": df, **(extra_inputs or {})}, root=root, session_id=session_id)
 
 

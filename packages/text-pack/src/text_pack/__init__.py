@@ -72,6 +72,10 @@ class TextStats(Component[TextStatsParams, TextStatsResult]):
     Result = TextStatsResult
 
     def compute(self, inputs: dict, params: TextStatsParams, ctx: StepContext) -> TextStatsResult:
+        """Count words and sentences and compute the average word length and lexical diversity (distinct words over all words).
+
+        Warns when the text has fewer than 50 words, where the statistics are unstable.
+        """
         text = inputs["text"]
         words = [w.lower() if params.lowercase else w for w in _WORD.findall(text)]
         sentences = [s for s in re.split(r"[.!?]+\s", text) if s.strip()]
@@ -125,6 +129,10 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
         return []
 
     def compute(self, inputs: dict, params: KeywordsParams, ctx: StepContext) -> KeywordsResult:
+        """Most frequent content words: lowercased words of at least ``min_length`` letters minus stop words and ``extra_stopwords``.
+
+        Emits the ranked ``terms`` list; the result carries each term with its count.
+        """
         stop = STOPWORDS | {w.lower() for w in params.extra_stopwords}
         words = [
             w.lower() for w in _WORD.findall(inputs["text"]) if len(w) >= params.min_length and w.lower() not in stop

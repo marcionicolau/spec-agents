@@ -19,6 +19,13 @@ class StatsRulePlanner:
         self.registry, self.hints = registry, hints or {}
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
+        """Build a plan from the dataset profile alone, without a model (deterministic baseline and fallback).
+
+        Starts with ``summary`` and adds ``linear_model`` and ``anova`` (needs a numeric response), ``time_series`` (a datetime column and at
+        least 12 rows) and ``pca`` followed by ``clustering`` (at least 3 features and 20 rows; 2 features cluster directly) only when the
+        columns justify them. Usable columns have at most 30% missing values; categorical factors have 2 to 30 levels. ``hints`` can fix the
+        response, features, factors and time column. Raises ``DataValidationError`` when no dataframe input exists. The rules ignore the objective text.
+        """
         frames = [n for n, s in inputs.specs.items() if s.type == "dataframe"]
         if not frames:
             raise DataValidationError(
