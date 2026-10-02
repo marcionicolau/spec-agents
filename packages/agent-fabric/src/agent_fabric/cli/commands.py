@@ -85,6 +85,7 @@ def cmd_run(a: Any, console: Console, backend: Any = None) -> int:
                 session_id=a.session,
                 on_event=lambda e: live.update(view.on_event(e)),
                 on_step=lambda o: live.update(view.on_step(o)),
+                on_delta=lambda p, t: live.update(view.on_delta(p, t)),
             )
         console.print(report_group(report))
     if a.out:

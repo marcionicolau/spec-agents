@@ -1,7 +1,7 @@
 """Live run view: spinner + agent/step status + event feed, driven by RunContext hooks.
 
 ``RunContext.on_event`` fires on agent start/end/llm_call/delegate/fallback and
-``RunContext.on_step`` on each pipeline step outcome - the CLI feeds both into a
+``RunContext.on_step`` on each pipeline step outcome, ``on_delta`` on streamed answer text - the CLI feeds both into a
 ``RunView`` rendered inside a ``rich.live.Live`` (spinners animate on refresh).
 """
 
@@ -30,6 +30,9 @@ _EVENT_STYLE = {
 }
 
 
+_TAIL = 240  # characters of streamed text kept per agent
+
+
 class RunView:
     """Accumulates agent events and step outcomes; ``renderable()`` draws the live board."""
 
@@ -39,17 +42,25 @@ class RunView:
         self.steps: dict[str, Any] = {}  # step_id -> StepOutcome
         self.events: deque = deque(maxlen=max_events)
         self.current = "starting"
+        self.streams: dict[str, str] = {}  # path -> tail of the answer being streamed
 
     # ------------------------------------------------------------------ hooks
     def on_event(self, e: Any) -> RenderableType:
         self.events.append(e)
+        if e.event == "llm_call":
+            self.streams[e.path] = ""
         if e.event == "start":
             self.agents[e.path] = "running"
         elif e.event == "end":
             self.agents[e.path] = e.detail
+            self.streams.pop(e.path, None)
         if e.event != "end":
             name = e.path.split("/")[-1]
             self.current = f"{e.event} {name}" + (f" ({e.detail})" if e.detail else "")
+        return self.renderable()
+
+    def on_delta(self, path: str, text: str) -> RenderableType:
+        self.streams[path] = (self.streams.get(path, "") + text)[-_TAIL:]
         return self.renderable()
 
     def on_step(self, o: Any) -> RenderableType:
@@ -67,6 +78,12 @@ class RunView:
                 marker = Spinner("line") if st == "running" else status_text(st)
                 grid.add_row(Text(indent + path.split("/")[-1], style="bold"), marker)
             parts.append(Panel(grid, title="agents", border_style="dim"))
+        live_text = [(p, t) for p, t in self.streams.items() if t.strip() and self.agents.get(p) == "running"]
+        if live_text:
+            out = Table.grid(padding=(0, 1))
+            for p, t in live_text:
+                out.add_row(Text(p.split("/")[-1], style="bold"), Text(" ".join(t.split())[-_TAIL:], style="dim"))
+            parts.append(Panel(out, title="streaming", border_style="dim"))
         if self.steps:
             t = Table("step", "component", "status", "time", box=None, pad_edge=False)
             for o in self.steps.values():

@@ -430,3 +430,15 @@ def test_parallel_failure_skips_dependents_and_respects_budget(registry):
     statuses = {c.agent: c.status for c in rep.result.children}
     assert statuses == {"a": "ok", "b": "ok", "c": "skipped"}
     assert rep.usage["delegations"] == 3  # the third charge hit the limit
+
+
+def test_fabric_run_streams_llm_text_to_on_delta(registry):
+    plan = json.dumps({"delegations": [{"id": "d1", "agent": "a", "instruction": "do work"}]})
+    cfg = _parallel_cfg(1)
+    cfg["agents"]["lead"]["sub_agents"] = ["a"]
+    del cfg["agents"]["b"], cfg["agents"]["c"]
+    fabric, _ = make(registry, cfg, [plan])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    deltas: list[tuple[str, str]] = []
+    rep = fabric.run("go", on_delta=lambda p, t: deltas.append((p, t)))
+    assert rep.ok and {p for p, _ in deltas} == {"lead"} and "".join(t for _, t in deltas) == plan

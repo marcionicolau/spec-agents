@@ -168,3 +168,23 @@ def test_incompatible_installed_pack_is_reported_and_can_be_skipped(monkeypatch,
     printed = capsys.readouterr().out
     assert "Incompatible domain pack" in printed and "future-pack" in printed
     assert main(["catalog", "--no-discover", "--skills", f"{NOTES}/skills"]) == 0
+
+
+def test_run_view_shows_streamed_tail_only_for_running_agents():
+    from rich.console import Console
+
+    from agent_fabric.agents.runtime import TraceEvent
+    from agent_fabric.cli.live import RunView
+
+    view = RunView("task")
+    view.on_event(TraceEvent(at=0, path="lead/w", event="start"))
+    view.on_event(TraceEvent(at=0, path="lead/w", event="llm_call"))
+    r = view.on_delta("lead/w", "Hello\nstreamed ")
+    console = Console(record=True, width=80)
+    console.print(view.on_delta("lead/w", "world"))
+    out = console.export_text()
+    assert "streaming" in out and "Hello streamed world" in out
+    view.on_event(TraceEvent(at=1, path="lead/w", event="end", detail="ok"))
+    console = Console(record=True, width=80)
+    console.print(view.renderable())
+    assert "streaming" not in console.export_text() and r is not None
