@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.8.0...agent-fabric-v0.9.0) (2026-10-05)
+
+
+### Features
+
+* **agent-fabric:** export run traces (JSON lines / OpenTelemetry) ([#118](https://github.com/marcionicolau/spec-agents/issues/118)) ([9388829](https://github.com/marcionicolau/spec-agents/commit/93888294af1615e57ed20806d4037c2db8c5b60b))
+
 ## [0.8.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.7.0...agent-fabric-v0.8.0) (2026-10-02)
 
 
