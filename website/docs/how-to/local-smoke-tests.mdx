@@ -1,0 +1,105 @@
+---
+id: local-smoke-tests
+title: Local smoke tests
+---
+
+The whole test suite runs offline against `ScriptedBackend` — deterministic, no model. That proves the contracts, but not that a
+**real model** can plan, call components, and stay grounded. `examples/smoke/` holds three live smoke tests — one per domain
+pack — designed for a **CPU-only workstation** with a single small model.
+
+## Why live smokes, and why here
+
+- The CI suite is intentionally model-free; live behaviour is verified manually before releases or guidance changes.
+- A 7B instruct model is a *stress test*: if Qwen2.5 7B can produce valid plans and grounded interpretations, bigger models
+  will too. A 7B failure is a finding about prompts or grounding — not something to silence by upgrading the model.
+- Each case writes a markdown report, a machine-readable dump and an event trace, so results are reviewable after the fact.
+
+## Prerequisites
+
+```bash
+# 1. One model only (~4.7 GB) — everything maps to it
+ollama pull qwen2.5:7b-instruct
+ollama list    # verify it's there
+
+# 2. Workspace env
+just sync      # or: uv sync --all-packages --group dev
+```
+
+### The gateway config
+
+`config/litellm_config.yaml` maps `local-planner` to `qwen2.5:14b-instruct` — too heavy for this purpose. The smoke suite
+ships its own config, `examples/smoke/litellm_qwen25.yaml`, which maps **every** alias (`local-planner`, `local-writer`,
+`local-fast` and the fallbacks) to the same 7B model and relaxes timeouts for CPU inference. Start the gateway with it —
+do not edit the default config:
+
+```bash
+export OLLAMA_API_BASE=http://localhost:11434
+export LITELLM_MASTER_KEY=sk-local-dev
+
+litellm --config examples/smoke/litellm_qwen25.yaml --port 4000
+```
+
+Sanity-check it in another terminal: `curl http://localhost:4000/health`.
+
+## Run the three cases
+
+```bash
+uv run python examples/smoke/smoke.py anova      # statistics pack
+uv run python examples/smoke/smoke.py coworker   # coworker pack
+uv run python examples/smoke/smoke.py whatsapp   # text pack
+```
+
+Every run writes three artefacts under `build/smoke/`:
+
+| File | Contents |
+| --- | --- |
+| `<case>.md` | rendered report — plans, results, the model's interpretation |
+| `<case>.json` | full `RunReport` dump (artifacts, usage, errors) |
+| `<case>.jsonl` | complete event trace (`start` / `llm_call` / `end` per agent) |
+
+### 1. `anova` — statistics pack
+
+Fixture `anova_trial.csv`: 30 rows of a two-way field trial (`yield ~ treatment × cultivar`, seeded so the treatment effect
+is significant, *p* ≈ 0.02). The `research_lead` tree delegates to `statistician`, whose `analyze-trial` plan runs
+`ingest_csv → clean_missing → compute_table` — the real planner picks the ANOVA step itself.
+
+Check that the interpretation in `build/smoke/anova.md` states the treatment effect correctly and that every number it
+cites appears in the artefacts of `anova.json` — spot-check for hallucinated values.
+
+### 2. `coworker` — coworker pack
+
+Fixture `tiny_repo/`: a tiny Python package whose `calc.py::mean([])` crashes with `ZeroDivisionError`. The
+`pair_programmer` tree should select the file as context and `patch_propose` a validated diff — in memory only, nothing
+is written to disk.
+
+Watch `patch_propose`'s input validation: a malformed `context` (wrong type, entries missing `path`, paths outside the
+root) must fail with a **located** `FabricError`/`ErrorDetail`, never a bare `KeyError`/`TypeError` — golden rule 4. If the
+run exposes one, that's the bug tracked in
+[#129](https://github.com/marcionicolau/spec-agents/issues/129): fix the validation, don't weaken the schema to make bad
+model output pass.
+
+### 3. `whatsapp` — text pack
+
+Fixture `whatsapp_group.txt`: a real-format group export — timestamps, senders, media placeholders, interleaved threads —
+run through the `document_digest` pipeline (`text_stats` + `keywords`, then an LLM-authored summary).
+
+Check the digest is grounded: the thread's actual decision and owners, no invented participants, and `[Media omitted]`
+placeholders are not treated as content.
+
+## If it fails
+
+Expect minutes, not seconds — CPU inference on a 7B model is slow (the config gives it 300 s per call). On failure,
+capture before retrying:
+
+- the `smoke.py` console output,
+- `build/smoke/<case>.json` error blocks and the `.jsonl` tail,
+- the LiteLLM gateway log and `ollama logs`,
+
+then report on the tracking issue ([#128](https://github.com/marcionicolau/spec-agents/issues/128),
+[#129](https://github.com/marcionicolau/spec-agents/issues/129),
+[#130](https://github.com/marcionicolau/spec-agents/issues/130)). Don't silently retry with a bigger model.
+
+:::tip
+These cases are manual by design. For the CI-backed checks, see `python examples/run_evals.py --mode live` in
+[Use a real model](real-model.mdx).
+:::
