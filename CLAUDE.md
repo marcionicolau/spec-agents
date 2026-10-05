@@ -63,7 +63,7 @@ config/litellm_config.yaml   gateway;   tools/check_wheels.py;   justfile (task 
 
 ```bash
 just check                                  # everything CI runs (lint, specs, tests, wheels); `just` lists recipes
-just types                                  # ty type check (core only for now; needs --all-extras to resolve optional imports)
+just types                                  # ty type check on all five packages (needs --all-extras to resolve optional imports)
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
 uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
@@ -128,7 +128,7 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.
 - `extra="forbid"` on every model an LLM (or YAML author) can produce.
 - Prompt _templates_ live in `llm/prompts.py`; domain wording lives in SKILL.md/AGENT.md bodies, never in code.
-- Types: every package ships `py.typed`; `ty` (pinned, pre-1.0) checks `packages/agent-fabric/src` in CI. Suppress with
+- Types: every package ships `py.typed`; `ty` (pinned, pre-1.0) checks every `packages/*/src` in CI (`extras` job). Suppress with
   `# ty: ignore[rule]` plus a reason, never a bare `# type: ignore`. `tests/test_boundaries.py` enforces rules 3 and 7
   (no domain-pack imports in the core; optional frameworks only lazily or behind `try/except ImportError`).
 - **Public API = `__all__`.** Every package and every public module lists what it exports in `__all__`; everything else is internal
