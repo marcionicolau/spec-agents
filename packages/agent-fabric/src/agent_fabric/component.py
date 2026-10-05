@@ -165,7 +165,7 @@ class Component[P: ComponentParams, R: ComponentResult](ABC):
         """Plan-time checks. ``bound`` maps each bound input port to its profile (None = unknown yet)."""
         return []
 
-    def summarize(self, result: dict[str, Any]) -> tuple[str, list[str]] | None:
+    def summarize(self, result: dict[str, Any], /) -> tuple[str, list[str]] | None:
         """Optional deterministic (headline, findings) for rule-based interpretation."""
         return None
 

@@ -78,7 +78,9 @@ def merge_kinds(kinds: set[str | None]) -> str:
     if not kinds:
         return "varchar"
     if len(kinds) == 1:
-        return next(iter(kinds))
+        kind = next(iter(kinds))
+        assert kind is not None  # the comprehension above drops falsy kinds
+        return kind
     if kinds <= NUMERIC:
         return "double"
     if kinds <= {"date", "timestamp"}:

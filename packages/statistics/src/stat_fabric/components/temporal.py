@@ -124,7 +124,7 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         return errors
 
     def compute_table(
-        self, df: pd.DataFrame, params: TimeSeriesParams, ctx: StepContext, inputs: dict
+        self, df: pd.DataFrame | None, params: TimeSeriesParams, ctx: StepContext, inputs: dict
     ) -> TimeSeriesResult:
         """Regularise the series, test stationarity and fit an ARIMA model with an optional forecast.
 
@@ -132,6 +132,7 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         periods), the ARIMA fit and ``horizon`` forecast points with confidence intervals. Warns about non-stationarity with ``d=0``, strong
         seasonality that plain ARIMA ignores, and series too short for decomposition.
         """
+        assert df is not None
         s, freq = self._series(df, params)
         warns = []
         adf_stat, adf_p = adfuller(s.values, autolag="AIC")[:2]
