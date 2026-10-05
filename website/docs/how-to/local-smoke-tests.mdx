@@ -10,7 +10,7 @@ pack — designed for a **CPU-only workstation** with a single small model.
 ## Why live smokes, and why here
 
 - The CI suite is intentionally model-free; live behaviour is verified manually before releases or guidance changes.
-- A 7B instruct model is a *stress test*: if Qwen2.5 7B can produce valid plans and grounded interpretations, bigger models
+- A 7B instruct model is a _stress test_: if Qwen2.5 7B can produce valid plans and grounded interpretations, bigger models
   will too. A 7B failure is a finding about prompts or grounding — not something to silence by upgrading the model.
 - Each case writes a markdown report, a machine-readable dump and an event trace, so results are reviewable after the fact.
 
@@ -51,17 +51,19 @@ uv run python examples/smoke/smoke.py whatsapp   # text pack
 
 Every run writes three artefacts under `build/smoke/`:
 
-| File | Contents |
-| --- | --- |
-| `<case>.md` | rendered report — plans, results, the model's interpretation |
-| `<case>.json` | full `RunReport` dump (artifacts, usage, errors) |
+| File           | Contents                                                      |
+| -------------- | ------------------------------------------------------------- |
+| `<case>.md`    | rendered report — plans, results, the model's interpretation  |
+| `<case>.json`  | full `RunReport` dump (artifacts, usage, errors)              |
 | `<case>.jsonl` | complete event trace (`start` / `llm_call` / `end` per agent) |
 
 ### 1. `anova` — statistics pack
 
 Fixture `anova_trial.csv`: 30 rows of a two-way field trial (`yield ~ treatment × cultivar`, seeded so the treatment effect
-is significant, *p* ≈ 0.02). The `research_lead` tree delegates to `statistician`, whose `analyze-trial` plan runs
-`ingest_csv → clean_missing → compute_table` — the real planner picks the ANOVA step itself.
+is significant, _p_ ≈ 0.02) plus the soil columns `profile_runner` needs (`phosphorus`, `potassium`). A companion
+`field_notes.txt` feeds `notes_digest` — the whole `research_lead` tree runs: the supervisor delegates to `statistician`
+(`ingest_csv → clean_missing → compute_table` — the real planner picks the ANOVA step), the deterministic profiler and the
+notes digest.
 
 Check that the interpretation in `build/smoke/anova.md` states the treatment effect correctly and that every number it
 cites appears in the artefacts of `anova.json` — spot-check for hallucinated values.
@@ -81,7 +83,8 @@ model output pass.
 ### 3. `whatsapp` — text pack
 
 Fixture `whatsapp_group.txt`: a real-format group export — timestamps, senders, media placeholders, interleaved threads —
-run through the `document_digest` pipeline (`text_stats` + `keywords`, then an LLM-authored summary).
+run through the `notes_digest` agent (`document_digest` pipeline: `text_stats` + `keywords`, then an LLM-authored summary)
+with `root="notes_digest"`, so the chat is digested directly without the stats agents needing a `data` input.
 
 Check the digest is grounded: the thread's actual decision and owners, no invented participants, and `[Media omitted]`
 placeholders are not treated as content.

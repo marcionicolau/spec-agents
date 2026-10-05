@@ -35,7 +35,7 @@ def _schemas(fabric: AgentFabric, schemas: dict) -> AgentFabric:
     return fabric
 
 
-def _run(fabric: AgentFabric, instruction: str, inputs: dict, session_id: str):
+def _run(fabric: AgentFabric, instruction: str, inputs: dict, session_id: str, root: str | None = None):
     """Run with the CLI's live view (agent board, step table, streamed model text).
 
     On a non-TTY (logs, CI) falls back to printing one line per event plus raw streamed text.
@@ -50,6 +50,7 @@ def _run(fabric: AgentFabric, instruction: str, inputs: dict, session_id: str):
         return fabric.run(
             instruction,
             inputs,
+            root=root,
             session_id=session_id,
             on_event=lambda e: print(f"[{e.event}] {e.path} {e.detail or ''}", flush=True),
             on_step=lambda o: print(
@@ -62,6 +63,7 @@ def _run(fabric: AgentFabric, instruction: str, inputs: dict, session_id: str):
         return fabric.run(
             instruction,
             inputs,
+            root=root,
             session_id=session_id,
             on_event=lambda e: live.update(view.on_event(e)),
             on_step=lambda o: live.update(view.on_step(o)),
@@ -99,7 +101,10 @@ def anova() -> None:
         fabric,
         "Does the nitrogen treatment change wheat yield? Run a two-way ANOVA (treatment x cultivar) "
         "and summarise the trial first.",
-        {"data": df},
+        {
+            "data": df,
+            "notes": (SMOKE / "field_notes.txt").read_text(encoding="utf-8"),
+        },
         "smoke-anova",
     )
     _write(report, "anova")
@@ -147,8 +152,9 @@ def whatsapp() -> None:
     report = _run(
         fabric,
         "Digest this WhatsApp group conversation: what was decided and who owns what?",
-        {"text": (SMOKE / "whatsapp_group.txt").read_text(encoding="utf-8")},
+        {"notes": (SMOKE / "whatsapp_group.txt").read_text(encoding="utf-8")},
         "smoke-whatsapp",
+        root="notes_digest",
     )
     _write(report, "whatsapp")
 
