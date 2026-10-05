@@ -44,10 +44,12 @@ build:
 cov:
     uv run pytest -q --cov --cov-report=term
 
-# export every skill as a spec-compliant Agent Skill (agentskills.io) into build/skills and validate it (CI runs this)
+# export every skill as a spec-compliant Agent Skill (agentskills.io) into build/skills and validate it with the
+# official skills-ref validator (agentskills CLI, pinned in the dev group); our own validator also runs inside export-skills
 skills-export:
     rm -rf build/skills
     uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
+    rc=0; for d in build/skills/*/; do uv run agentskills validate "$d" || rc=1; done; [ $rc -eq 0 ]
 
 # build the documentation site (guides + generated API reference) into build/site; strict: warnings fail
 docs:
