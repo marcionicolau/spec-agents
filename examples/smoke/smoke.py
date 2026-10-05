@@ -29,6 +29,13 @@ from agent_fabric.report import render_markdown  # noqa: E402
 from agent_fabric.trace import write_jsonl  # noqa: E402
 
 
+def _config(path: Path) -> AgentsConfig:
+    """Load an agent tree with a client timeout that fits CPU inference (the 180 s default fires first)."""
+    config = AgentsConfig.load(path)
+    config.llm.timeout_s = 1200.0
+    return config
+
+
 def _schemas(fabric: AgentFabric, schemas: dict) -> AgentFabric:
     for name, model in schemas.items():
         fabric.register_schema(name, model)
@@ -93,7 +100,7 @@ def anova() -> None:
     fabric = _schemas(
         AgentFabric(
             build_registry([register_stats, register_text]),
-            AgentsConfig.load(ROOT / "examples" / "research_team"),
+            _config(ROOT / "examples" / "research_team"),
         ),
         SCHEMAS,
     )
@@ -122,7 +129,7 @@ def coworker() -> None:
     fabric = _schemas(
         AgentFabric(
             build_registry([register_coworker]),
-            AgentsConfig.load(ROOT / "packages" / "coworker" / "config"),
+            _config(ROOT / "packages" / "coworker" / "config"),
         ),
         SCHEMAS,
     )
@@ -145,7 +152,7 @@ def whatsapp() -> None:
     fabric = _schemas(
         AgentFabric(
             build_registry([register_stats, register_text]),
-            AgentsConfig.load(ROOT / "examples" / "research_team"),
+            _config(ROOT / "examples" / "research_team"),
         ),
         SCHEMAS,
     )

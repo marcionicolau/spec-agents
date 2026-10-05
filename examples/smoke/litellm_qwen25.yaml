@@ -9,28 +9,28 @@ model_list:
       model: ollama_chat/qwen2.5:7b-instruct
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.1
-      options: { num_ctx: 8192 } # default 4096 truncates the planner prompts
+      num_ctx: 8192 # default 4096 truncates the planner prompts
 
   - model_name: local-planner-fallback
     litellm_params:
       model: ollama_chat/qwen2.5:7b-instruct
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.1
-      options: { num_ctx: 8192 }
+      num_ctx: 8192
 
   - model_name: local-writer
     litellm_params:
       model: ollama_chat/qwen2.5:7b-instruct
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.2
-      options: { num_ctx: 8192 }
+      num_ctx: 8192
 
   - model_name: local-fast
     litellm_params:
       model: ollama_chat/qwen2.5:7b-instruct
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.0
-      options: { num_ctx: 8192 }
+      num_ctx: 8192
 
 router_settings:
   num_retries: 0 # a retry is another ~5 min on CPU; fail fast instead
