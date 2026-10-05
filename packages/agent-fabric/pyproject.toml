@@ -1,13 +1,12 @@
 [project]
 name = "spec-agents-core"
-dynamic = ["version"]
 description = "Spec-driven pipelines and hierarchical agents (PydanticAI, DSPy, CrewAI, LangChain) over a LiteLLM proxy"
+readme = "README.md"
 requires-python = ">=3.12"
 license = "MIT"
 license-files = ["LICENSE"]
-readme = "README.md"
 authors = [{ name = "Marcio Nicolau" }]
-keywords = ["agents", "llm", "pipelines", "specs", "pydantic"]
+keywords = ["agents", "llm", "pipelines", "pydantic", "specs"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Developers",
@@ -23,32 +22,31 @@ dependencies = [
   "pyyaml>=6.0.2",
   "rich>=13.7.1",
 ]
+dynamic = ["version"]
+
+[project.urls]
+Changelog = "https://github.com/marcionicolau/spec-agents/blob/main/packages/agent-fabric/CHANGELOG.md"
+Documentation = "https://github.com/marcionicolau/spec-agents/tree/main/docs"
+Homepage = "https://github.com/marcionicolau/spec-agents"
+Issues = "https://github.com/marcionicolau/spec-agents/issues"
+Repository = "https://github.com/marcionicolau/spec-agents"
 
 [project.scripts]
 agent-fabric = "agent_fabric.cli:main"
 
 [project.optional-dependencies]
-all = ["spec-agents-core[tabular,pydantic-ai,dspy,crewai,langchain]"]
+all = ["spec-agents-core[tabular,pydantic-ai,dspy,crewai,langchain,otel]"]
 crewai = ["crewai>=0.100"]
 dspy = ["dspy>=3.0"]
 langchain = ["langchain-core>=0.3"]
+otel = ["opentelemetry-sdk>=1.30"]
 proxy = ["litellm[proxy]>=1.60"]
 pydantic-ai = ["pydantic-ai-slim[openai]>=1.0"]
 tabular = ["pandas>=2.1"]
 
-[project.urls]
-Homepage = "https://github.com/marcionicolau/spec-agents"
-Repository = "https://github.com/marcionicolau/spec-agents"
-Issues = "https://github.com/marcionicolau/spec-agents/issues"
-Changelog = "https://github.com/marcionicolau/spec-agents/blob/main/packages/agent-fabric/CHANGELOG.md"
-Documentation = "https://github.com/marcionicolau/spec-agents/tree/main/docs"
-
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning>=0.14"]
 build-backend = "hatchling.build"
-
-[tool.uv]
-package = true
 
 # version = latest "agent-fabric-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
 [tool.hatch.version]
@@ -56,6 +54,9 @@ source = "uv-dynamic-versioning"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/agent_fabric"]
+
+[tool.uv]
+package = true
 
 [tool.uv-dynamic-versioning]
 vcs = "git"

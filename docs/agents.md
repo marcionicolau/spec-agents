@@ -59,6 +59,28 @@ LLM call as it is generated, when the backend can `stream()` (`LiteLLMProxyBacke
 don't stream. The returned text, the budget and the trace are identical with or without a listener. Async callers can use
 `acomplete`/`astream` on the backends (`AsyncLLMBackend`, `StreamingLLMBackend`; `SyncToAsyncBackend` adapts any sync one).
 
+**Trace export**: the `on_event` stream can be persisted two ways. `agent_fabric.trace.JsonlTraceSink` (or
+`write_jsonl(report.trace, path)` after the run) writes every event as one JSON line with stable field names —
+`seq` (total order), `at` (seconds since run start), `path` (agent path), `event` (`start`/`end`/`llm_call`/
+`delegate`/`fallback`/`skip`/`error`), `detail` — flushed per event so a crashed run keeps its trace:
+
+```json
+{
+  "seq": 3,
+  "at": 0.41,
+  "path": "note_taker",
+  "event": "llm_call",
+  "detail": "local-fast"
+}
+```
+
+The CLI does it with `agent-fabric run <config> ... --trace-out run.jsonl`. `OtelTraceSink` (CLI flag `--otel`,
+needs `pip install 'spec-agents-core[otel]'`) maps a run to OpenTelemetry: an agent run is a span (`start` opens,
+`end` closes with an ERROR status on failure), `llm_call` opens a child span closed by the next event at the same
+path, and `delegate`/`fallback`/`skip`/`error` become span events on the nearest ancestor span. With no
+app-configured tracer provider, a console provider printing finished spans is installed so `--otel` alone shows
+output; under `opentelemetry-instrument` or an app provider, spans go to its exporters.
+
 **Fallbacks**: build-time and run-time; recorded in `result.notes` and trace (`fallback` event).
 **Memory**: per agent at `<session>/<path>`; routers/planners receive their last runs as context.
 
