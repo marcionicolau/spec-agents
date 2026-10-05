@@ -144,7 +144,7 @@ def guidance_from(doc: MarkdownDoc) -> Guidance:
     """Build the `Guidance` of a spec from its Markdown body, canonical sections and ``references/*.md`` file names."""
     refs_dir = doc.path.parent / "references"
     refs = sorted(p.name for p in refs_dir.glob("*.md")) if refs_dir.is_dir() else []
-    return Guidance(body=doc.body, sections=doc.sections, source=str(doc.path), references=refs)
+    return Guidance(body=doc.body, sections=doc.sections, source=doc.path.as_posix(), references=refs)
 
 
 __all__ = [

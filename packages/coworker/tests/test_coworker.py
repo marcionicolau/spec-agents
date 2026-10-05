@@ -315,7 +315,11 @@ def test_pair_programmer_team_with_patch_repair(cw, repo):
 def test_roots_outside_the_allowlist_are_rejected(cw, repo, monkeypatch, tmp_path_factory):
     elsewhere = tmp_path_factory.mktemp("elsewhere")
     (elsewhere / "secret.py").write_text("x = 1\n")
-    for root in (str(elsewhere), "/etc", str(repo / "..")):
+    for root in (
+        str(elsewhere),
+        os.path.abspath(os.sep),
+        str(repo / ".."),
+    ):  # os.sep: "/" or "C:\\", exists on every OS
         rep = run(cw, "improve_code", {"root": root, "task": "orders"})
         assert ("params.root", "root_not_allowed") in errors(rep), root
     patch = run(

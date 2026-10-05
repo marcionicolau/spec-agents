@@ -164,7 +164,7 @@ class AgentsConfig(BaseModel):
                 ErrorDetail(loc=(str(root / "agents"),), type="no_agents", msg="no agents/<name>/AGENT.md files found")
             )
         for f in files:
-            rel = str(f.relative_to(root))
+            rel = f.relative_to(root).as_posix()  # locations use "/" on every OS
             try:
                 doc = read_markdown(f)
             except SpecError as exc:
@@ -193,7 +193,7 @@ class AgentsConfig(BaseModel):
                     )
                 )
                 continue
-            meta.update(name=name, instructions=doc.body, source=str(f))
+            meta.update(name=name, instructions=doc.body, source=f.as_posix())
             try:
                 agents[name] = AgentSpec.model_validate(meta)
             except ValidationError as exc:

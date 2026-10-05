@@ -22,7 +22,7 @@ def domain_loader(ref: str) -> Callable:
     from pathlib import Path
 
     p = Path(ref)
-    if ":" not in ref and p.is_dir():
+    if p.is_dir():  # checked first: a Windows path (C:\...) contains a colon too
         return lambda reg: reg.load_domain(p)
     import importlib
 
