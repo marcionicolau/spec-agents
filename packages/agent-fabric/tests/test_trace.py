@@ -142,11 +142,15 @@ def test_otel_sink_marks_failed_runs_and_close_drains(monkeypatch):
     assert tracer.spans[0].events == [("error", {"agent_fabric.detail": "budget: exceeded"})]
 
 
-@pytest.mark.skipif(importlib.util.find_spec("opentelemetry") is not None, reason="otel extra installed")
-def test_otel_sink_without_extra_is_a_typed_error():
-    sink = OtelTraceSink()
-    with pytest.raises(DependencyError):
-        sink(ev(0, "lead", "start"))
+def test_otel_tracer_resolution():
+    """Without the 'otel' extra the sink raises a typed error; with it, the default tracer resolves."""
+    if importlib.util.find_spec("opentelemetry") is None:
+        with pytest.raises(DependencyError):
+            OtelTraceSink()(ev(0, "lead", "start"))
+    else:
+        from agent_fabric.trace import default_otel_tracer
+
+        assert default_otel_tracer() is not None
 
 
 def test_every_public_name_documented():
