@@ -76,11 +76,24 @@ docs-all: docs-doc docs-api
 # alias kept for older habits and workflows
 docs: docs-all
 
-# live-reloading previews: MkDocs at http://127.0.0.1:8000, Docusaurus (`just docs-serve doc`) at http://localhost:3000/spec-agents/
-docs-serve which="api":
+# live-reloading previews; `just docs-serve` builds, watches and serves BOTH — MkDocs at http://127.0.0.1:8000 and
+# Docusaurus at http://localhost:3000/spec-agents/ — until Ctrl-C; `just docs-serve doc|api` serves only one side
+docs-serve which="both":
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ "{{which}}" = "doc" ]; then cd website && pnpm install --frozen-lockfile && pnpm start; else DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve; fi
+    serve_doc() { cd website && pnpm install --frozen-lockfile && exec pnpm start; }
+    serve_api() { DISABLE_MKDOCS_2_WARNING=true exec uv run mkdocs serve; }
+    case "{{which}}" in
+        doc) serve_doc ;;
+        api) serve_api ;;
+        both)
+            serve_doc & doc_pid=$!
+            serve_api & api_pid=$!
+            trap 'kill "$doc_pid" "$api_pid" 2>/dev/null || true' EXIT
+            wait -n "$doc_pid" "$api_pid"
+            ;;
+        *) echo "usage: just docs-serve [both|doc|api]" >&2; exit 2 ;;
+    esac
 
 # rebuild conflicting release-please PR branches on main (they all edit the shared manifest); `just release-sync --dry-run` only reports.
 # Needs `gh` authenticated (GH_TOKEN, e.g. `GH_TOKEN=$(gh auth token) just release-sync`); CI does this automatically after each release.
