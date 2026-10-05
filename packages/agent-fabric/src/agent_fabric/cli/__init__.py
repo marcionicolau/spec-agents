@@ -54,6 +54,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--session", default="default")
     run.add_argument("--out", help="also write the Markdown report to this file")
+    run.add_argument("--trace-out", metavar="FILE", help="write every trace event as a JSON line to FILE")
+    run.add_argument(
+        "--otel",
+        action="store_true",
+        help="emit OpenTelemetry spans (agent run = span, llm_call = child); needs the 'otel' extra",
+    )
     run.add_argument("--plain", action="store_true", help="plain Markdown output, no live view")
     _common(run)
 

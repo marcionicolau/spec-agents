@@ -40,7 +40,7 @@ print(report.artifacts.get("kw.terms"))  # ['nitrogen', 'uptake', 'improved']
 ## 3. Run an agent tree
 
 An agent tree is declared in `AGENT.md` files plus a `fabric.md` (root, budget, model aliases). The `notes` demo has one planner agent:
-the model *plans* which components to run, the components do the work. A `ScriptedBackend` replays two model answers: the plan, then
+the model _plans_ which components to run, the components do the work. A `ScriptedBackend` replays two model answers: the plan, then
 the output of the `runtime: prompt` step.
 
 ```python
@@ -73,6 +73,7 @@ Start the LiteLLM gateway (aliases `local-planner`, `local-writer`, `local-fast`
 export OLLAMA_API_BASE=http://localhost:11434 LITELLM_MASTER_KEY=sk-local-dev
 litellm --config config/litellm_config.yaml --port 4000
 uv run agent-fabric run examples/notes "Digest this meeting" --input transcript=meeting.txt
+# add --trace-out run.jsonl to dump every trace event as JSON lines, or --otel for OpenTelemetry spans
 ```
 
 ## 5. Check your specs

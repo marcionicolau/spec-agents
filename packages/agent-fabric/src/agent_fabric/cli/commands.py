@@ -67,30 +67,53 @@ def _load_input(spec: str) -> tuple[str, Any]:
 def cmd_run(a: Any, console: Console, backend: Any = None) -> int:
     from rich.live import Live
 
+    from ..trace import JsonlTraceSink, OtelTraceSink
     from .live import RunView
     from .render import report_group
 
     inputs = dict(_load_input(s) for s in a.input)
     fabric = _fabric(a, backend)
     plain = a.plain or not console.is_terminal
-    if plain:
-        report = fabric.run(a.instruction, inputs, session_id=a.session)
-        console.print(render_markdown(report), markup=False)
-    else:
-        view = RunView(a.instruction)
-        with Live(view.renderable(), console=console, refresh_per_second=10, transient=True) as live:
+    sinks = []
+    if a.trace_out:
+        sinks.append(JsonlTraceSink(a.trace_out))
+    if a.otel:
+        sinks.append(OtelTraceSink())
+    try:
+        if plain:
             report = fabric.run(
                 a.instruction,
                 inputs,
                 session_id=a.session,
-                on_event=lambda e: live.update(view.on_event(e)),
-                on_step=lambda o: live.update(view.on_step(o)),
-                on_delta=lambda p, t: live.update(view.on_delta(p, t)),
+                on_event=(lambda e: [s(e) for s in sinks]) if sinks else None,
             )
-        console.print(report_group(report))
+            console.print(render_markdown(report), markup=False)
+        else:
+            view = RunView(a.instruction)
+            with Live(view.renderable(), console=console, refresh_per_second=10, transient=True) as live:
+
+                def on_event(e: Any) -> None:
+                    for s in sinks:
+                        s(e)
+                    live.update(view.on_event(e))
+
+                report = fabric.run(
+                    a.instruction,
+                    inputs,
+                    session_id=a.session,
+                    on_event=on_event,
+                    on_step=lambda o: live.update(view.on_step(o)),
+                    on_delta=lambda p, t: live.update(view.on_delta(p, t)),
+                )
+            console.print(report_group(report))
+    finally:
+        for s in sinks:
+            s.close()
     if a.out:
         Path(a.out).write_text(render_markdown(report), encoding="utf-8")
         console.print(f"[dim]report written to {a.out}[/]")
+    if a.trace_out:
+        console.print(f"[dim]trace written to {a.trace_out}[/]")
     return 0 if report.ok else 1
 
 
