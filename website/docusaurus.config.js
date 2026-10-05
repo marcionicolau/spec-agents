@@ -10,8 +10,11 @@ const referenceHref = isDev
   ? `http://127.0.0.1:8000${REFERENCE_PATH}`
   : `https://marcionicolau.github.io${REFERENCE_PATH}`;
 
+/** @typedef {{ type: string, url?: string, children?: MdastNode[] }} MdastNode */
+
 /** Dev-only remark plugin: `pathname:///spec-agents/reference/…` links go to the local MkDocs server. */
 const rewriteReferenceLinks = () => {
+  /** @param {MdastNode} node */
   const walk = (node) => {
     if (
       node.type === "link" &&
@@ -25,6 +28,7 @@ const rewriteReferenceLinks = () => {
     }
     for (const child of node.children ?? []) walk(child);
   };
+  /** @param {MdastNode} tree */
   return (tree) => walk(tree);
 };
 
