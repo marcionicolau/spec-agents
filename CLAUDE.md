@@ -82,7 +82,7 @@ python examples/run_evals.py --mode live    # before merging guidance/model chan
 just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
 just docs                                  # build the documentation site (mkdocs-material, strict); `just docs-serve` previews
 just release-sync                           # rebuild conflicting release-please PR branches on main (CI does it after each push to main)
-just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills (CI validates it)
+just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills + official skills-ref validation (CI)
 
 uv run agent-fabric catalog --skills examples/notes/skills          # rich table; also accepts --domains ref/dir
 uv run agent-fabric agents examples/notes                           # renders + validates the agent tree
