@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from agent_fabric.errors import DataValidationError, ErrorDetail
 from agent_fabric.llm.planner import PlanningOutcome
 from agent_fabric.pipeline import PipelineInputs, PipelinePlan, PipelineStep, parse_plan
-from agent_fabric.tabular import ColumnKind, DatasetProfile
+from agent_fabric.tabular import ColumnKind, ColumnProfile, DatasetProfile
 
 
 class StatsRulePlanner:
@@ -33,12 +33,21 @@ class StatsRulePlanner:
                 [ErrorDetail(loc=("inputs",), type="no_dataframe", msg=f"inputs: {sorted(inputs.specs)}")],
             )
         src = frames[0]
-        profile: DatasetProfile = inputs.profiles[src]  # type: ignore[assignment]
+        profile = cast(DatasetProfile, inputs.profiles[src])
         h = self.hints
-        ok = lambda c: profile.column(c) is not None and profile.column(c).missing_ratio <= 0.3  # noqa: E731
-        num = [c for c in profile.names(ColumnKind.NUMERIC) if ok(c) and profile.column(c).n_unique > 1]
-        cat = [c for c in profile.names(ColumnKind.CATEGORICAL) if ok(c) and 2 <= profile.column(c).n_unique <= 30]
-        dt = [c for c in profile.names(ColumnKind.DATETIME) if ok(c)]
+
+        def usable(c: str) -> ColumnProfile | None:
+            """The column's profile when it has at most 30% missing values, else ``None``."""
+            col = profile.column(c)
+            return col if col is not None and col.missing_ratio <= 0.3 else None
+
+        num = [c for c in profile.names(ColumnKind.NUMERIC) if (col := usable(c)) is not None and col.n_unique > 1]
+        cat = [
+            c
+            for c in profile.names(ColumnKind.CATEGORICAL)
+            if (col := usable(c)) is not None and 2 <= col.n_unique <= 30
+        ]
+        dt = [c for c in profile.names(ColumnKind.DATETIME) if usable(c) is not None]
         data = {"data": f"$inputs.{src}"}
         steps = [PipelineStep(id="summary", component="summary", inputs=data, rationale="baseline description")]
         response = h.get("response") or (num[-1] if num else None)

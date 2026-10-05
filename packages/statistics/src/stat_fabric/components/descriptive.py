@@ -60,13 +60,16 @@ class Summary(TableComponent[SummaryParams, SummaryResult]):
             if v["mean"] is not None and v["std"] is not None
         ]
 
-    def compute_table(self, df: pd.DataFrame, params: SummaryParams, ctx: StepContext, inputs: dict) -> SummaryResult:
+    def compute_table(
+        self, df: pd.DataFrame | None, params: SummaryParams, ctx: StepContext, inputs: dict
+    ) -> SummaryResult:
         """Describe the selected columns.
 
         Numeric columns get count, missing values, mean, standard deviation, quartiles, skewness, kurtosis and, optionally, a Shapiro-Wilk
         normality test (only for 3 to 5000 values). Categorical and boolean columns get the number of levels and the top levels. With two or
         more numeric columns the Pearson correlation matrix is added. Warns about non-normal columns and columns with over 20% missing values.
         """
+        assert df is not None
         cols = params.columns or list(df.columns)
         numeric, categorical, warns = {}, {}, []
         for c in cols:
