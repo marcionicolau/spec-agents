@@ -91,7 +91,7 @@ placeholders are not treated as content.
 
 ## If it fails
 
-Expect minutes, not seconds — CPU inference on a 7B model is slow (the config gives it 300 s per call). On failure,
+Expect minutes, not seconds — CPU inference on a 7B model is slow (the config gives it up to 1200 s per call, with no retries, and an 8192-token context). On failure,
 capture before retrying:
 
 - the `smoke.py` console output,
