@@ -1,0 +1,20 @@
+---
+id: handle-errors
+title: Handle errors
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/handle_errors.py";
+
+Every failure is a typed `FabricError` with a located report: `category`, `loc`, `type`, `msg`, `hint` and `recoverable`. There are no
+bare exceptions and no error strings to parse. Validators collect **all** errors before raising, so one run shows every problem.
+
+<Example source={script} file="examples/docs/handle_errors.py" />
+
+- `loc` points at the exact place (`steps.1.params.top_k`): a step, a parameter, a column.
+- `recoverable` says whether a model can repair the problem; agents use it to retry with the report as feedback, and the budget bounds
+  the retries.
+- `hint` tells the author or the model how to fix it, when the toolkit knows.
+
+The full list of categories and the rules for writing `loc`, `type` and `hint` is in the
+[error model](pathname:///spec-agents/reference/error-model/).

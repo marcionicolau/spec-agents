@@ -1,10 +1,10 @@
 site_name: agent-fabric
-site_url: https://marcionicolau.github.io/spec-agents/
+site_url: https://marcionicolau.github.io/spec-agents/reference/
 site_description: Spec-driven pipelines and hierarchical agents; domain packs for statistics, lakehouse, coworker and text.
 repo_url: https://github.com/marcionicolau/spec-agents
 edit_uri: edit/main/docs/
 docs_dir: docs
-site_dir: build/site
+site_dir: build/site/reference # Docusaurus owns the root of build/site (see justfile)
 strict: true
 
 theme:
@@ -55,6 +55,7 @@ markdown_extensions:
       permalink: true
 
 nav:
+  - Guide (usage & examples): https://marcionicolau.github.io/spec-agents/
   - Home: README.md
   - Start here:
       - Quickstart: quickstart.md

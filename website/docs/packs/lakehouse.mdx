@@ -1,0 +1,23 @@
+---
+id: lakehouse
+title: Lakehouse pack
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/lakehouse_dag.py";
+
+Generates Airflow DAGs that load CSV, JSON, XLSX, API or MCP sources into Trino/Iceberg bronze, silver and gold tables. The DAG comes from a static template with validated, quoted identifiers; credentials stay in Airflow connections and `dag_check` inspects the result before you use it.
+
+## Install
+
+```bash
+pip install spec-agents-lakehouse
+```
+
+## Example
+
+The `ingest_to_lakehouse` pipeline infers the schema from the file, designs the medallion layout, renders the DAG and checks it. No model and no Airflow installation are needed to generate it.
+
+<Example source={script} file="examples/docs/lakehouse_dag.py" />
+
+Without Python code: `python -m lake_fabric.generate params.json --sample records.json --out dags`.

@@ -49,4 +49,6 @@ Use a normal issue for those.
 - Secret scanning with push protection, Dependabot alerts and security updates, and private vulnerability reporting are enabled.
 - Releases are built in CI from the release tag and verified before their wheel and sdist are attached to the GitHub Release; no long-lived
   publishing credentials are stored (packages are not on PyPI yet).
+- Each wheel and sdist carries a signed build provenance attestation. Verify a download with
+  `gh attestation verify <file> --repo marcionicolau/spec-agents` (see `docs/releasing.md`).
 - Dependencies are locked (`uv.lock`) and updated through reviewed Dependabot pull requests.

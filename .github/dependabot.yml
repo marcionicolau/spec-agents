@@ -13,3 +13,11 @@ updates:
     groups:
       python-minor-patch:
         update-types: [minor, patch]
+  - package-ecosystem: npm # also covers pnpm lockfiles
+    directory: /website
+    schedule: { interval: weekly }
+    cooldown: { default-days: 7 }
+    commit-message: { prefix: "deps" }
+    groups:
+      docusaurus:
+        patterns: ["@docusaurus/*", "react", "react-dom"]

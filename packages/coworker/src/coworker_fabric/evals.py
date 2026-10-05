@@ -89,7 +89,7 @@ def run_cases(
     os.environ.setdefault("COWORKER_ALLOWED_ROOTS", str(Path(root).resolve()))
     registry = build_registry([register])
 
-    def execute(name: str, inputs: dict, params: dict) -> dict:
+    def execute(name: str, inputs: dict, params: dict) -> ArtifactStore:
         comp = registry.get(name)
         store = ArtifactStore()
         comp.execute(inputs, params, StepContext(store, "e", comp.spec, registry.types))

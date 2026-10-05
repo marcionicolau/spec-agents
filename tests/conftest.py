@@ -1,3 +1,8 @@
+import contextlib
+
+with contextlib.suppress(ImportError):  # optional dependency of the extras suite
+    import openai  # noqa: F401  # real module must win sys.modules before dspy installs its LazyModule
+
 import pandas as pd
 import pytest
 

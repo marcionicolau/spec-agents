@@ -150,7 +150,7 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         return errors
 
     def compute_table(
-        self, df: pd.DataFrame, params: LinearModelParams, ctx: StepContext, inputs: dict
+        self, df: pd.DataFrame | None, params: LinearModelParams, ctx: StepContext, inputs: dict
     ) -> LinearModelResult:
         """Fit an ordinary least squares model with a coefficient table and residual diagnostics.
 
@@ -159,6 +159,7 @@ class LinearModel(TableComponent[LinearModelParams, LinearModelResult]):
         (heteroscedasticity), Jarque-Bera (residual normality), Durbin-Watson (autocorrelation) and variance inflation factors. Warns when a
         diagnostic fails (and suggests robust standard errors).
         """
+        assert df is not None
         cols = [params.response, *params.predictors]
         d = df[cols].dropna().copy()
         if params.log_response:
@@ -317,13 +318,16 @@ class Anova(TableComponent[AnovaParams, AnovaResult]):
                 )
         return errors
 
-    def compute_table(self, df: pd.DataFrame, params: AnovaParams, ctx: StepContext, inputs: dict) -> AnovaResult:
+    def compute_table(
+        self, df: pd.DataFrame | None, params: AnovaParams, ctx: StepContext, inputs: dict
+    ) -> AnovaResult:
         """One- or two-way ANOVA of the response across the factors.
 
         Fits an OLS model from validated column names (type 2 or 3 sums of squares, optional interaction for two factors), reports each source
         with partial eta-squared, Levene's test for equal variances, Shapiro-Wilk on the residuals, group means and, for a single factor with
         ``posthoc``, Tukey HSD pairwise comparisons.
         """
+        assert df is not None
         d = df[[params.response, *params.factors]].dropna().copy()
         for f in params.factors:
             d[f] = d[f].astype(str)

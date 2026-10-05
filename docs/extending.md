@@ -1,11 +1,12 @@
 # Extending: components, prompt components, pipelines
 
 > **Format note.** `SKILL.md` here is a _superset_ of the open [Agent Skills](https://agentskills.io/specification) format: the
-> frontmatter carries the executable contract (`params`, `inputs`, `outputs`, `steps`, `runtime`, ...) and names are snake_case.
+> frontmatter carries the executable contract (`params`, `inputs`, `outputs`, `steps`, `runtime`, ...) and names are snake*case.
 > The reference validator accepts only `name`, `description`, `license`, `compatibility`, `metadata` (string values) and
 > `allowed-tools`, with kebab-case names, so fabric skills are not loadable as-is by other agents. `agent-fabric export-skills --out DIR`
-> (`just skills-export`) writes a spec-compliant _view_ of every skill (kebab-case name, description + when to use, string metadata,
-> guidance body plus a generated `## Contract` section, `references/` copied) and validates it; CI runs it on every PR. The fabric
+> (`just skills-export`) writes a spec-compliant \_view* of every skill (kebab-case name, description + when to use, string metadata,
+> guidance body plus a generated `## Contract` section, `references/` copied) and validates it with our own checker; CI additionally
+> validates every exported skill with the official `skills-ref` validator (`agentskills` CLI, pinned in the dev group). The fabric
 > `SKILL.md` stays the single source of truth; nothing is read back from the export.
 
 ## Declaring the core API level (every pack)

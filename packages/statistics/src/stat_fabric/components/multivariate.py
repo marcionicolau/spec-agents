@@ -93,7 +93,8 @@ class PCA(TableComponent[PCAParams, PCAResult]):
             ]
         return []
 
-    def compute_table(self, df: pd.DataFrame, params: PCAParams, ctx: StepContext, inputs: dict) -> PCAResult:
+    def compute_table(self, df: pd.DataFrame | None, params: PCAParams, ctx: StepContext, inputs: dict) -> PCAResult:
+        assert df is not None
         d = df[params.features].dropna().astype(float)
         X = StandardScaler().fit_transform(d) if params.standardize else (d - d.mean()).values
         full = SkPCA().fit(X)
@@ -250,7 +251,7 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
         return []
 
     def compute_table(
-        self, df: pd.DataFrame, params: ClusteringParams, ctx: StepContext, inputs: dict
+        self, df: pd.DataFrame | None, params: ClusteringParams, ctx: StepContext, inputs: dict
     ) -> ClusteringResult:
         """K-means clustering on standardised features or on a PCA score matrix.
 
@@ -262,6 +263,7 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
             data = inputs["matrix"].dropna().astype(float)
             X, space, scaler = data.values, "matrix", None
         else:
+            assert df is not None
             data = df[params.features].dropna().astype(float)
             scaler = StandardScaler().fit(data) if params.standardize else None
             X, space = (scaler.transform(data) if scaler else data.values), "features"
@@ -278,6 +280,7 @@ class Clustering(TableComponent[ClusteringParams, ClusteringResult]):
                 sil_by_k[str(kk)] = float(silhouette_score(X, labels))
                 if best is None or sil_by_k[str(kk)] > sil_by_k[str(best)]:
                     best = kk
+            assert best is not None
             k, selection = int(best), "silhouette"
         km = KMeans(k, n_init=10, random_state=params.random_state).fit(X)
         sil = float(silhouette_score(X, km.labels_))

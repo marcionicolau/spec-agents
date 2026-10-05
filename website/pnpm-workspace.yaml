@@ -1,0 +1,3 @@
+# core-js only runs a postinstall donation banner
+allowBuilds:
+  core-js: false

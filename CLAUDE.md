@@ -53,7 +53,8 @@ packages/statistics/     domain pack (stat_fabric)      packages/lakehouse/  (la
 packages/coworker/       domain pack (coworker_fabric)  packages/text-pack/  (text_pack)
 packages/<pkg>/tests/    pack tests;  packages/<pkg>/config/  pack demo agent trees (lakehouse, coworker)
 tests/                   cross-package suite (core + statistics + text packs)
-examples/                research_team, notes (code-free domain), evals, run_demo.py, run_evals.py
+examples/                research_team, notes (code-free domain), docs (scripts embedded in the guide site, run by tests), evals, run_demo.py, run_evals.py
+website/                 Docusaurus user guide (Node 22+, pnpm); docs/ is the MkDocs contributor guide + API reference
 config/litellm_config.yaml   gateway;   tools/check_wheels.py;   justfile (task runner);   docs/
 ```
 
@@ -63,7 +64,7 @@ config/litellm_config.yaml   gateway;   tools/check_wheels.py;   justfile (task 
 
 ```bash
 just check                                  # everything CI runs (lint, specs, tests, wheels); `just` lists recipes
-just types                                  # ty type check (core only for now; needs --all-extras to resolve optional imports)
+just types                                  # ty type check on all five packages (needs --all-extras to resolve optional imports)
 uv sync --all-packages --group dev          # workspace env (all members editable); add --all-extras for pydantic-ai/dspy/crewai/langchain
 uv run pytest -q                            # offline suite (or activate .venv and run pytest)
 uv run ruff check . && uv run ruff format .   # see [tool.ruff.lint] for the rule set
@@ -80,9 +81,9 @@ python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --dom
 python -m agent_fabric.scaffold pack my-pack   # new domain pack under packages/ + repo wiring (release-please, labels, isort)
 python examples/run_evals.py --mode live    # before merging guidance/model changes (PRs get `stage:needs-eval`)
 just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
-just docs                                  # build the documentation site (mkdocs-material, strict); `just docs-serve` previews
+just docs-all                              # build the whole site: Docusaurus guide (website/, Node 22+, pnpm) at /, MkDocs reference (docs/) at /reference/; `docs-api`/`docs-doc` build one; `just docs-serve` previews
 just release-sync                           # rebuild conflicting release-please PR branches on main (CI does it after each push to main)
-just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills (CI validates it)
+just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills + official skills-ref validation (CI)
 
 uv run agent-fabric catalog --skills examples/notes/skills          # rich table; also accepts --domains ref/dir
 uv run agent-fabric agents examples/notes                           # renders + validates the agent tree
@@ -128,7 +129,7 @@ python examples/run_demo.py --mode crew       # CrewAI hierarchical mapping
   Exception: CrewAI inspects some signatures; keep tool `args_schema` models importable at module level.
 - `extra="forbid"` on every model an LLM (or YAML author) can produce.
 - Prompt _templates_ live in `llm/prompts.py`; domain wording lives in SKILL.md/AGENT.md bodies, never in code.
-- Types: every package ships `py.typed`; `ty` (pinned, pre-1.0) checks `packages/agent-fabric/src` in CI. Suppress with
+- Types: every package ships `py.typed`; `ty` (pinned, pre-1.0) checks every `packages/*/src` in CI (`extras` job). Suppress with
   `# ty: ignore[rule]` plus a reason, never a bare `# type: ignore`. `tests/test_boundaries.py` enforces rules 3 and 7
   (no domain-pack imports in the core; optional frameworks only lazily or behind `try/except ImportError`).
 - **Public API = `__all__`.** Every package and every public module lists what it exports in `__all__`; everything else is internal

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 import pandas as pd
 from pydantic import Field
 
 from agent_fabric.component import Component, ComponentParams, ComponentResult, Num, StepContext
 from agent_fabric.errors import ErrorDetail
+from agent_fabric.tabular import TableConstraints
 
 __all__ = ["ComponentParams", "Num", "StepContext", "TableComponent", "TableResult"]
 
@@ -24,7 +25,7 @@ class TableComponent[P: ComponentParams, R: TableResult](Component[P, R]):
     @property
     def min_rows(self) -> int:
         """Minimum number of rows declared by the constraints of the data port."""
-        return self.port_constraints[self.data_port].min_rows
+        return cast(TableConstraints, self.port_constraints[self.data_port]).min_rows
 
     def compute(self, inputs: dict[str, Any], params: P, ctx: StepContext) -> R:
         """Run the component on the DataFrame bound to its data port; delegates to `compute_table`."""

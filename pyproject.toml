@@ -13,6 +13,7 @@ dev = [
   "pytest>=8",
   "pytest-cov>=7.1.0",
   "ruff>=0.5",
+  "skills-ref==0.1.1",
   "ty==0.0.84",
 ]
 
@@ -53,12 +54,18 @@ convention = "google"
 [tool.ruff.lint.isort]
 known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "examples", "tests"]
 
-# ty is pre-1.0 (pinned in the dev group). Scope grows package by package; start with the core.
+# ty is pre-1.0 (pinned in the dev group). All five packages are checked.
 [tool.ty.environment]
 python-version = "3.12"
 
 [tool.ty.src]
-include = ["packages/agent-fabric/src"]
+include = [
+  "packages/agent-fabric/src",
+  "packages/coworker/src",
+  "packages/lakehouse/src",
+  "packages/statistics/src",
+  "packages/text-pack/src",
+]
 
 [[tool.ty.overrides]]
 # dspy is an optional, dynamically typed dependency imported behind `try/except ImportError` (`dspy = None` fallback)

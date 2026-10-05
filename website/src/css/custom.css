@@ -1,0 +1,4 @@
+/* Theme overrides live here; keep Infima defaults unless there is a reason. */
+:root {
+  --ifm-code-font-size: 92%;
+}

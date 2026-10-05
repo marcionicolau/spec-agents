@@ -1,0 +1,23 @@
+---
+id: statistics
+title: Statistics pack
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/statistics_explore.py";
+
+Deterministic statistics: components `summary`, `linear_model`, `anova`, `time_series`, `pca`, `clustering` and the pipelines `exploratory_analysis`, `experiment_analysis`, `full_study`. Formulas are built from validated column names; no model-written code runs.
+
+## Install
+
+```bash
+pip install spec-agents-statistics
+```
+
+## Example
+
+The `exploratory_analysis` pipeline profiles the data, runs a PCA on the numeric features and clusters the observations on the PCA scores. The dataframe is passed as a typed input; results come back as plain, serialisable values.
+
+<Example source={script} file="examples/docs/statistics_explore.py" />
+
+Misspelled column names, missing values and wrong types are reported as located `DataValidationError`s with hints, see [Handle errors](../how-to/handle-errors.mdx).

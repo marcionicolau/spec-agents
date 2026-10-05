@@ -643,7 +643,7 @@ def _apply(params: PatchProposeParams, context: dict | None) -> tuple[dict[str, 
             )
             continue
         before, current = texts.get(e.path, (None, None))
-        if before is None:
+        if before is None or current is None:  # they are set together; narrow both
             before = current = p.read_text(encoding="utf-8")
         n = current.count(e.old)
         if n != 1:
