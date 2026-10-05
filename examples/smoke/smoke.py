@@ -29,6 +29,12 @@ from agent_fabric.report import render_markdown  # noqa: E402
 from agent_fabric.trace import write_jsonl  # noqa: E402
 
 
+def _schemas(fabric: AgentFabric, schemas: dict) -> AgentFabric:
+    for name, model in schemas.items():
+        fabric.register_schema(name, model)
+    return fabric
+
+
 def _write(report, name: str) -> None:
     out = ROOT / "build" / "smoke"
     out.mkdir(parents=True, exist_ok=True)
@@ -44,11 +50,16 @@ def anova() -> None:
     import pandas as pd
 
     from stat_fabric.domain import register as register_stats
+    from stat_fabric.schemas import SCHEMAS
     from text_pack import register as register_text
 
     df = pd.read_csv(SMOKE / "anova_trial.csv", parse_dates=["date"])
-    fabric = AgentFabric(
-        build_registry([register_stats, register_text]), AgentsConfig.load(ROOT / "examples" / "research_team")
+    fabric = _schemas(
+        AgentFabric(
+            build_registry([register_stats, register_text]),
+            AgentsConfig.load(ROOT / "examples" / "research_team"),
+        ),
+        SCHEMAS,
     )
     report = fabric.run(
         "Does the nitrogen treatment change wheat yield? Run a two-way ANOVA (treatment x cultivar) "
@@ -66,9 +77,14 @@ def coworker() -> None:
     FabricError, never a bare KeyError/TypeError (golden rule 4).
     """
     from coworker_fabric.domain import register as register_coworker
+    from coworker_fabric.schemas import SCHEMAS
 
-    fabric = AgentFabric(
-        build_registry([register_coworker]), AgentsConfig.load(ROOT / "packages" / "coworker" / "config")
+    fabric = _schemas(
+        AgentFabric(
+            build_registry([register_coworker]),
+            AgentsConfig.load(ROOT / "packages" / "coworker" / "config"),
+        ),
+        SCHEMAS,
     )
     report = fabric.run(
         f"In {SMOKE / 'tiny_repo'}, mean([]) crashes with ZeroDivisionError. "
@@ -82,10 +98,15 @@ def coworker() -> None:
 def whatsapp() -> None:
     """text pack: notes_digest (document_digest pipeline) over a WhatsApp group export."""
     from stat_fabric.domain import register as register_stats
+    from stat_fabric.schemas import SCHEMAS
     from text_pack import register as register_text
 
-    fabric = AgentFabric(
-        build_registry([register_stats, register_text]), AgentsConfig.load(ROOT / "examples" / "research_team")
+    fabric = _schemas(
+        AgentFabric(
+            build_registry([register_stats, register_text]),
+            AgentsConfig.load(ROOT / "examples" / "research_team"),
+        ),
+        SCHEMAS,
     )
     report = fabric.run(
         "Digest this WhatsApp group conversation: what was decided and who owns what?",
