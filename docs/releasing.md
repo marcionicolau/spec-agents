@@ -32,6 +32,16 @@ version without a `.dev` suffix) and attaches the wheel and sdist to the GitHub 
 secret, no index. Install a release with
 `uv pip install https://github.com/marcionicolau/spec-agents/releases/download/<pkg>-vX.Y.Z/<wheel file>` (or `gh release download <pkg>-vX.Y.Z --repo marcionicolau/spec-agents`).
 
+**Verify an asset.** The `assets` job also attests the build provenance of each wheel and sdist (`actions/attest-build-provenance`; only that job holds
+`id-token: write` and `attestations: write`). Check that a downloaded file was built by this repository's release workflow:
+
+```bash
+gh release download <pkg>-vX.Y.Z --repo marcionicolau/spec-agents --dir dist
+gh attestation verify dist/<wheel or sdist file> --repo marcionicolau/spec-agents
+```
+
+Verification fails for a file that was modified or built anywhere else. Releases made before attestations were added have none.
+
 **PyPI names and publishing.** The short names (`statistics`, `lakehouse`, `coworker`, `text-pack`) are taken on PyPI by unrelated projects, so the
 distributions are published as **`spec-agents-core`** (import `agent_fabric`), **`spec-agents-statistics`** (`stat_fabric`), **`spec-agents-lakehouse`**
 (`lake_fabric`), **`spec-agents-coworker`** (`coworker_fabric`) and **`spec-agents-text`** (`text_pack`). Only `[project] name` carries these names: package
