@@ -10,12 +10,21 @@ const sidebars = {
       type: "category",
       label: "Domain packs",
       link: { type: "doc", id: "packs/index" },
-      items: ["packs/text", "packs/statistics", "packs/lakehouse", "packs/coworker"],
+      items: [
+        "packs/text",
+        "packs/statistics",
+        "packs/lakehouse",
+        "packs/coworker",
+      ],
     },
     {
       type: "category",
       label: "How-to",
-      items: ["how-to/handle-errors", "how-to/real-model"],
+      items: [
+        "how-to/handle-errors",
+        "how-to/real-model",
+        "how-to/local-smoke-tests",
+      ],
     },
   ],
 };
