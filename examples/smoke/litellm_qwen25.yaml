@@ -1,0 +1,43 @@
+# LiteLLM proxy config for the live smoke tests in this directory — CPU-friendly: every alias maps to the
+# single pulled model qwen2.5:7b-instruct. Production aliases still live in config/litellm_config.yaml.
+#   export OLLAMA_API_BASE=http://localhost:11434 LITELLM_MASTER_KEY=sk-local-dev
+#   litellm --config examples/smoke/litellm_qwen25.yaml --port 4000
+
+model_list:
+  - model_name: local-planner
+    litellm_params:
+      model: ollama_chat/qwen2.5:7b-instruct
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.1
+
+  - model_name: local-planner-fallback
+    litellm_params:
+      model: ollama_chat/qwen2.5:7b-instruct
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.1
+
+  - model_name: local-writer
+    litellm_params:
+      model: ollama_chat/qwen2.5:7b-instruct
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.2
+
+  - model_name: local-fast
+    litellm_params:
+      model: ollama_chat/qwen2.5:7b-instruct
+      api_base: os.environ/OLLAMA_API_BASE
+      temperature: 0.0
+
+router_settings:
+  num_retries: 2
+  timeout: 300            # CPU inference is slow; give the 7b headroom
+  fallbacks:
+    - local-planner: [local-planner-fallback]
+    - local-writer: [local-fast]
+
+litellm_settings:
+  drop_params: true
+  request_timeout: 300
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

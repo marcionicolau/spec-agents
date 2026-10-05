@@ -1,0 +1,20 @@
+[05/10/2026, 09:02:11] Ana: morning! release notes draft is up, please review today
+[05/10/2026, 09:03:45] Bruno: on it. did we freeze the changelog yesterday?
+[05/10/2026, 09:04:02] Ana: yes, frozen at 0.9.0
+[05/10/2026, 09:05:19] Carla: the stats pack docs are still pending, I can take them
+[05/10/2026, 09:06:40] Bruno: thanks Carla. I'll do the coworker section then
+[05/10/2026, 09:12:33] Diego: heads up, CI on main went red overnight, flaky extras job again
+[05/10/2026, 09:13:15] Ana: saw it, it's the openai circular import thing - already fixed in the ty PR
+[05/10/2026, 09:14:01] Diego: nice. ping when the rerun is green
+[05/10/2026, 09:31:47] Carla: stats docs pushed to the guide branch
+[05/10/2026, 10:05:22] Bruno: coworker section done. who reviews?
+[05/10/2026, 10:07:09] Ana: I will after lunch
+[05/10/2026, 11:44:38] Diego: rerun green ✅
+[05/10/2026, 13:15:02] Ana: reviewed both sections, small nits only - left comments
+[05/10/2026, 13:16:27] Carla: fixing mine now
+[05/10/2026, 14:02:11] Bruno: nits fixed, changelog entry added
+[05/10/2026, 15:20:05] Ana: all merged. tagging 0.9.1 tomorrow morning unless something breaks
+[05/10/2026, 15:21:33] Diego: I'll run the smoke suite on the tag before you cut
+[05/10/2026, 15:22:40] Ana: good call. same checklist as last release
+[05/10/2026, 17:48:19] Carla: docs site deployed with the new guide 🎉
+[05/10/2026, 18:03:54] Bruno: calling it a day, thanks all
