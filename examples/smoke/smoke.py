@@ -35,6 +35,40 @@ def _schemas(fabric: AgentFabric, schemas: dict) -> AgentFabric:
     return fabric
 
 
+def _run(fabric: AgentFabric, instruction: str, inputs: dict, session_id: str):
+    """Run with the CLI's live view (agent board, step table, streamed model text).
+
+    On a non-TTY (logs, CI) falls back to printing one line per event plus raw streamed text.
+    """
+    from rich.console import Console
+    from rich.live import Live
+
+    from agent_fabric.cli.live import RunView
+
+    console = Console()
+    if not console.is_terminal:
+        return fabric.run(
+            instruction,
+            inputs,
+            session_id=session_id,
+            on_event=lambda e: print(f"[{e.event}] {e.path} {e.detail or ''}", flush=True),
+            on_step=lambda o: print(
+                f"[step] {o.step_id} {o.component} -> {o.status} ({o.duration_s:.2f}s)", flush=True
+            ),
+            on_delta=lambda p, t: print(t, end="", flush=True),
+        )
+    view = RunView(instruction)
+    with Live(view.renderable(), console=console, refresh_per_second=10, transient=True) as live:
+        return fabric.run(
+            instruction,
+            inputs,
+            session_id=session_id,
+            on_event=lambda e: live.update(view.on_event(e)),
+            on_step=lambda o: live.update(view.on_step(o)),
+            on_delta=lambda p, t: live.update(view.on_delta(p, t)),
+        )
+
+
 def _write(report, name: str) -> None:
     out = ROOT / "build" / "smoke"
     out.mkdir(parents=True, exist_ok=True)
@@ -61,11 +95,12 @@ def anova() -> None:
         ),
         SCHEMAS,
     )
-    report = fabric.run(
+    report = _run(
+        fabric,
         "Does the nitrogen treatment change wheat yield? Run a two-way ANOVA (treatment x cultivar) "
         "and summarise the trial first.",
         {"data": df},
-        session_id="smoke-anova",
+        "smoke-anova",
     )
     _write(report, "anova")
 
@@ -86,11 +121,12 @@ def coworker() -> None:
         ),
         SCHEMAS,
     )
-    report = fabric.run(
+    report = _run(
+        fabric,
         f"In {SMOKE / 'tiny_repo'}, mean([]) crashes with ZeroDivisionError. "
         "Find the file, propose the smallest fix (raise ValueError with a clear message) and validate the patch.",
         {},
-        session_id="smoke-coworker",
+        "smoke-coworker",
     )
     _write(report, "coworker")
 
@@ -108,10 +144,11 @@ def whatsapp() -> None:
         ),
         SCHEMAS,
     )
-    report = fabric.run(
+    report = _run(
+        fabric,
         "Digest this WhatsApp group conversation: what was decided and who owns what?",
         {"text": (SMOKE / "whatsapp_group.txt").read_text(encoding="utf-8")},
-        session_id="smoke-whatsapp",
+        "smoke-whatsapp",
     )
     _write(report, "whatsapp")
 
