@@ -11,7 +11,7 @@ uv run ruff check . && uv run ruff format --check .
 `just check` runs everything CI runs (`just` lists recipes; see CLAUDE.md section 3 for the raw commands).
 
 ## Documentation
-`just docs-all` builds the whole site: the Docusaurus user guide (`website/`, Node 24) at `/` and the MkDocs contributor guides + API reference generated from docstrings (`docs/`, Google style) at `/reference/`; `just docs-api` / `just docs-doc` build one of them, `just docs-serve` previews.
+`just docs-all` builds the whole site: the Docusaurus user guide (`website/`, Node 22+, pnpm) at `/` and the MkDocs contributor guides + API reference generated from docstrings (`docs/`, Google style) at `/reference/`; `just docs-api` / `just docs-doc` build one of them, `just docs-serve` previews.
 Public names must be in `__all__` and have a docstring (`tests/test_public_api.py`); the build fails on broken references.
 
 ## Proposing changes and planning

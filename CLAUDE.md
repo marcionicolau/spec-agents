@@ -54,7 +54,7 @@ packages/coworker/       domain pack (coworker_fabric)  packages/text-pack/  (te
 packages/<pkg>/tests/    pack tests;  packages/<pkg>/config/  pack demo agent trees (lakehouse, coworker)
 tests/                   cross-package suite (core + statistics + text packs)
 examples/                research_team, notes (code-free domain), docs (scripts embedded in the guide site, run by tests), evals, run_demo.py, run_evals.py
-website/                 Docusaurus user guide (Node 24); docs/ is the MkDocs contributor guide + API reference
+website/                 Docusaurus user guide (Node 22+, pnpm); docs/ is the MkDocs contributor guide + API reference
 config/litellm_config.yaml   gateway;   tools/check_wheels.py;   justfile (task runner);   docs/
 ```
 
@@ -81,7 +81,7 @@ python -m agent_fabric.scaffold prompt my_step --dir examples/notes/skills --dom
 python -m agent_fabric.scaffold pack my-pack   # new domain pack under packages/ + repo wiring (release-please, labels, isort)
 python examples/run_evals.py --mode live    # before merging guidance/model changes (PRs get `stage:needs-eval`)
 just evals-check                            # deterministic eval baselines (CI); `just evals-update` refreshes examples/evals/baselines.json
-just docs-all                              # build the whole site: Docusaurus guide (website/, Node 24) at /, MkDocs reference (docs/) at /reference/; `docs-api`/`docs-doc` build one; `just docs-serve` previews
+just docs-all                              # build the whole site: Docusaurus guide (website/, Node 22+, pnpm) at /, MkDocs reference (docs/) at /reference/; `docs-api`/`docs-doc` build one; `just docs-serve` previews
 just release-sync                           # rebuild conflicting release-please PR branches on main (CI does it after each push to main)
 just skills-export                          # spec-compliant Agent Skills view of every skill into build/skills + official skills-ref validation (CI)
 

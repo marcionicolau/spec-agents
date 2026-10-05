@@ -18,5 +18,6 @@
     "raw-loader": "4.0.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
-  }
+  },
+  "packageManager": "pnpm@12.4.2"
 }

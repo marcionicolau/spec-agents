@@ -51,7 +51,7 @@ skills-export:
     uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
     rc=0; for d in build/skills/*/; do uv run agentskills validate "$d" || rc=1; done; [ $rc -eq 0 ]
 
-# The documentation is one GitHub Pages site made of two builds (Node 24 for Docusaurus, see .node-version):
+# The documentation is one GitHub Pages site made of two builds (Node 22+ and pnpm for Docusaurus, see .node-version and website/package.json):
 #   /           Docusaurus (website/): usage guides and examples taken from examples/docs
 #   /reference/ MkDocs Material (docs/): contributor guides + generated API reference
 # `just docs-all` builds both into build/site; warnings and broken links fail either build.
@@ -61,10 +61,10 @@ docs-doc:
     #!/usr/bin/env bash
     set -euo pipefail
     major=$(node -p 'process.versions.node.split(".")[0]')
-    [ "$major" -ge 24 ] || { echo "Node 24+ is required (found $(node -v)); see .node-version" >&2; exit 1; }
+    [ "$major" -ge 22 ] || { echo "Node 22+ is required (found $(node -v)); see .node-version" >&2; exit 1; }
     cd website
-    npm ci --no-audit --no-fund
-    npm run build -- --out-dir ../build/site
+    pnpm install --frozen-lockfile
+    pnpm run build --out-dir ../build/site
 
 # MkDocs site (contributor guides + generated API reference) into build/site/reference; strict
 docs-api:
@@ -80,7 +80,7 @@ docs: docs-all
 docs-serve which="api":
     #!/usr/bin/env bash
     set -euo pipefail
-    if [ "{{which}}" = "doc" ]; then cd website && npm ci --no-audit --no-fund && npm start; else DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve; fi
+    if [ "{{which}}" = "doc" ]; then cd website && pnpm install --frozen-lockfile && pnpm start; else DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve; fi
 
 # rebuild conflicting release-please PR branches on main (they all edit the shared manifest); `just release-sync --dry-run` only reports.
 # Needs `gh` authenticated (GH_TOKEN, e.g. `GH_TOKEN=$(gh auth token) just release-sync`); CI does this automatically after each release.

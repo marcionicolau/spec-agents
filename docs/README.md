@@ -9,7 +9,7 @@ Both are published as **one GitHub Pages site**: Docusaurus at the root, MkDocs 
 
 | Command | Does |
 | --- | --- |
-| `just docs-all` (alias `just docs`) | builds both into `build/site` (strict: warnings and broken links fail); needs Node 24 (`.node-version`) |
+| `just docs-all` (alias `just docs`) | builds both into `build/site` (strict: warnings and broken links fail); needs Node 22+ and pnpm (`.node-version`, `website/package.json`) |
 | `just docs-doc` / `just docs-api` | only the Docusaurus guide / only MkDocs (`build/site/reference`) |
 | `just docs-serve` / `just docs-serve doc` | live preview of MkDocs (port 8000) / Docusaurus (port 3000) |
 
