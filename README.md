@@ -173,7 +173,7 @@ agent-fabric run examples/notes "Summarise the meeting" --input transcript=meeti
 ```bash
 uv sync --all-packages --group dev                 # uv workspace (packages/*); commit uv.lock
 just check                                         # everything CI runs: lint, specs, tests, wheels (`just` lists the recipes)
-just docs-serve                                    # documentation with live reload
+just docs-serve                                    # documentation with live reload (`just docs-serve doc` for the Docusaurus guide)
 pytest -q                                          # offline test suite
 python examples/run_demo.py --mode scripted        # simulated small-model mistakes + self-correction
 python examples/run_demo.py --mode offline         # proxy down: controlled degradation

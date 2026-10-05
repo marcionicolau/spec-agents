@@ -26,7 +26,7 @@
       - any-glob-to-any-file: [".github/**", "release-please-config.json", ".release-please-manifest.json"]
 "pkg:docs":
   - changed-files:
-      - any-glob-to-any-file: ["docs/**", "README.md", "CONTRIBUTING.md", "SECURITY.md", "CLAUDE.md"]
+      - any-glob-to-any-file: ["docs/**", "website/**", "examples/docs/**", "README.md", "CONTRIBUTING.md", "SECURITY.md", "CLAUDE.md"]
 "pkg:repo":
   - changed-files:
       - any-glob-to-any-file: ["pyproject.toml", "uv.lock", "justfile", ".gitignore", "tools/**"]

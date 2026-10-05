@@ -51,13 +51,36 @@ skills-export:
     uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
     rc=0; for d in build/skills/*/; do uv run agentskills validate "$d" || rc=1; done; [ $rc -eq 0 ]
 
-# build the documentation site (guides + generated API reference) into build/site; strict: warnings fail
-docs:
+# The documentation is one GitHub Pages site made of two builds (Node 22+ and pnpm for Docusaurus, see .node-version and website/package.json):
+#   /           Docusaurus (website/): usage guides and examples taken from examples/docs
+#   /reference/ MkDocs Material (docs/): contributor guides + generated API reference
+# `just docs-all` builds both into build/site; warnings and broken links fail either build.
+
+# Docusaurus guide site into build/site (clears it first, so run docs-api afterwards or use docs-all)
+docs-doc:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    major=$(node -p 'process.versions.node.split(".")[0]')
+    [ "$major" -ge 22 ] || { echo "Node 22+ is required (found $(node -v)); see .node-version" >&2; exit 1; }
+    cd website
+    pnpm install --frozen-lockfile
+    pnpm run build --out-dir ../build/site
+
+# MkDocs site (contributor guides + generated API reference) into build/site/reference; strict
+docs-api:
     DISABLE_MKDOCS_2_WARNING=true uv run mkdocs build
 
-# live-reloading preview at http://127.0.0.1:8000
-docs-serve:
-    DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve
+# the whole site, as published: Docusaurus at /, MkDocs at /reference/
+docs-all: docs-doc docs-api
+
+# alias kept for older habits and workflows
+docs: docs-all
+
+# live-reloading previews: MkDocs at http://127.0.0.1:8000, Docusaurus (`just docs-serve doc`) at http://localhost:3000/spec-agents/
+docs-serve which="api":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ "{{which}}" = "doc" ]; then cd website && pnpm install --frozen-lockfile && pnpm start; else DISABLE_MKDOCS_2_WARNING=true uv run mkdocs serve; fi
 
 # rebuild conflicting release-please PR branches on main (they all edit the shared manifest); `just release-sync --dry-run` only reports.
 # Needs `gh` authenticated (GH_TOKEN, e.g. `GH_TOKEN=$(gh auth token) just release-sync`); CI does this automatically after each release.

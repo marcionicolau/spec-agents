@@ -1,0 +1,23 @@
+{
+  "name": "spec-agents-website",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Docusaurus site for spec-agents: usage guides and examples (the API reference is built with MkDocs)",
+  "scripts": {
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "serve": "docusaurus serve",
+    "clear": "docusaurus clear"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.2",
+    "@docusaurus/preset-classic": "3.10.2",
+    "raw-loader": "4.0.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "packageManager": "pnpm@12.4.2"
+}
