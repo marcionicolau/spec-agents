@@ -21,6 +21,7 @@
   },
   "packageManager": "pnpm@12.4.2",
   "devDependencies": {
-    "@docusaurus/plugin-content-docs": "3.10.2"
+    "@docusaurus/plugin-content-docs": "3.10.2",
+    "@docusaurus/types": "3.10.2"
   }
 }
