@@ -449,3 +449,32 @@ def test_rare_words_outweigh_common_ones_and_tests_rank_lower(cw, repo):
         assert ranked.index("tests/test_payments.py") > 0
     asks_tests = run(cw, "improve_code", {"root": str(repo), "task": "add a test for the refund of an order"})
     assert "tests/test_payments.py" in [s["path"] for s in asks_tests.by_id("pick").result["selected"]]
+
+
+@pytest.mark.parametrize(
+    ("context", "loc"),
+    [
+        ({"selected": "x"}, ("inputs", "context", "selected")),
+        ({}, ("inputs", "context", "selected")),
+        ("abc", ("inputs", "context", "selected")),
+        ({"selected": [{}]}, ("inputs", "context", "selected", 0, "path")),
+        ({"selected": [{"path": 3}]}, ("inputs", "context", "selected", 0, "path")),
+        ({"selected": ["a.py"]}, ("inputs", "context", "selected", 0, "path")),
+    ],
+)
+def test_patch_propose_malformed_context_is_a_located_error(repo, context, loc):
+    from coworker_fabric.components import PatchProposeParams, _apply
+
+    params = PatchProposeParams(root=str(repo), edits=[{"path": "README.md", "old": "shop", "new": "store"}])
+    _, errs = _apply(params, context)
+    assert [(e.loc, e.type) for e in errs] == [(loc, "invalid_context")]
+
+
+def test_patch_propose_context_baselines(repo):
+    from coworker_fabric.components import PatchProposeParams, _apply
+
+    params = PatchProposeParams(root=str(repo), edits=[{"path": "README.md", "old": "shop", "new": "store"}])
+    assert _apply(params, {"selected": [{"path": "README.md"}]})[1] == []
+    assert _apply(params, None)[1] == []
+    errs = _apply(params, {"selected": [{"path": "src/shop/util.py"}]})[1]
+    assert [e.type for e in errs] == ["file_not_in_context"]

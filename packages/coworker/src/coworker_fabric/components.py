@@ -596,10 +596,44 @@ class PatchProposeResult(ComponentResult):
     deletions: int
 
 
-def _apply(params: PatchProposeParams, context: dict | None) -> tuple[dict[str, tuple[str, str]], list[ErrorDetail]]:
+def _selected_paths(context: Any) -> tuple[set[str] | None, list[ErrorDetail]]:
+    """Return the paths of a ``context`` artifact (``None`` = unrestricted) and located errors for a malformed one."""
+    if context is None:
+        return None, []
+    hint = "bind the 'context' output of context_select"
+    loc = ("inputs", "context")
+    if not isinstance(context, dict) or not isinstance(context.get("selected"), list):
+        return None, [
+            ErrorDetail(
+                loc=loc + ("selected",),
+                type="invalid_context",
+                msg="the context must be an object with a 'selected' list",
+                hint=hint,
+            )
+        ]
+    paths, errs = set(), []
+    for i, entry in enumerate(context["selected"]):
+        path = entry.get("path") if isinstance(entry, dict) else None
+        if isinstance(path, str):
+            paths.add(path)
+        else:
+            errs.append(
+                ErrorDetail(
+                    loc=loc + ("selected", i, "path"),
+                    type="invalid_context",
+                    msg="every selected entry needs a string 'path'",
+                    hint=hint,
+                )
+            )
+    return paths, errs
+
+
+def _apply(params: PatchProposeParams, context: Any) -> tuple[dict[str, tuple[str, str]], list[ErrorDetail]]:
     """Apply the edits in memory. Returns {path: (before, after)} and located errors. Never writes."""
-    root, errs = Path(params.root), []
-    allowed = {s["path"] for s in context["selected"]} if context else None
+    root = Path(params.root)
+    allowed, errs = _selected_paths(context)
+    if errs:
+        return {}, errs
     texts: dict[str, tuple[str, str]] = {}
     for i, e in enumerate(params.edits):
         loc = ("params", "edits", i)
