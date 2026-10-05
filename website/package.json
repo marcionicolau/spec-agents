@@ -19,5 +19,8 @@
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
-  "packageManager": "pnpm@12.4.2"
+  "packageManager": "pnpm@12.4.2",
+  "devDependencies": {
+    "@docusaurus/plugin-content-docs": "3.10.2"
+  }
 }
