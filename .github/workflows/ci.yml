@@ -22,6 +22,7 @@ jobs:
       pull-requests: read
     outputs:
       packages: ${{ steps.matrix.outputs.packages }}
+      test_matrix: ${{ steps.matrix.outputs.test_matrix }}
       core: ${{ steps.matrix.outputs.core }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -55,6 +56,13 @@ jobs:
           fi
           echo "core=$core" >> "$GITHUB_OUTPUT"
           echo "packages=$pkgs" >> "$GITHUB_OUTPUT"
+          # test jobs: every Python on Linux, the newest stable one on macOS and Windows (path handling, line endings)
+          test_matrix=$(jq -c '[.[] as $p | (
+              ("3.12","3.13","3.14") as $py | {package: $p, os: "ubuntu-24.04", python: $py}
+            ), (
+              ("macos-latest","windows-latest") as $os | {package: $p, os: $os, python: "3.13"}
+            )]' <<<"$pkgs")
+          echo "test_matrix=$test_matrix" >> "$GITHUB_OUTPUT"
           echo "packages to test: $pkgs"
 
   lint:
@@ -109,16 +117,20 @@ jobs:
         run: just evals-check
 
   test:
+    # Linux runs every supported Python; macOS and Windows run the newest stable one (path handling and line endings differ by OS,
+    # the Python version matters less there). No optional frameworks here: the `extras` job covers them on Linux.
     needs: changes
     if: needs.changes.outputs.packages != '[]'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ fromJSON(needs.changes.outputs.packages) }}
-        python: ["3.12", "3.13"]
-    name: test (${{ matrix.package }}, ${{ matrix.python }})
+        include: ${{ fromJSON(needs.changes.outputs.test_matrix) }}
+    name: test (${{ matrix.package }}, ${{ matrix.python }}, ${{ matrix.os }})
+    defaults:
+      run:
+        shell: bash # Git Bash on Windows: the justfile recipes are bash
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
