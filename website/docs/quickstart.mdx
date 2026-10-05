@@ -1,0 +1,36 @@
+---
+id: quickstart
+title: Quickstart
+---
+
+import Example from "@site/src/components/Example";
+import digest from "!!raw-loader!@site/../examples/docs/text_digest.py";
+import notes from "!!raw-loader!@site/../examples/docs/notes_agent.py";
+
+Everything here runs offline, from a checkout (see [Installation](installation.md)): no model, no proxy.
+
+## 1. Run a pipeline of deterministic components
+
+Components are declared in `SKILL.md` files and implemented in code; a **pipeline** is a spec that wires them. The text pack ships
+`document_digest` (text statistics plus top keywords).
+
+<Example source={digest} file="examples/docs/text_digest.py" />
+
+`parse_plan` validates the plan (structure, registry, ports, types) and reports **all** errors at once as a typed
+`PlanValidationError` (see [Handle errors](how-to/handle-errors.mdx)). The executor then runs the steps in dependency order and skips
+the dependents of a failed step.
+
+## 2. Run an agent tree
+
+An agent tree is declared with `AGENT.md` files plus a `fabric.md` (root agent, budget, model aliases). The `notes` demo has one
+planner agent: the model *plans* which components to run, the components do the work. A `ScriptedBackend` replays two model answers:
+the plan, then the output of a `runtime: prompt` step.
+
+<Example source={notes} file="examples/docs/notes_agent.py" />
+
+Every LLM call is charged to the budget in `fabric.md` (`max_llm_calls`, `max_depth`, …). To use a real model instead of the
+scripted one, see [Use a real model](how-to/real-model.mdx).
+
+## 3. Next
+
+Pick a [domain pack](packs/index.md) and run its example on your own data.

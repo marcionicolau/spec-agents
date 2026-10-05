@@ -138,7 +138,7 @@ jobs:
           PACKAGE: ${{ matrix.package }}
 
   docs:
-    # the documentation site must build strictly (broken references, bad docstring markup); kept as an artifact
+    # both documentation builds (Docusaurus guides, MkDocs reference) must pass strictly (broken links, bad docstring markup); kept as one artifact
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -154,7 +154,12 @@ jobs:
         with:
           just-version: "1.58.0"
       - run: just sync
-      - run: just docs
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version # Node 24, shared with local development
+          cache: npm
+          cache-dependency-path: website/package-lock.json
+      - run: just docs-all
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: docs-site

@@ -1,10 +1,24 @@
 # Documentation
 
-This folder is also the source of the documentation site (mkdocs-material + mkdocstrings): `just docs` builds it into `build/site`
-(warnings fail the build), `just docs-serve` previews it. The **API reference** pages are generated from the code at build time
-(`docs/gen_reference.py`): one page per package, listing only the names in each module's `__all__`, rendered from the docstrings
-(Google style). CI builds the site on every PR and keeps it as the `docs-site` artifact; pushes to `main` publish it to GitHub Pages
+This folder is the source of the **contributor guides and API reference** (mkdocs-material + mkdocstrings). The user-facing guide
+(installation, quickstart, a guide per domain pack, how-tos) is a Docusaurus site in [`website/`](https://github.com/marcionicolau/spec-agents/tree/main/website);
+its code blocks are the scripts in `examples/docs/`, which `tests/test_docs_examples.py` runs offline, so the examples cannot drift.
+
+Both are published as **one GitHub Pages site**: Docusaurus at the root, MkDocs under `/reference/`
 (`.github/workflows/docs.yml`): https://marcionicolau.github.io/spec-agents/.
+
+| Command | Does |
+| --- | --- |
+| `just docs-all` (alias `just docs`) | builds both into `build/site` (strict: warnings and broken links fail); needs Node 24 (`.node-version`) |
+| `just docs-doc` / `just docs-api` | only the Docusaurus guide / only MkDocs (`build/site/reference`) |
+| `just docs-serve` / `just docs-serve doc` | live preview of MkDocs (port 8000) / Docusaurus (port 3000) |
+
+The **API reference** pages are generated from the code at build time (`docs/gen_reference.py`): one page per package, listing only the
+names in each module's `__all__`, rendered from the docstrings (Google style). CI builds both on every PR and keeps the result as the
+`docs-site` artifact.
+
+**Where does new content go?** How to *use* something, with a runnable example: `website/docs/` (add the script under `examples/docs/`
+and embed it with the `Example` component). How the project *works* or how to *change* it: here in `docs/`.
 
 | Document                                  | Contents                                                                                           |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------- |

@@ -1,0 +1,23 @@
+---
+id: coworker
+title: Coworker pack
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/coworker_context.py";
+
+Helps a coding agent work on a repository without reading all of it: `repo_index`, `context_select`, `context_pack`, `code_review` and `patch_propose`. It never writes to disk and only reads allowlisted roots (`COWORKER_ALLOWED_ROOTS`).
+
+## Install
+
+```bash
+pip install spec-agents-coworker
+```
+
+## Example
+
+The `improve_code` pipeline indexes a repository, selects the files that matter for a task within a token budget and packs them into a bundle. The reasons for each selection are part of the result.
+
+<Example source={script} file="examples/docs/coworker_context.py" />
+
+A proposed patch is validated (it must apply, stay under the size limit and touch allowed paths) but never applied.

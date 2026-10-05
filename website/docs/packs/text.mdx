@@ -1,0 +1,24 @@
+---
+id: text
+title: Text pack
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/text_digest.py";
+
+A small, dependency-free pack: components `text_stats` and `keywords` and the pipeline `document_digest`. It proves the core is domain-agnostic and is the smallest template for a new pack.
+
+## Install
+
+```bash
+pip install spec-agents-text
+```
+
+## Example
+
+This is the same script as step 1 of the [Quickstart](../quickstart.mdx): build a registry from the pack's `register`, instantiate the pipeline with parameters, validate the plan, run it.
+
+
+<Example source={script} file="examples/docs/text_digest.py" />
+
+Start a new pack from this one: a `register(registry)` function, `skills/<name>/SKILL.md` contracts and an `agent_fabric.domains` entry point.

@@ -1,0 +1,29 @@
+---
+id: real-model
+title: Use a real model
+---
+
+Models are referenced by **LiteLLM alias** only (`local-planner`, `local-writer`, `local-fast`); the concrete models live in
+`config/litellm_config.yaml`. Start the gateway and drop the scripted backend:
+
+```bash
+export OLLAMA_API_BASE=http://localhost:11434 LITELLM_MASTER_KEY=sk-local-dev
+litellm --config config/litellm_config.yaml --port 4000
+uv run agent-fabric run examples/notes "Digest this meeting" --input transcript=meeting.txt
+```
+
+Add `--trace-out run.jsonl` to dump every trace event as JSON lines, or `--otel` to export OpenTelemetry spans. Use `--plain` for
+plain output instead of the live view.
+
+## Check the specs first
+
+```bash
+uv run agent-fabric lint --agents examples/notes
+uv run agent-fabric agents examples/notes
+```
+
+`lint` is the same drift check CI runs; `agents` renders and validates the agent tree. Both work without a model.
+
+:::tip
+Before merging a change to guidance text (`SKILL.md`, `AGENT.md`) run the live evals: `python examples/run_evals.py --mode live`.
+:::
