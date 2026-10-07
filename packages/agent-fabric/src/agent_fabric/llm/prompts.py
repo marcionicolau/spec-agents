@@ -82,8 +82,12 @@ Sub-agents available (use these names exactly):
 
 Blackboard keys you may pass as inputs: {keys}
 A delegation may also use the output of an earlier delegation by putting "@<delegation_id>" in its inputs.
-Use at most {max_delegations} delegations. Reply with ONE JSON object:
-{{"rationale": "...", "delegations": [{{"id": "d1", "agent": "<name>", "instruction": "...", "inputs": [], "depends_on": []}}]}}"""
+You get exactly one delegation plan — it must contain every delegation the task needs, chained with
+"depends_on" when one must follow another. Use at most {max_delegations} delegations.
+Reply with ONE JSON object:
+{{"rationale": "...", "delegations": [
+  {{"id": "d1", "agent": "<name>", "instruction": "...", "inputs": [], "depends_on": []}},
+  {{"id": "d2", "agent": "<name>", "instruction": "...", "inputs": ["@d1"], "depends_on": ["d1"]}}]}}"""
 
 SYNTHESIS_RULES = """Combine the sub-agent results below into the final answer for the task.
 Use only facts and numbers present in the results. Mention failures explicitly."""
