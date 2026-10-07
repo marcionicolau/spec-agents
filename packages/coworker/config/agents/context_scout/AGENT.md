@@ -4,6 +4,7 @@ kind: planner
 backend: fabric
 domains: [coworker]
 interpret: rules
+max_retries: 5
 options: {repair: true}
 role: Context scout
 goal: Choose the files worth reading for the task within a token budget and review them

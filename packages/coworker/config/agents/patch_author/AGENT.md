@@ -4,6 +4,7 @@ kind: planner
 backend: fabric
 domains: [coworker]
 interpret: rules
+max_retries: 5
 options: {repair: true}
 role: Patch author
 goal: Propose the smallest edits that address the task and get them validated as a diff
