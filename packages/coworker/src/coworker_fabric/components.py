@@ -393,6 +393,56 @@ class ContextSelect(Component[ContextSelectParams, ContextSelectResult]):
 
 
 # ============================================================================ context_pack
+def _check_context(context: Any, *, required: tuple[str, ...] = ("root",)) -> list[ErrorDetail]:
+    """Located errors when a ``context`` artifact lacks the ``context_select`` shape.
+
+    The port is typed ``json``, so a planner can wire any JSON value here — the consumers index
+    ``context["root"]`` and ``context["selected"][i]["path"]`` directly and would crash otherwise.
+    """
+    loc, hint = ("inputs", "context"), "bind the 'context' output of context_select"
+    if not isinstance(context, dict):
+        return [
+            ErrorDetail(
+                loc=loc, type="invalid_context", msg="the context must be an object produced by context_select", hint=hint
+            )
+        ]
+    errs = [
+        ErrorDetail(loc=loc + (k,), type="invalid_context", msg=f"the context needs a string '{k}'", hint=hint)
+        for k in required
+        if not isinstance(context.get(k), str)
+    ]
+    sel = context.get("selected")
+    if not isinstance(sel, list):
+        return errs + [
+            ErrorDetail(
+                loc=loc + ("selected",), type="invalid_context", msg="the context needs a 'selected' list", hint=hint
+            )
+        ]
+    for i, entry in enumerate(sel):
+        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+            errs.append(
+                ErrorDetail(
+                    loc=loc + ("selected", i, "path"),
+                    type="invalid_context",
+                    msg="every selected entry needs a string 'path'",
+                    hint=hint,
+                )
+            )
+            continue
+        if entry.get("ranges") is not None and not (
+            isinstance(entry["ranges"], list) and all(isinstance(r, (list, tuple)) and len(r) == 2 for r in entry["ranges"])
+        ):
+            errs.append(
+                ErrorDetail(
+                    loc=loc + ("selected", i, "ranges"),
+                    type="invalid_context",
+                    msg="'ranges' must be a list of [start, end] pairs",
+                    hint=hint,
+                )
+            )
+    return errs
+
+
 class ContextPackParams(ComponentParams):
     max_chars_per_file: int = Field(20000, ge=500, le=200000)
 
@@ -409,9 +459,13 @@ class ContextPack(Component[ContextPackParams, ContextPackResult]):
     Result = ContextPackResult
 
     def extra_checks(self, inputs: dict, params: ContextPackParams) -> list[ErrorDetail]:
-        root = Path(inputs["context"]["root"])
+        errs = _check_context(inputs.get("context"), required=("root", "task"))
+        if errs:
+            return errs
+        context = inputs["context"]
+        root = Path(context["root"])
         errs = _root_check(str(root))
-        for i, s in enumerate(inputs["context"]["selected"]):
+        for i, s in enumerate(context["selected"]):
             p = safe_path(root, s["path"])
             if p is None or not p.is_file():
                 errs.append(
@@ -421,6 +475,15 @@ class ContextPack(Component[ContextPackParams, ContextPackResult]):
                         input=s["path"],
                         msg=f"{s['path']} no longer exists under the root",
                         hint="re-run repo_index",
+                    )
+                )
+            if not isinstance(s.get("reasons"), list):
+                errs.append(
+                    ErrorDetail(
+                        loc=("inputs", "context", "selected", i, "reasons"),
+                        type="invalid_context",
+                        msg="every selected entry needs a 'reasons' list",
+                        hint="bind the 'context' output of context_select",
                     )
                 )
         return errs
@@ -501,9 +564,12 @@ class CodeReview(Component[CodeReviewParams, CodeReviewResult]):
     Result = CodeReviewResult
 
     def extra_checks(self, inputs: dict, params: CodeReviewParams) -> list[ErrorDetail]:
-        root = Path(inputs["context"]["root"])
-        errs = _root_check(str(root))
-        if not any(s["path"].endswith(".py") for s in inputs["context"]["selected"]):
+        errs = _check_context(inputs.get("context"))
+        if errs:
+            return errs
+        context = inputs["context"]
+        errs = _root_check(context["root"])
+        if not any(s["path"].endswith(".py") for s in context["selected"]):
             errs.append(
                 ErrorDetail(
                     loc=("inputs", "context"),
