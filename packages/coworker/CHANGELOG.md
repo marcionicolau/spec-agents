@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.2...coworker-v0.2.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **coworker:** located errors for malformed context in context_pack/code_review ([#141](https://github.com/marcionicolau/spec-agents/issues/141)) ([19808b5](https://github.com/marcionicolau/spec-agents/commit/19808b5fb8c9c4168248b5cf220d96c1ee5a45e2))
+
 ## [0.2.2](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.1...coworker-v0.2.2) (2026-10-07)
 
 
