@@ -101,6 +101,19 @@ def test_param_refs_rejected_in_plans(registry, pin):
     assert ("steps.0.inputs.data", "param_ref_not_allowed") in details(ei.value)
 
 
+def test_step_refs_in_params_rejected(registry, pin):
+    plan = {
+        "objective": "ref in param",
+        "steps": [
+            {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
+            {"id": "q", "component": "pca", "params": {"features": ["p.scores", "nitrogen"]}},
+        ],
+    }
+    with pytest.raises(PlanValidationError) as ei:
+        parse_plan(plan, registry, pin)
+    assert ("steps.1.params.features.0", "ref_in_param") in details(ei.value)
+
+
 def test_dollar_steps_prefix_is_normalized(registry, pin):
     plan = parse_plan(
         {
