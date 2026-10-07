@@ -478,3 +478,33 @@ def test_patch_propose_context_baselines(repo):
     assert _apply(params, None)[1] == []
     errs = _apply(params, {"selected": [{"path": "src/shop/util.py"}]})[1]
     assert [e.type for e in errs] == ["file_not_in_context"]
+
+
+@pytest.mark.parametrize("component", ["context_pack", "code_review"])
+@pytest.mark.parametrize(
+    ("context", "loc"),
+    [
+        ("abc", ("inputs", "context")),
+        ([{"path": "x.py"}], ("inputs", "context")),
+        ({}, ("inputs", "context", "root")),
+        ({"root": ".", "selected": "x"}, ("inputs", "context", "selected")),
+        ({"root": ".", "selected": [{}]}, ("inputs", "context", "selected", 0, "path")),
+        ({"root": ".", "selected": [{"path": 3}]}, ("inputs", "context", "selected", 0, "path")),
+        (
+            {"root": ".", "selected": [{"path": "x.py", "ranges": "1-3"}]},
+            ("inputs", "context", "selected", 0, "ranges"),
+        ),
+    ],
+)
+def test_malformed_context_is_a_located_error(cw, component, context, loc):
+    comp = cw.get(component)
+    errs = comp.extra_checks({"context": context}, comp.Params())
+    assert (loc, "invalid_context") in [(e.loc, e.type) for e in errs]
+
+
+def test_context_shape_baselines(cw, repo):
+    ctx = {"root": str(repo), "task": "review", "selected": [{"path": "README.md", "reasons": ["picked"]}]}
+    for name in ("context_pack", "code_review"):
+        comp = cw.get(name)
+        errs = comp.extra_checks({"context": ctx}, comp.Params())
+        assert "invalid_context" not in [e.type for e in errs]
