@@ -101,6 +101,23 @@ def test_param_refs_rejected_in_plans(registry, pin):
     assert ("steps.0.inputs.data", "param_ref_not_allowed") in details(ei.value)
 
 
+def test_dollar_steps_prefix_is_normalized(registry, pin):
+    plan = parse_plan(
+        {
+            "objective": "normalize refs",
+            "steps": [
+                {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
+                {"id": "c", "component": "clustering", "inputs": {"matrix": "$steps.p.scores"}},
+            ],
+            "outputs": {"labels": "$steps.c.labels"},
+        },
+        registry,
+        pin,
+    )
+    assert plan.steps[1].inputs["matrix"] == "p.scores"
+    assert plan.outputs["labels"] == "c.labels"
+
+
 def test_pipeline_spec_instantiate(registry):
     spec = registry.pipeline("exploratory_analysis")
     raw = spec.instantiate({"features": ["nitrogen", "ph"]})

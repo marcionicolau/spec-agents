@@ -61,6 +61,9 @@ class PipelineStep(BaseModel):
     @field_validator("inputs")
     @classmethod
     def _refs(cls, v: dict[str, str]) -> dict[str, str]:
+        # Small models often emit "$steps.<id>.<port>" by analogy with "$inputs." — an
+        # unambiguous typo, so it is normalized instead of burning a correction attempt.
+        v = {p: r.removeprefix("$steps.") if isinstance(r, str) else r for p, r in v.items()}
         bad = {p: r for p, r in v.items() if not isinstance(r, str) or not REF_RE.match(r)}
         if bad:
             raise ValueError(f"invalid references {bad}; use '$inputs.<name>' or '<step_id>.<port>'")
@@ -90,6 +93,7 @@ class PipelinePlan(BaseModel):
                 raise ValueError(f"step '{s.id}' references unknown steps {unknown}")
             if s.id in self.all_deps(s):
                 raise ValueError(f"step '{s.id}' depends on itself")
+        self.outputs = {n: r.removeprefix("$steps.") for n, r in self.outputs.items()}
         for name, ref in self.outputs.items():
             if not REF_RE.match(ref) or ref.startswith("$") or ref.split(".")[0] not in ids:
                 raise ValueError(f"output '{name}' must reference '<step_id>.<port>' of an existing step, got {ref!r}")
