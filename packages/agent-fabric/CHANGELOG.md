@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.2](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.1...agent-fabric-v0.9.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **agent-fabric:** one-shot delegation plan + chained example in ROUTER_RULES ([#142](https://github.com/marcionicolau/spec-agents/issues/142)) ([9c0299f](https://github.com/marcionicolau/spec-agents/commit/9c0299f7d89f85fbea00e1f88d278eab7b5ff4d0))
+* **agent-fabric:** show a chained two-delegation plan in ROUTER_RULES ([9c0299f](https://github.com/marcionicolau/spec-agents/commit/9c0299f7d89f85fbea00e1f88d278eab7b5ff4d0))
+
 ## [0.9.1](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.0...agent-fabric-v0.9.1) (2026-10-07)
 
 
