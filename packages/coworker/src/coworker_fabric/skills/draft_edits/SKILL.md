@@ -43,3 +43,4 @@ Bundle:
 - Paraphrasing `old` instead of copying it — whitespace and indentation must match the bundle exactly.
 - Editing a file that is not part of the bundle.
 - Answering with prose instead of the JSON object.
+- Binding anything but the `bundle` output of `context_pack` into `bundle`, or leaving `bundle` unbound — the model cannot draft edits it has not read.

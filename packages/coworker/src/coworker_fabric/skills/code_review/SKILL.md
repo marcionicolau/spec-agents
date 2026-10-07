@@ -31,5 +31,6 @@ Style or formatting questions; a formatter and linter do that better. Non-Python
 - Report only findings that appear in the result; never invent line numbers.
 
 ## Common mistakes
+- Binding anything into `context` but the `context` output of `context_select`, and expecting a `bundle` output: the step emits `findings`; the bundle comes from `context_pack`.
 - Treating missing_return_annotation as urgent in code that does not use type hints.
 - Reviewing files that were not selected as context.

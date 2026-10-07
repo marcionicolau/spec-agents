@@ -36,6 +36,7 @@ The whole repository fits in the budget; then read everything.
 - Scores are ranks, not probabilities. Compare them only within one selection.
 
 ## Common mistakes
+- Passing a `root` param: the step has none — it reads the repository through the `index` input, which binds the `index` output of `repo_index`.
 - Leaving `focus_files` empty and describing the task with vague words: the step asks for concrete names.
 - Focus files that alone exceed `token_budget`.
 - Raising `hops` to 3 in a densely connected repo: it pulls in most of the code.
