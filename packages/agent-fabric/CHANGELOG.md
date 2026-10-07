@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.0...agent-fabric-v0.9.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **agent-fabric:** normalize "$steps." prefix in plan references ([#139](https://github.com/marcionicolau/spec-agents/issues/139)) ([c3391d0](https://github.com/marcionicolau/spec-agents/commit/c3391d0c790e3c7785442381e5671c5b64628cf7))
+
 ## [0.9.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.8.0...agent-fabric-v0.9.0) (2026-10-05)
 
 
