@@ -106,12 +106,14 @@ def test_step_refs_in_params_rejected(registry, pin):
         "objective": "ref in param",
         "steps": [
             {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
-            {"id": "q", "component": "pca", "params": {"features": ["p.scores", "nitrogen"]}},
+            {"id": "q", "component": "pca", "params": {"features": ["p.scores", "nitrogen"], "scale": "$steps.p.scores"}},
         ],
     }
     with pytest.raises(PlanValidationError) as ei:
         parse_plan(plan, registry, pin)
-    assert ("steps.1.params.features.0", "ref_in_param") in details(ei.value)
+    d = details(ei.value)
+    assert ("steps.1.params.features.0", "ref_in_param") in d
+    assert ("steps.1.params.scale", "ref_in_param") in d
 
 
 def test_dollar_steps_prefix_is_normalized(registry, pin):

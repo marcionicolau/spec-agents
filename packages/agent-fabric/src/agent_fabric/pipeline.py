@@ -200,27 +200,31 @@ def _param_ref_errors(
 ) -> list[ErrorDetail]:
     """Flag step references used as literal param values (e.g. ``"focus_files": ["pick.context"]``).
 
-    Params are literals: a string matching ``<step_id>.<port>`` — or ``$inputs.<name>`` anywhere, or
-    ``$params.<name>`` outside pipeline templates — is a misplaced reference, not a value.
+    Params are literals: a string matching ``<step_id>.<port>`` or ``$steps.<id>.<port>`` — or
+    ``$inputs.<name>`` anywhere, or ``$params.<name>`` outside pipeline templates — is a misplaced
+    reference, not a value.
     """
     errors: list[ErrorDetail] = []
 
     def walk(v: Any, ploc: tuple[str | int, ...]) -> None:
         if isinstance(v, str):
-            m = REF_RE.match(v)
-            if m:
+            if v.startswith("$steps."):
+                misplaced = True
+            elif (m := REF_RE.match(v)) is not None:
                 head = m.group(1)
                 misplaced = head == "$inputs" or head in ids or (head == "$params" and not allow_param_refs)
-                if misplaced:
-                    errors.append(
-                        ErrorDetail(
-                            loc=ploc,
-                            type="ref_in_param",
-                            input=v,
-                            msg=f"'{v}' is a reference used as a literal param value",
-                            hint="params take literal values; bind step outputs through this step's 'inputs'",
-                        )
+            else:
+                misplaced = False
+            if misplaced:
+                errors.append(
+                    ErrorDetail(
+                        loc=ploc,
+                        type="ref_in_param",
+                        input=v,
+                        msg=f"'{v}' is a reference used as a literal param value",
+                        hint="params take literal values; bind step outputs through this step's 'inputs'",
                     )
+                )
         elif isinstance(v, dict):
             for k, x in v.items():
                 walk(x, ploc + (k,))
