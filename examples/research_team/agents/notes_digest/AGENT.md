@@ -1,9 +1,10 @@
 ---
 name: notes_digest
 kind: pipeline
-pipeline: document_digest
+pipeline: document_summary
 inputs: [notes]
 role: Field-notes digester
-description: Summarises field notes by length and key terms.
+description: "Digests field notes: length, key terms and a faithful summary."
 ---
-Runs the `document_digest` pipeline on the field notes. No LLM is involved.
+Runs the `document_summary` pipeline on the field notes: deterministic stats and
+keywords, then a model-written summary steered by the question.

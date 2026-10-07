@@ -165,7 +165,9 @@ def test_agent_dir_loads_and_bodies_become_system_prompts(registry, df, note):
     assert lead.source.endswith("research_lead/AGENT.md") and "Break the question down" in lead.instructions
     assert cfg.agents["stats_team"].card.startswith("Statistical analysis of tabular")
     route = {"delegations": [{"id": "n", "agent": "notes_digest", "instruction": "digest notes", "inputs": ["notes"]}]}
-    backend = ScriptedBackend([json.dumps(route), "The notes mention nitrogen."])
+    backend = ScriptedBackend(
+        [json.dumps(route), '{"summary": "The notes mention nitrogen."}', "The notes mention nitrogen."]
+    )
     fabric = AgentFabric(registry, cfg, backend=backend)
     fabric.register_schema("Review", Review)
     rep = fabric.run("What do the notes say?", {"data": df, "notes": note})
@@ -242,7 +244,7 @@ def test_lint_agents_and_cli(registry, tmp_path, capsys):
     )
     assert (
         run(["stat_fabric.domain:register"], str(ROOT / "examples" / "research_team")) == 1
-    )  # document_digest missing -> error
+    )  # document_summary missing -> error
     assert "unknown_pipeline" in capsys.readouterr().out
 
 

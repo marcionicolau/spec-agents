@@ -104,7 +104,7 @@ research_lead (supervisor, router)           fallback: rules
 │   ├── statistician (planner, domain statistics)   fallback: stats_rules
 │   └── methods_reviewer (llm, structured Review output, grounding)
 ├── profile_runner (pipeline: exploratory_analysis)
-└── notes_digest (pipeline: document_digest)          ← text domain
+└── notes_digest (pipeline: document_summary)          ← text domain
 ```
 
 - **router:** the LLM produces a validated delegation plan (existing agents, blackboard keys, `@d1` to pass outputs, acyclic dependencies) with self-correction; dependents of failed delegations are skipped.

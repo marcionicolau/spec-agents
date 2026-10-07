@@ -19,8 +19,14 @@ STATS_PIPELINES = {"exploratory_analysis", "experiment_analysis", "full_study"}
 def test_domains_and_components(registry):
     assert set(registry.domains()) == {"statistics", "text"}
     assert set(registry.names(["statistics"])) >= STATS | STATS_PIPELINES
-    assert set(registry.names(["text"])) == {"text_stats", "keywords", "document_digest"}
-    assert set(registry.pipelines()) == STATS_PIPELINES | {"document_digest"}
+    assert set(registry.names(["text"])) == {
+        "text_stats",
+        "keywords",
+        "summarize_text",
+        "document_digest",
+        "document_summary",
+    }
+    assert set(registry.pipelines()) == STATS_PIPELINES | {"document_digest", "document_summary"}
 
 
 def test_catalog_exposes_ports(registry):

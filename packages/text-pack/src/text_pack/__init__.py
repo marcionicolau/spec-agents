@@ -1,6 +1,6 @@
 """Text domain pack - proves the fabric is domain-agnostic (no pandas involved).
 
-Components: text_stats, keywords.  Pipeline: document_digest.
+Components: text_stats, keywords, summarize_text (``runtime: prompt``).  Pipelines: document_digest, document_summary.
 Load with ``build_registry([text_pack.register])`` or entry point ``agent_fabric.domains``.
 """
 
@@ -149,7 +149,7 @@ class Keywords(Component[KeywordsParams, KeywordsResult]):
 
 @requires_api(1)
 def register(registry: Registry) -> list[str]:
-    """Register the text domain (``text_stats``, ``keywords`` and the ``document_digest`` pipeline); returns the names registered."""
+    """Register the text domain (``text_stats``, ``keywords``, ``summarize_text`` and the ``document_digest`` / ``document_summary`` pipelines); returns the names registered."""
     return registry.load_domain(SPEC_DIR, [TextStats, Keywords])
 
 
