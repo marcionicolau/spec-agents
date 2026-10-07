@@ -1,6 +1,6 @@
 ---
 name: context_pack
-version: 1.0.0
+version: 2.0.0
 domain: coworker
 category: selection
 description: Assemble the selected files into one Markdown bundle ready to paste into a prompt.
@@ -8,7 +8,7 @@ runtime: code
 params:
   max_chars_per_file: {description: files longer than this are cut with a marker, example: 20000}
 inputs:
-  context: {type: json, description: selection from context_select}
+  context: {type: context, description: selection from context_select}
 outputs:
   bundle: {type: text, description: Markdown with one fenced block per file and the reason it was chosen}
 ---

@@ -1,6 +1,6 @@
 ---
 name: code_review
-version: 1.0.0
+version: 2.0.0
 domain: coworker
 category: review
 description: Static review of the selected Python files - complexity, long functions, risky exception handling, unused imports.
@@ -12,7 +12,7 @@ params:
   disable: {description: "rule names to ignore, for example todo_comment or print_call", example: [todo_comment]}
   max_findings: {description: "findings beyond this are cut, most severe first", example: 100}
 inputs:
-  context: {type: json, description: selection from context_select}
+  context: {type: context, description: selection from context_select}
 outputs:
   findings: {type: json, description: "list of findings with path, line, rule, severity, message and suggestion"}
 ---

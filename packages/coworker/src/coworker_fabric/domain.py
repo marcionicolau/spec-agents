@@ -15,7 +15,9 @@ DOMAIN = "coworker"
 def register(registry: Registry) -> list[str]:
     """Entry point ``agent_fabric.domains: coworker = coworker_fabric.domain:register``."""
     from . import components  # noqa: F401  (declares @component classes)
+    from .components import ContextArtifact
 
+    registry.types.register(ContextArtifact())
     classes = [c for c in declared_components() if c.__module__.startswith("coworker_fabric.")]
     return registry.load_domain(SPEC_DIR, classes)
 

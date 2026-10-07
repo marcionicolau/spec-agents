@@ -1,6 +1,6 @@
 ---
 name: patch_propose
-version: 1.0.0
+version: 2.0.0
 domain: coworker
 category: change
 description: Validate proposed text edits against the real files and produce a unified diff without touching the disk.
@@ -8,11 +8,12 @@ runtime: code
 params:
   root: {description: repository directory, example: /home/me/project}
   edits:
-    description: "list of {path, old, new}; old is the exact text to replace and must occur exactly once"
+    description: "list of {path, old, new}; old is the exact text to replace and must occur exactly once. Optional when the edits input is bound"
     example: [{path: src/app.py, old: "def run(x=[]):", new: "def run(x=None):"}]
   max_changed_lines: {description: reject patches that change more lines than this, example: 200}
 inputs:
-  context: {type: json, required: false, description: selection from context_select; edits are limited to these files}
+  context: {type: context, required: false, description: selection from context_select; edits are limited to these files}
+  edits: {type: json, required: false, description: "drafted edits (e.g. from draft_edits); overrides the 'edits' param when bound"}
 outputs:
   diff: {type: text, description: unified diff of all edits}
 ---

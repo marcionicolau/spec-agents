@@ -76,7 +76,7 @@ packages/<domain>/             uv workspace members; dist name = spec `domain:`,
                                airflow_dag_render, dag_check (+ python_source type, medallion.py SQL
                                builders, render.py, generate.py CLI); pipelines ingest_to_lakehouse, medallion_design
   coworker/src/coworker_fabric/  COWORKER PACK (dist 'spec-agents-coworker'): repo_index, context_select, context_pack,
-                               code_review, patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
+                               code_review, draft_edits, patch_propose (analysis.py = pure ast helpers); pipelines improve_code, propose_patch
 packages/text-pack/src/text_pack/ TEXT PACK (dist 'spec-agents-text'): text_stats, keywords, summarize_text, document_digest,
                                     document_summary – proves genericity
 packages/<pkg>/tests/            pack tests (statistics, lakehouse, coworker; agent-fabric: CLI + prompt domain)

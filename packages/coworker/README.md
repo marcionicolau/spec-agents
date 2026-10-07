@@ -1,7 +1,7 @@
 # spec-agents-coworker (`coworker_fabric`)
 
 Coworker (pair-programming) domain pack for [agent-fabric](../agent-fabric/README.md): `repo_index`, `context_select`, `context_pack`,
-`code_review`, `patch_propose` and the pipelines `improve_code` and `propose_patch`. Context selection is measured (BM25-flavoured scorer,
+`code_review`, `draft_edits`, `patch_propose` and the pipelines `improve_code` and `propose_patch`. Context selection is measured (BM25-flavoured scorer,
 labeled cases, `python -m coworker_fabric.evals`), and **nothing is ever written to disk**: patches are applied in memory and returned
 as a unified diff.
 

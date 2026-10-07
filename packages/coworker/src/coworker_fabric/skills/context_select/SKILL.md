@@ -1,6 +1,6 @@
 ---
 name: context_select
-version: 1.1.0
+version: 2.0.0
 domain: coworker
 category: selection
 description: Choose the files worth reading for a task within a token budget, using focus files, import links and task terms.
@@ -17,7 +17,7 @@ params:
 inputs:
   index: {type: json, description: index from repo_index}
 outputs:
-  context: {type: json, description: "root, task and the selected files with score and reasons"}
+  context: {type: context, description: "root, task and the selected files with score and reasons"}
 ---
 # Context selection
 
