@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.1...coworker-v0.2.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* **coworker:** report a malformed patch_propose context as a located error ([#135](https://github.com/marcionicolau/spec-agents/issues/135)) ([aab7582](https://github.com/marcionicolau/spec-agents/commit/aab7582d1e518dc70dee25564032c24cc2a31233)), closes [#129](https://github.com/marcionicolau/spec-agents/issues/129)
+
 ## [0.2.1](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.0...coworker-v0.2.1) (2026-10-02)
 
 
