@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/marcionicolau/spec-agents/compare/text-pack-v0.2.1...text-pack-v0.3.0) (2026-10-07)
+
+
+### Features
+
+* **text-pack:** add summarize_text + document_summary for grounded digests ([#137](https://github.com/marcionicolau/spec-agents/issues/137)) ([45d509c](https://github.com/marcionicolau/spec-agents/commit/45d509c7e35e7d81bb1506e53c9b3f23b33fa392))
+
 ## [0.2.1](https://github.com/marcionicolau/spec-agents/compare/text-pack-v0.2.0...text-pack-v0.2.1) (2026-10-02)
 
 
