@@ -403,7 +403,10 @@ def _check_context(context: Any, *, required: tuple[str, ...] = ("root",)) -> li
     if not isinstance(context, dict):
         return [
             ErrorDetail(
-                loc=loc, type="invalid_context", msg="the context must be an object produced by context_select", hint=hint
+                loc=loc,
+                type="invalid_context",
+                msg="the context must be an object produced by context_select",
+                hint=hint,
             )
         ]
     errs = [
@@ -430,7 +433,8 @@ def _check_context(context: Any, *, required: tuple[str, ...] = ("root",)) -> li
             )
             continue
         if entry.get("ranges") is not None and not (
-            isinstance(entry["ranges"], list) and all(isinstance(r, (list, tuple)) and len(r) == 2 for r in entry["ranges"])
+            isinstance(entry["ranges"], list)
+            and all(isinstance(r, (list, tuple)) and len(r) == 2 for r in entry["ranges"])
         ):
             errs.append(
                 ErrorDetail(

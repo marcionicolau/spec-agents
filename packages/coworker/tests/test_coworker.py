@@ -490,7 +490,10 @@ def test_patch_propose_context_baselines(repo):
         ({"root": ".", "selected": "x"}, ("inputs", "context", "selected")),
         ({"root": ".", "selected": [{}]}, ("inputs", "context", "selected", 0, "path")),
         ({"root": ".", "selected": [{"path": 3}]}, ("inputs", "context", "selected", 0, "path")),
-        ({"root": ".", "selected": [{"path": "x.py", "ranges": "1-3"}]}, ("inputs", "context", "selected", 0, "ranges")),
+        (
+            {"root": ".", "selected": [{"path": "x.py", "ranges": "1-3"}]},
+            ("inputs", "context", "selected", 0, "ranges"),
+        ),
     ],
 )
 def test_malformed_context_is_a_located_error(cw, component, context, loc):
@@ -504,4 +507,4 @@ def test_context_shape_baselines(cw, repo):
     for name in ("context_pack", "code_review"):
         comp = cw.get(name)
         errs = comp.extra_checks({"context": ctx}, comp.Params())
-        assert ("invalid_context" not in [e.type for e in errs])
+        assert "invalid_context" not in [e.type for e in errs]
