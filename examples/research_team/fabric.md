@@ -27,7 +27,7 @@ research_lead (supervisor, router)                 fallback: rules
 │   ├── statistician (planner, statistics)         fallback: stats_rules
 │   └── methods_reviewer (llm, Review schema, grounded)
 ├── profile_runner (pipeline: exploratory_analysis)
-└── notes_digest (pipeline: document_digest)
+└── notes_digest (pipeline: document_summary)
 ```
 
 Validate with `python -m agent_fabric.lint --domains ... --agents config`.

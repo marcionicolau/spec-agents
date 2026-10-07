@@ -1,6 +1,6 @@
 # spec-agents-text (`text_pack`)
 
-Small text domain pack for [agent-fabric](../agent-fabric/README.md): components `text_stats` and `keywords`, pipeline `document_digest`.
+Small text domain pack for [agent-fabric](../agent-fabric/README.md): components `text_stats`, `keywords` and `summarize_text` (`runtime: prompt`); pipelines `document_digest` (deterministic) and `document_summary` (adds an LLM-written summary).
 It needs no pandas and no other pack, which makes it the proof that the core is domain-agnostic, and a minimal template for new packs.
 
 > **Install:** `pip install spec-agents-text` ([PyPI](https://pypi.org/project/spec-agents-text/)); wheels and sdists are also attached to each

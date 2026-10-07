@@ -8,7 +8,7 @@ Domain knowledge lives in packs; the core never imports one. Each pack registers
 | `statistics` | `stat_fabric` | `summary`, `linear_model`, `anova`, `time_series`, `pca`, `clustering` | `exploratory_analysis`, `experiment_analysis`, `full_study` | `examples/research_team` |
 | `lakehouse` | `lake_fabric` | `source_inspect`, `medallion_plan`, `airflow_dag_render`, `dag_check` | `ingest_to_lakehouse`, `medallion_design` | `packages/lakehouse/config` |
 | `coworker` | `coworker_fabric` | `repo_index`, `context_select`, `context_pack`, `code_review`, `patch_propose` | `improve_code`, `propose_patch` | `packages/coworker/config` |
-| `text-pack` | `text_pack` | `text_stats`, `keywords` | `document_digest` | `examples/research_team` |
+| `text-pack` | `text_pack` | `text_stats`, `keywords`, `summarize_text` | `document_digest`, `document_summary` | `examples/research_team` |
 
 - **statistics**: formulas are built from validated column names; no model-written code runs. Also provides the `stats_rules` planner (no LLM).
 - **lakehouse**: generates Airflow DAGs that load CSV/JSON/XLSX/API/MCP sources into Trino/Iceberg bronze, silver and gold tables. Generated code is never

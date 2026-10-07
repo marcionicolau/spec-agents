@@ -144,7 +144,7 @@ def coworker() -> None:
 
 
 def whatsapp() -> None:
-    """text pack: notes_digest (document_digest pipeline) over a WhatsApp group export."""
+    """text pack: notes_digest (document_summary pipeline) over a WhatsApp group export."""
     from stat_fabric.domain import register as register_stats
     from stat_fabric.schemas import SCHEMAS
     from text_pack import register as register_text

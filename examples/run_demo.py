@@ -126,6 +126,8 @@ def scripted_backend() -> ScriptedBackend:
             json.dumps(GOOD_PLAN),  # planner: fixed
             json.dumps(review_bad),
             json.dumps(review_ok),  # reviewer: grounding fix
+            '{"summary": "Field notes 2026: N120 plots tillered earlier and kept greener canopies; '  # notes_digest step
+            'October rainfall delayed phosphorus uptake in low-pH plots."}',
             "Nitrogen treatment is the dominant driver of yield; rainfall adds a smaller effect. "
             "Field notes agree (earlier tillering under N120). Residual autocorrelation calls for caution.",
         ]
