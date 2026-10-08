@@ -106,7 +106,11 @@ def test_step_refs_in_params_rejected(registry, pin):
         "objective": "ref in param",
         "steps": [
             {"id": "p", "component": "pca", "params": {"features": ["nitrogen", "ph"]}},
-            {"id": "q", "component": "pca", "params": {"features": ["p.scores", "nitrogen"], "scale": "$steps.p.scores"}},
+            {
+                "id": "q",
+                "component": "pca",
+                "params": {"features": ["p.scores", "nitrogen"], "scale": "$steps.p.scores"},
+            },
         ],
     }
     with pytest.raises(PlanValidationError) as ei:
