@@ -747,7 +747,7 @@ def _apply(
     if errs:
         return {}, errs
     texts: dict[str, tuple[str, str]] = {}
-    for i, e in enumerate(params.edits):
+    for i, e in enumerate(params.edits or []):  # extra_checks/resolve guarantee non-None; narrow for ty
         loc = eloc + (i,)
         p = safe_path(root, e.path)
         if p is None:
