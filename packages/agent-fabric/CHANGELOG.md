@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.2...agent-fabric-v0.9.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* **agent-fabric:** reject ref-shaped strings in params at plan validation ([#145](https://github.com/marcionicolau/spec-agents/issues/145)) ([ff2e0df](https://github.com/marcionicolau/spec-agents/commit/ff2e0dfb0b13fe4f4bd0a0fd02a57d03681cad72))
+
 ## [0.9.2](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.1...agent-fabric-v0.9.2) (2026-10-07)
 
 
