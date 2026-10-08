@@ -195,6 +195,48 @@ def _has_param_ref(v: Any) -> bool:
     return False
 
 
+def _param_ref_errors(
+    params: dict[str, Any], ids: set[str], loc: tuple[str | int, ...], allow_param_refs: bool
+) -> list[ErrorDetail]:
+    """Flag step references used as literal param values (e.g. ``"focus_files": ["pick.context"]``).
+
+    Params are literals: a string matching ``<step_id>.<port>`` or ``$steps.<id>.<port>`` — or
+    ``$inputs.<name>`` anywhere, or ``$params.<name>`` outside pipeline templates — is a misplaced
+    reference, not a value.
+    """
+    errors: list[ErrorDetail] = []
+
+    def walk(v: Any, ploc: tuple[str | int, ...]) -> None:
+        if isinstance(v, str):
+            if v.startswith("$steps."):
+                misplaced = True
+            elif (m := REF_RE.match(v)) is not None:
+                head = m.group(1)
+                misplaced = head == "$inputs" or head in ids or (head == "$params" and not allow_param_refs)
+            else:
+                misplaced = False
+            if misplaced:
+                errors.append(
+                    ErrorDetail(
+                        loc=ploc,
+                        type="ref_in_param",
+                        input=v,
+                        msg=f"'{v}' is a reference used as a literal param value",
+                        hint="params take literal values; bind step outputs through this step's 'inputs'",
+                    )
+                )
+        elif isinstance(v, dict):
+            for k, x in v.items():
+                walk(x, ploc + (k,))
+        elif isinstance(v, list):
+            for j, x in enumerate(v):
+                walk(x, ploc + (j,))
+
+    for k, v in params.items():
+        walk(v, loc + ("params", k))
+    return errors
+
+
 def semantic_errors(
     plan: PipelinePlan, registry: Any, inputs: PipelineInputs | None, allow_param_refs: bool = False
 ) -> list[ErrorDetail]:
@@ -237,6 +279,7 @@ def semantic_errors(
                 params = comp.Params.model_validate(step.params)
             except ValidationError as exc:
                 errors += details_from_pydantic(exc, loc + ("params",))
+        errors += _param_ref_errors(step.params, set(by_id), loc, allow_param_refs)
         # ---- ports
         for port in step.inputs:
             if port not in comp.spec.inputs:

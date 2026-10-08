@@ -12,11 +12,14 @@ Rules:
 - Use ONLY components, parameter names and port names from the catalogue. Unknown fields are rejected.
 - Refer to data with references: "$inputs.<name>" for pipeline inputs,
   "<step_id>.<output>" for outputs of earlier steps ("repo_index.index", never "$steps.repo_index.index").
+- "params" holds ONLY literal values declared in the catalogue — never a reference. Step wiring goes
+  ONLY in "inputs".
 - An input port with the same name as a pipeline input is bound automatically; you may omit it.
 - Use ONLY column names that exist in the input descriptions, with the right kind.
 - Step ids are short, unique snake_case. At most {max_steps} steps.
 - Reply with ONE JSON object and nothing else:
-{{"objective": "...", "steps": [{{"id": "...", "component": "...", "params": {{}}, "inputs": {{}}, "rationale": "..."}}], "outputs": {{}}}}"""
+{{"objective": "...", "steps": [{{"id": "s1", "component": "...", "params": {{"k": 2}}, "inputs": {{}}, "rationale": "..."}},
+ {{"id": "s2", "component": "...", "params": {{}}, "inputs": {{"port": "s1.out"}}, "rationale": "..."}}], "outputs": {{}}}}"""
 
 PLANNER_USER = """Objective: {objective}
 
