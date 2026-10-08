@@ -11,4 +11,4 @@ cases:
       In the repository at {root}, propose a patch for packages/agent-fabric/src/agent_fabric/lint.py that renames the local variable
       "errors" to "error_count" in run(). Only propose it, do not apply it.
     inputs: none
-    expected_components: [repo_index, context_select, patch_propose]
+    expected_components: [repo_index, context_select, context_pack, draft_edits, patch_propose]

@@ -7,6 +7,7 @@ import textwrap
 import pytest
 
 from agent_fabric import build_registry
+from agent_fabric.errors import PlanValidationError
 from agent_fabric.executor import PipelineExecutor
 from agent_fabric.pipeline import PipelineInputs, parse_plan
 from coworker_fabric.domain import register as register_coworker
@@ -79,7 +80,9 @@ def errors(rep):
 
 
 def test_domain_registered(cw):
-    assert {"repo_index", "context_select", "context_pack", "code_review", "patch_propose"} <= set(cw.names())
+    assert {"repo_index", "context_select", "context_pack", "code_review", "patch_propose", "draft_edits"} <= set(
+        cw.names()
+    )
     assert {"improve_code", "propose_patch"} <= set(cw.pipelines())
 
 
@@ -508,3 +511,74 @@ def test_context_shape_baselines(cw, repo):
         comp = cw.get(name)
         errs = comp.extra_checks({"context": ctx}, comp.Params())
         assert "invalid_context" not in [e.type for e in errs]
+
+
+def _plan_errors(cw, plan, inputs=None):
+    pin = PipelineInputs.from_values(inputs or {}, cw.types)
+    with pytest.raises(PlanValidationError) as ei:
+        parse_plan(plan, cw, pin)
+    return {(".".join(map(str, d.loc)), d.type) for d in ei.value.details}
+
+
+def test_context_ports_reject_plain_json_bindings(cw, repo):
+    """A `json` output (findings) cannot feed a `context` port: the plan is rejected, so the planner can fix it."""
+    plan = {
+        "objective": "miswired context",
+        "steps": [
+            {"id": "r", "component": "repo_index", "params": {"root": str(repo)}},
+            {"id": "pick", "component": "context_select", "params": {"task": "orders"}, "inputs": {"index": "r.index"}},
+            {"id": "rev", "component": "code_review", "inputs": {"context": "pick.context"}},
+            {"id": "pack", "component": "context_pack", "inputs": {"context": "rev.findings"}},
+        ],
+    }
+    assert ("steps.3.inputs.context", "type_mismatch") in _plan_errors(cw, plan)
+
+
+def test_patch_propose_needs_edits_param_or_input(cw, repo):
+    plan = {
+        "objective": "no edits anywhere",
+        "steps": [
+            {"id": "r", "component": "repo_index", "params": {"root": str(repo)}},
+            {"id": "pick", "component": "context_select", "params": {"task": "orders"}, "inputs": {"index": "r.index"}},
+            {
+                "id": "patch",
+                "component": "patch_propose",
+                "params": {"root": str(repo)},
+                "inputs": {"context": "pick.context"},
+            },
+        ],
+    }
+    assert ("steps.2.params.edits", "edits_required") in _plan_errors(cw, plan)
+
+
+def test_patch_propose_edits_via_input(cw, repo):
+    """A bound `edits` input (e.g. draft_edits.edits) replaces the param and lands in the diff."""
+    pin = PipelineInputs.from_values(
+        {"edits": [{"path": "src/shop/util.py", "old": "def fmt(x):", "new": "def fmt(x) -> str:"}]}, cw.types
+    )
+    plan = parse_plan(
+        {
+            "objective": "annotate fmt",
+            "steps": [
+                {"id": "r", "component": "repo_index", "params": {"root": str(repo)}},
+                {
+                    "id": "pick",
+                    "component": "context_select",
+                    "params": {"task": "fmt helper", "focus_files": ["src/shop/util.py"]},
+                    "inputs": {"index": "r.index"},
+                },
+                {
+                    "id": "patch",
+                    "component": "patch_propose",
+                    "params": {"root": str(repo)},
+                    "inputs": {"context": "pick.context", "edits": "$inputs.edits"},
+                },
+            ],
+            "outputs": {"diff": "patch.diff"},
+        },
+        cw,
+        pin,
+    )
+    rep = PipelineExecutor(cw).run(plan, pin)
+    assert rep.ok, errors(rep)
+    assert "def fmt(x) -> str" in rep.output_values()["diff"]

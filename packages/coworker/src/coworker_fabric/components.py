@@ -8,10 +8,11 @@ from collections import defaultdict, deque
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError, field_validator
 
+from agent_fabric.artifacts import ArtifactType
 from agent_fabric.component import Component, ComponentParams, ComponentResult, StepContext
-from agent_fabric.errors import ErrorDetail, suggest
+from agent_fabric.errors import ErrorDetail, details_from_pydantic, suggest
 from agent_fabric.registry import component
 
 from .analysis import (
@@ -393,13 +394,15 @@ class ContextSelect(Component[ContextSelectParams, ContextSelectResult]):
 
 
 # ============================================================================ context_pack
-def _check_context(context: Any, *, required: tuple[str, ...] = ("root",)) -> list[ErrorDetail]:
+def _check_context(
+    context: Any, *, required: tuple[str, ...] = ("root",), loc: tuple[str | int, ...] = ("inputs", "context")
+) -> list[ErrorDetail]:
     """Located errors when a ``context`` artifact lacks the ``context_select`` shape.
 
-    The port is typed ``json``, so a planner can wire any JSON value here — the consumers index
-    ``context["root"]`` and ``context["selected"][i]["path"]`` directly and would crash otherwise.
+    The port is typed ``context``, so a malformed binding is already rejected at plan time or by
+    `ContextArtifact.runtime_check` — these checks also protect direct calls that bypass them.
     """
-    loc, hint = ("inputs", "context"), "bind the 'context' output of context_select"
+    hint = "bind the 'context' output of context_select"
     if not isinstance(context, dict):
         return [
             ErrorDetail(
@@ -445,6 +448,43 @@ def _check_context(context: Any, *, required: tuple[str, ...] = ("root",)) -> li
                 )
             )
     return errs
+
+
+class ContextProfile(BaseModel):
+    """Profile of a ``context`` artifact for planner prompts."""
+
+    root: str
+    task: str
+    n_files: int
+
+    def to_prompt(self) -> str:
+        """One-line description for prompts."""
+        return f"context: {self.n_files} selected file(s) for {self.task!r} under {self.root}"
+
+
+class ContextArtifact(ArtifactType):
+    """Artifact type ``context``: the ``{root, task, selected}`` object emitted by ``context_select``.
+
+    Narrower than ``json`` so a plan can only bind a real context — wiring ``code_review.findings`` or
+    another ``json`` output into a ``context`` port fails at plan time, letting the planner self-correct
+    instead of crashing a step at runtime.
+    """
+
+    name = "context"
+    python_types = (dict,)
+    specificity = 2
+
+    def profile(self, value: dict) -> ContextProfile:
+        """Summarise a context for prompts: root, task and how many files it selected."""
+        return ContextProfile(
+            root=str(value.get("root", "")), task=str(value.get("task", "")), n_files=len(value.get("selected") or [])
+        )
+
+    def runtime_check(
+        self, value: dict, constraints: BaseModel, params: BaseModel, loc: tuple[str | int, ...]
+    ) -> list[ErrorDetail]:
+        """Validate the full ``context_select`` shape on the real value (root, task and every selected path)."""
+        return _check_context(value, required=("root", "task"), loc=loc)
 
 
 class ContextPackParams(ComponentParams):
@@ -650,7 +690,7 @@ class Edit(BaseModel):
 
 class PatchProposeParams(ComponentParams):
     root: str
-    edits: list[Edit] = Field(min_length=1, max_length=10)
+    edits: list[Edit] | None = Field(None, min_length=1, max_length=10)
     max_changed_lines: int = Field(200, ge=1, le=2000)
 
 
@@ -698,7 +738,9 @@ def _selected_paths(context: Any) -> tuple[set[str] | None, list[ErrorDetail]]:
     return paths, errs
 
 
-def _apply(params: PatchProposeParams, context: Any) -> tuple[dict[str, tuple[str, str]], list[ErrorDetail]]:
+def _apply(
+    params: PatchProposeParams, context: Any, eloc: tuple[str | int, ...] = ("params", "edits")
+) -> tuple[dict[str, tuple[str, str]], list[ErrorDetail]]:
     """Apply the edits in memory. Returns {path: (before, after)} and located errors. Never writes."""
     root = Path(params.root)
     allowed, errs = _selected_paths(context)
@@ -706,7 +748,7 @@ def _apply(params: PatchProposeParams, context: Any) -> tuple[dict[str, tuple[st
         return {}, errs
     texts: dict[str, tuple[str, str]] = {}
     for i, e in enumerate(params.edits):
-        loc = ("params", "edits", i)
+        loc = eloc + (i,)
         p = safe_path(root, e.path)
         if p is None:
             errs.append(
@@ -789,7 +831,7 @@ def _apply(params: PatchProposeParams, context: Any) -> tuple[dict[str, tuple[st
             except SyntaxError as exc:
                 errs.append(
                     ErrorDetail(
-                        loc=("params", "edits"),
+                        loc=eloc,
                         type="patch_breaks_syntax",
                         input=path,
                         msg=f"{path} would not parse: line {exc.lineno}: {exc.msg}",
@@ -809,22 +851,53 @@ def _counts(before: str, after: str) -> tuple[int, int]:
     return add, dele
 
 
+_EDITS_REQUIRED = ErrorDetail(
+    loc=("params", "edits"),
+    type="edits_required",
+    msg="no edits: pass the 'edits' param or bind the 'edits' input",
+    hint="draft edits with draft_edits and bind draft.edits, or pass literal edits",
+)
+
+
+def _resolve_edits(inputs: dict, params: PatchProposeParams) -> tuple[PatchProposeParams, list[ErrorDetail]]:
+    """Return params with the effective edits — a bound ``edits`` input wins over the param — or located errors."""
+    raw = inputs.get("edits")
+    if raw is None:
+        return params, []
+    try:
+        edits = TypeAdapter(list[Edit]).validate_python(raw)
+    except ValidationError as exc:
+        return params, details_from_pydantic(exc, ("inputs", "edits"))
+    return params.model_copy(update={"edits": edits}), []
+
+
 @component("patch_propose")
 class PatchPropose(Component[PatchProposeParams, PatchProposeResult]):
     Params = PatchProposeParams
     Result = PatchProposeResult
 
+    def extra_static(self, bound: dict[str, BaseModel | None], params: PatchProposeParams) -> list[ErrorDetail]:
+        if params.edits is None and "edits" not in bound:
+            return [_EDITS_REQUIRED]
+        return []
+
     def extra_checks(self, inputs: dict, params: PatchProposeParams) -> list[ErrorDetail]:
         errs = _root_check(params.root)
         if errs:
             return errs
-        texts, errs = _apply(params, inputs.get("context"))
+        eff, errs = _resolve_edits(inputs, params)
+        if errs:
+            return errs
+        if eff.edits is None:
+            return [_EDITS_REQUIRED]
+        eloc = ("inputs", "edits") if inputs.get("edits") is not None else ("params", "edits")
+        texts, errs = _apply(eff, inputs.get("context"), eloc)
         if not errs:
             changed = sum(sum(_counts(b, a)) for b, a in texts.values())
             if changed > params.max_changed_lines:
                 errs.append(
                     ErrorDetail(
-                        loc=("params", "edits"),
+                        loc=eloc,
                         type="patch_too_large",
                         msg=f"{changed} changed lines > {params.max_changed_lines}",
                         hint="split the change into smaller, reviewable patches",
@@ -838,7 +911,9 @@ class PatchPropose(Component[PatchProposeParams, PatchProposeResult]):
         Edits are validated against the real files and restricted to the files of the selected context (a warning is returned when no context is
         bound). Emits the ``diff`` output and reports additions and deletions per file. Nothing is written to disk.
         """
-        texts, _ = _apply(params, inputs.get("context"))
+        eff, _ = _resolve_edits(inputs, params)
+        eloc = ("inputs", "edits") if inputs.get("edits") is not None else ("params", "edits")
+        texts, _ = _apply(eff, inputs.get("context"), eloc)
         diff, files = [], []
         for path, (before, after) in texts.items():
             diff += list(
@@ -875,9 +950,11 @@ __all__ = [
     "CodeReview",
     "CodeReviewParams",
     "CodeReviewResult",
+    "ContextArtifact",
     "ContextPack",
     "ContextPackParams",
     "ContextPackResult",
+    "ContextProfile",
     "ContextSelect",
     "ContextSelectParams",
     "ContextSelectResult",
