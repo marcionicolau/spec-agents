@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.3...coworker-v0.3.0) (2026-10-08)
+
+
+### Features
+
+* **coworker:** context artifact type + draft_edits prompt step ([#146](https://github.com/marcionicolau/spec-agents/issues/146)) ([493ccc3](https://github.com/marcionicolau/spec-agents/commit/493ccc3390ef85d9809754f2d990f5e612741be8))
+
+
+### Bug Fixes
+
+* **coworker:** narrow optional edits before enumerate in patch_propose ([#149](https://github.com/marcionicolau/spec-agents/issues/149)) ([a9e1924](https://github.com/marcionicolau/spec-agents/commit/a9e1924030ace2b293246af6205b8d7451901f7d))
+
 ## [0.2.3](https://github.com/marcionicolau/spec-agents/compare/coworker-v0.2.2...coworker-v0.2.3) (2026-10-07)
 
 
