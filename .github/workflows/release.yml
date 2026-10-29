@@ -160,7 +160,7 @@ jobs:
         with:
           name: dist-${{ matrix.pkg }}
           path: dist/
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/
           repository-url: ${{ vars.PYPI_REPOSITORY_URL || 'https://upload.pypi.org/legacy/' }}
@@ -227,7 +227,7 @@ jobs:
           for f in "${files[@]}"; do
             [[ "$(basename "$f")" == spec_agents_*-"$VERSION"* ]] || { echo "::error::$f is not a spec_agents_* build of $VERSION (releases made before the rename carry the old names and cannot be published)"; exit 1; }
           done
-      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+      - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
         with:
           packages-dir: dist/
           repository-url: ${{ needs.plan-republish.outputs.repository_url }}
