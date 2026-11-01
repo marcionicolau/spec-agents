@@ -6,7 +6,7 @@ category: extraction
 description: LLM extraction of factual claims from the evidence bundle, each with speaker, facts, elements and locator.
 runtime: prompt
 prompt:
-  model: local-planner
+  model: local-extract
   temperature: 0.0
   grounding: true
 inputs:
