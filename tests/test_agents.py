@@ -199,6 +199,19 @@ def test_structured_output_with_grounding(registry, df, note):
     assert "ungrounded_number" in backend.calls[2]["messages"][-1]["content"]
 
 
+def test_input_chars_sets_the_prompt_budget(registry, df, note):
+    route = {"delegations": [{"id": "d1", "agent": "stats_team", "instruction": "analyse", "inputs": ["data"]}]}
+    grounded = {"verdict": "caveats", "summary": "Model is useful but check residuals", "issues": []}
+    prompts = {}
+    for chars in (2500, 60):
+        cfg = tree(reviewer={"output_schema": "Review", "options": {"input_chars": chars}}, lead={"synthesize": False})
+        fabric, backend = make(registry, cfg, [json.dumps(route), json.dumps(grounded)])
+        assert fabric.run(QUESTION, {"data": df, "notes": note}).ok
+        prompts[chars] = backend.calls[1]["messages"][-1]["content"]
+    assert len(prompts[60]) < len(prompts[2500])
+    assert "[truncated]" in prompts[60]
+
+
 def test_budget_stops_the_tree(registry, df, note):
     cfg = tree()
     cfg["budget"] = {"max_llm_calls": 1}

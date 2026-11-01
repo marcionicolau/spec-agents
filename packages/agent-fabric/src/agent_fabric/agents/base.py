@@ -124,13 +124,14 @@ class BaseAgent(ABC):
         return task.inputs or self.spec.inputs or list(ctx.input_keys)
 
     def describe_inputs(self, values: dict[str, Any]) -> str:
-        """Describe input values for a prompt: JSON, number and ``any`` values are shown compacted (up to 2500 characters), other types through their artifact profile."""
+        """Describe input values for a prompt: JSON/number/``any`` compacted to ``options.input_chars`` (2500), others by profile."""
         types = self.fabric.registry.types
+        budget = int(self.spec.options.get("input_chars", 2500))
         lines = []
         for key, v in values.items():
             t = types.infer(v)
             if t.name in ("json", "any", "number"):
-                lines.append(f"[{key}] {compact(v, max_chars=2500)}")
+                lines.append(f"[{key}] {compact(v, max_chars=budget)}")
             else:
                 lines.append(f"[{key}] {t.describe(t.profile(v), v)}")
         return "\n".join(lines) or "(none)"

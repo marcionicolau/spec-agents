@@ -30,7 +30,7 @@ Loading reports **all** file problems at once, located by relative path.
 | `supervisor` | `fabric` (router/sequential), `rules` (sequential, no LLM), `pydantic_ai` (tool delegation) | owns `sub_agents`                                                          |
 | `planner`    | `fabric`, `pydantic_ai`, `dspy`, `template`, `stats_rules`                                  | plans over `domains`, executes, interprets                                 |
 | `pipeline`   | `fabric`                                                                                    | runs `pipeline` with `options.params`; inputs mapped by name, then by type |
-| `llm`        | `fabric`                                                                                    | free text or `output_schema`; `options.check_grounding`                    |
+| `llm`        | `fabric`                                                                                    | free text or `output_schema`; `options.check_grounding`, `options.input_chars` (prompt budget per JSON input, default 2500) |
 | `function`   | `fabric`                                                                                    | registered callable `(task, inputs) -> dict`                               |
 
 **Validation before run** (`AgentFabric.validate`): unknown kind/backend/sub-agent/pipeline/function/
