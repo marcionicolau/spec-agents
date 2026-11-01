@@ -8,6 +8,7 @@ Prerequisites (local workstation, CPU only):
 Usage:
     uv run python examples/smoke/smoke.py anova       # statistics pack: ANOVA on anova_trial.csv
     uv run python examples/smoke/smoke.py coworker    # coworker pack: patch a bug in tiny_repo/
+    uv run python examples/smoke/smoke.py legal       # legal pack: analyse a case under legal_case/
     uv run python examples/smoke/smoke.py whatsapp    # text pack: digest a WhatsApp group export
 
 Every run writes build/smoke/<case>.{md,json,jsonl} (report, machine dump, event trace).
@@ -143,6 +144,37 @@ def coworker() -> None:
     _write(report, "coworker")
 
 
+def legal() -> None:
+    """legal: case_counsel's case_analyst plans analyse_case over a fixture case; claim_extract runs live.
+
+    Watch `build/smoke/legal.json`'s `rejected` list and its rate against the verified claims: a model that
+    paraphrases or invents a quote not really at the cited page/line must show up there, never downstream as an
+    accepted claim (golden rule 4, issue #166's "record the claim_verify rejection rate as a baseline"). The fixture
+    is built to exercise `slot_conflict` (clothing), `retraction` (weapon) and `inquiry_only`/`single_source`
+    (only one inquiry-phase speaker proves `violencia_grave_ameaca`) — check the dossier's anomalies match.
+    """
+    from legal_fabric.domain import register as register_legal
+    from legal_fabric.schemas import SCHEMAS
+
+    fabric = _schemas(
+        AgentFabric(
+            build_registry([register_legal]),
+            _config(ROOT / "packages" / "legal" / "config"),
+        ),
+        SCHEMAS,
+    )
+    case_dir = SMOKE / "legal_case"
+    corpus = ROOT / "packages" / "legal" / "data" / "authorities.sample.jsonl"
+    report = _run(
+        fabric,
+        f"Defesa: analise o caso em {case_dir}, denúncia por roubo (CP:157), e levante os pontos fracos da "
+        f"acusação. Corpus de jurisprudência em {corpus}.",
+        {},
+        "smoke-legal",
+    )
+    _write(report, "legal")
+
+
 def whatsapp() -> None:
     """text pack: notes_digest (document_summary pipeline) over a WhatsApp group export."""
     from stat_fabric.domain import register as register_stats
@@ -166,7 +198,7 @@ def whatsapp() -> None:
     _write(report, "whatsapp")
 
 
-CASES = {"anova": anova, "coworker": coworker, "whatsapp": whatsapp}
+CASES = {"anova": anova, "coworker": coworker, "legal": legal, "whatsapp": whatsapp}
 
 
 def main() -> None:

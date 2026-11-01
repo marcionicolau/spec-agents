@@ -4,7 +4,7 @@ title: Local smoke tests
 ---
 
 The whole test suite runs offline against `ScriptedBackend` — deterministic, no model. That proves the contracts, but not that a
-**real model** can plan, call components, and stay grounded. `examples/smoke/` holds three live smoke tests — one per domain
+**real model** can plan, call components, and stay grounded. `examples/smoke/` holds four live smoke tests — one per domain
 pack — designed for a **CPU-only workstation** with a single small model.
 
 ## Why live smokes, and why here
@@ -41,11 +41,12 @@ litellm --config examples/smoke/litellm_qwen25.yaml --port 4000
 
 Sanity-check it in another terminal: `curl http://localhost:4000/health`.
 
-## Run the three cases
+## Run the four cases
 
 ```bash
 uv run python examples/smoke/smoke.py anova      # statistics pack
 uv run python examples/smoke/smoke.py coworker   # coworker pack
+uv run python examples/smoke/smoke.py legal      # legal pack
 uv run python examples/smoke/smoke.py whatsapp   # text pack
 ```
 
@@ -80,7 +81,21 @@ run exposes one, that's the bug tracked in
 [#129](https://github.com/marcionicolau/spec-agents/issues/129): fix the validation, don't weaken the schema to make bad
 model output pass.
 
-### 3. `whatsapp` — text pack
+### 3. `legal` — legal pack
+
+Fixture `legal_case/`: a small eproc-style download (a denúncia for roubo, two inquiry-phase depositions, a court
+hearing and the defendant's interrogation) plus the packaged `packages/legal/data/authorities.sample.jsonl`
+corpus. `case_analyst` plans `analyse_case`; `claim_extract` is the run's only LLM step, so this is the closest
+thing to the live run issue #166 asks for ("record the `claim_verify` rejection rate as a baseline") without a
+real, anonymised case to point it at.
+
+Check `build/smoke/legal.json`'s `rejected` claims and their rate against `verified` — a paraphrased or invented
+quote must land there, never downstream as an accepted claim. The fixture is built so a correct analysis finds a
+`slot_conflict` on clothing (the victim and a police witness describe different colours), a `retraction` on the
+weapon (the victim's account changes between the inquiry and the hearing), and `inquiry_only`/`single_source` on
+elements only one inquiry-phase speaker supports — compare the dossier's anomalies in the report against those.
+
+### 4. `whatsapp` — text pack
 
 Fixture `whatsapp_group.txt`: a real-format group export — timestamps, senders, media placeholders, interleaved threads —
 run through the `notes_digest` agent (`document_digest` pipeline: `text_stats` + `keywords`, then an LLM-authored summary)
