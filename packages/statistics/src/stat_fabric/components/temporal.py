@@ -77,7 +77,10 @@ class TimeSeries(TableComponent[TimeSeriesParams, TimeSeriesResult]):
         d[p.time_col] = coerce_datetime(d[p.time_col])
         d = d.dropna().sort_values(p.time_col)
         s = d.groupby(p.time_col)[p.value_col].agg(p.aggregate)
-        freq = p.freq or (pd.infer_freq(s.index) if len(s) >= 3 else None)
+        inferred = pd.infer_freq(s.index) if len(s) >= 3 else None
+        if inferred is not None and not isinstance(inferred, str):
+            inferred = inferred.freqstr
+        freq = p.freq or inferred
         if freq is None:
             deltas = s.index.to_series().diff().dropna()
             days = deltas.dt.days.median() if len(deltas) else 1
