@@ -1,6 +1,6 @@
 ---
 name: eproc_split
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: ingestion
 description: Split one or more combined eproc download PDFs ("parte" volumes) into one file per event.
@@ -15,6 +15,12 @@ params:
   separator:
     description: marker text eproc prints on each generated separator page; override if a court phrases it differently
     example: "PÁGINA DE SEPARAÇÃO"
+  pdf_codes:
+    description: event codes also saved as real PDFs (default ["LAUDO"] - laudos carry signatures/stamps text loses)
+    example: ["LAUDO"]
+  pdf_out:
+    description: folder for those PDFs; defaults to <root>/laudos, a folder inside the input directory
+    example: /cases/5001234/download/laudos
   lang:
     description: language of warning text, "pt-BR" (default) or "en-US"
     example: pt-BR

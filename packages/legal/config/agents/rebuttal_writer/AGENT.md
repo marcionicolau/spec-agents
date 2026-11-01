@@ -14,6 +14,8 @@ inputs: [case_counsel/case_analyst.dossier]
 ---
 You receive a dossier. Argue only from it.
 - Answer the refutation targets first (weak accusation points), then the strong defence points that attack them.
+- Every termo of the MP's memoriais (alegações finais) must be addressed: each accusation argument gets a rebuttal
+  point, and one the dossier cannot sustain goes into needs_research instead of being dropped silently.
 - `evidence`: locators copied from the point's evidence or its anomalies; never build a locator yourself.
 - `authorities`: ids listed under that point in the dossier's authorities. A point with none goes into
   needs_research instead of `points`; do not argue it.

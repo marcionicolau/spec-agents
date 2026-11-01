@@ -130,12 +130,17 @@ class EprocSplitParams(ComponentParams):
     root: str
     out_dir: str
     separator: str = Field(SEPARATOR_MARKER, description="marker text eproc prints on each generated separator page")
+    pdf_codes: list[str] = Field(
+        default_factory=lambda: ["LAUDO"], description="event codes also saved as PDFs (laudos keep signatures)"
+    )
+    pdf_out: str | None = Field(None, description="folder for the PDFs; <root>/laudos when unset")
     lang: Lang = Field("pt-BR", description="language of warning text")
 
 
 class EprocSplitResult(ComponentResult):
     n_volumes: int
     n_written: int
+    n_pdf: int
     n_no_document: int
     n_no_text: int
     by_code: dict[str, int]
@@ -181,17 +186,22 @@ class EprocSplit(Component[EprocSplitParams, EprocSplitResult]):
         shape ``process_ingest`` already parses, so point its ``root`` at this ``out_dir`` next. Events with no
         attached document (a pure docket movement) or with no extractable text are counted, not treated as errors.
         """
-        from pypdf import PdfReader
+        from pypdf import PdfReader, PdfWriter
 
         root, out = Path(params.root).resolve(), Path(params.out_dir)
+        pdf_out = Path(params.pdf_out) if params.pdf_out else root / "laudos"
         out.mkdir(parents=True, exist_ok=True)
         pdfs = sorted(p for p in root.rglob("*") if p.suffix.lower() == ".pdf" and p.is_file())
         warns: list[str] = []
-        written = 0
+        written = n_pdf = 0
         no_document = no_text = 0
         by_code: Counter[str] = Counter()
+        want_pdf = {c.upper() for c in params.pdf_codes}
         for pdf in pdfs:
-            pages = [pg.extract_text() or "" for pg in PdfReader(pdf).pages]
+            if pdf.is_relative_to(pdf_out):
+                continue  # never re-ingest PDFs a previous run wrote under root
+            reader = PdfReader(pdf)
+            pages = [pg.extract_text() or "" for pg in reader.pages]
             split = split_eproc_pages(pages, params.separator)
             no_document += split.n_no_document
             no_text += split.n_no_text
@@ -199,6 +209,14 @@ class EprocSplit(Component[EprocSplitParams, EprocSplitResult]):
                 (out / f"EVENTO{ev.event}_{ev.code}.txt").write_text("\f".join(ev.pages), encoding="utf-8")
                 written += 1
                 by_code[ev.code] += 1
+                if ev.code in want_pdf:
+                    pdf_out.mkdir(parents=True, exist_ok=True)
+                    writer = PdfWriter()
+                    for pi in range(ev.first_page, ev.first_page + len(ev.pages)):
+                        writer.add_page(reader.pages[pi])
+                    with (pdf_out / f"EVENTO{ev.event}_{ev.code}.pdf").open("wb") as fh:
+                        writer.write(fh)
+                    n_pdf += 1
         if not pdfs:
             warns.append(i18n.no_pdfs_found(params.lang, str(root)))
         if by_code.get("OUTRO"):
@@ -207,6 +225,7 @@ class EprocSplit(Component[EprocSplitParams, EprocSplitResult]):
         return EprocSplitResult(
             n_volumes=len(pdfs),
             n_written=written,
+            n_pdf=n_pdf,
             n_no_document=no_document,
             n_no_text=no_text,
             by_code=dict(by_code),
@@ -435,15 +454,15 @@ class EvidenceSegmentResult(ComponentResult):
 # first, so a docket full of procedural filings never squeezes them out of the bundle.
 _EVIDENCE_PRIORITY = {
     "denuncia": 0,
-    "depoimento": 1,
-    "interrogatorio": 2,
-    "audiencia": 3,
-    "reconhecimento": 4,
-    "laudo": 5,
-    "apreensao": 6,
-    "boletim": 7,
-    "defesa": 8,
-    "alegacoes": 9,
+    "alegacoes": 1,
+    "depoimento": 2,
+    "interrogatorio": 3,
+    "audiencia": 4,
+    "reconhecimento": 5,
+    "laudo": 6,
+    "apreensao": 7,
+    "boletim": 8,
+    "defesa": 9,
 }
 
 

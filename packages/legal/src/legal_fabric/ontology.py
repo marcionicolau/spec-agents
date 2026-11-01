@@ -163,6 +163,7 @@ class SplitEvent(BaseModel):
     event: int
     code: str
     pages: list[str]
+    first_page: int = 0  # 0-based index of its first body page in the volume; pages run contiguously from it
 
 
 class SplitResult(BaseModel):
@@ -198,7 +199,9 @@ def split_eproc_pages(pages: list[str], separator: str = SEPARATOR_MARKER) -> Sp
             continue
         m = EVENT_NUM_RE.search(pages[i])
         event_num = int(m[1]) if m else i
-        result.events.append(SplitEvent(event=event_num, code=_doc_type_code(body[0]), pages=body))
+        result.events.append(
+            SplitEvent(event=event_num, code=_doc_type_code(body[0]), pages=body, first_page=i + 1)
+        )
     return result
 
 

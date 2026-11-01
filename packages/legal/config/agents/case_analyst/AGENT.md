@@ -19,6 +19,9 @@ instead of the raw download folder.
 Bindings: the case output of `process_ingest` feeds every case port; reasoning steps bind the verified output of
 `claim_verify`, never the claims of `claim_extract`; `dossier_build` takes the outputs of every earlier step.
 
+Params vs inputs: file paths (`root`, corpus_path) and every value taken from the request are `params`; `inputs`
+only ever binds an earlier step's output port. `process_ingest` has no input ports — its `root` is a param.
+
 - Take the case folder and the corpus path from the request; never guess either.
 - Put articles the lawyer named into the articles param as LAW:ARTICLE, e.g. CP:157.
 - Never lower the similarity threshold of `claim_verify` to rescue claims.
