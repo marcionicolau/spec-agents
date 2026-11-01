@@ -73,6 +73,9 @@ ARTICLE_RE = re.compile(
 
 # ----------------------------------------------------------------------------- documents and phases
 # eproc document codes (the label after the event number, e.g. EVENTO12_DEPOIM1.pdf). Adjust to your court.
+# despacho/decisao/mandado/certidao/oficio/peticao/alvara/recurso were confirmed from a real TJRS eproc download
+# (see eproc_split): they are procedural, not evidentiary, but real and common - most "events" in a download are
+# docket movements like these, not evidence.
 KIND_MAP: dict[str, str] = {
     "DENUNCIA": "denuncia",
     "INQ": "inquerito",
@@ -88,6 +91,14 @@ KIND_MAP: dict[str, str] = {
     "RESPOSTA": "defesa",
     "ALEGFINAIS": "alegacoes",
     "SENT": "sentenca",
+    "DESPACHO": "despacho",
+    "DECISAO": "despacho",
+    "MANDADO": "mandado",
+    "CERTIDAO": "certidao",
+    "OFICIO": "oficio",
+    "PETICAO": "peticao",
+    "ALVARA": "alvara",
+    "RECURSO": "recurso",
 }
 # phase of a document kind; None = decide from the text (a depoimento can be police or court testimony)
 KIND_PHASE: dict[str, str | None] = {
@@ -103,9 +114,110 @@ KIND_PHASE: dict[str, str | None] = {
     "defesa": "judicial",
     "alegacoes": "judicial",
     "sentenca": "judicial",
+    "despacho": "judicial",  # always a judge's act
+    "mandado": None,
+    "certidao": None,
+    "oficio": None,
+    "peticao": None,
+    "alvara": "judicial",
+    "recurso": "judicial",
 }
 INQUIRY_MARKERS = ("delegad", "inquerito policial", "autoridade policial", "termo de declaracoes")
 JUDICIAL_MARKERS = ("audiencia de instrucao", "juiz", "juiza", "magistrad", "contraditorio")
+
+# ----------------------------------------------------------------------------- eproc combined-download splitting
+# Format confirmed from a real TJRS download: one PDF per "parte" (volume), events merged together, each preceded
+# by an auto-generated separator page. Other eproc courts are expected (not yet confirmed) to share it - the
+# separator text is overridable via eproc_split's params if a court phrases it differently.
+SEPARATOR_MARKER = "PÁGINA DE SEPARAÇÃO"
+EVENT_NUM_RE = re.compile(r"Evento\s+(\d+)", re.I)
+
+# code -> pattern matched against a document's first ~1500 chars of text; order matters, first match wins.
+# Unmatched content gets code "OUTRO" (kind "outro"), not an error: the table is meant to grow.
+DOC_TYPE_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
+    ("DENUNCIA", re.compile(r"\bDEN[ÚU]NCIA\b", re.I)),
+    ("DESPACHO", re.compile(r"DESPACHO\s*/?\s*DECIS[ÃA]O|\bDESPACHO\b", re.I)),
+    ("DECISAO", re.compile(r"\bDECIS[ÃA]O\b", re.I)),
+    ("TERMOAUD", re.compile(r"TERMO DE AUDI[ÊE]NCIA|ATA DE AUDI[ÊE]NCIA", re.I)),
+    ("INTERROG", re.compile(r"AUTO DE INTERROGAT[ÓO]RIO|\bINTERROGAT[ÓO]RIO\b", re.I)),
+    ("DEPOIM", re.compile(r"TERMO DE (DECLARA[ÇC][ÕO]ES|OITIVA)|\bDEPOIMENTO\b", re.I)),
+    ("LAUDO", re.compile(r"\bLAUDO\b", re.I)),
+    ("MANDADO", re.compile(r"\bMANDADO\b", re.I)),
+    ("CERTIDAO", re.compile(r"\bCERTID[ÃA]O\b", re.I)),
+    ("OFICIO", re.compile(r"\bOF[ÍI]CIO\b", re.I)),
+    ("SENT", re.compile(r"\bSENTEN[ÇC]A\b", re.I)),
+    ("ALEGFINAIS", re.compile(r"ALEGA[ÇC][ÕO]ES FINAIS", re.I)),
+    ("RESPOSTA", re.compile(r"RESPOSTA [ÀA] ACUSA[ÇC][ÃA]O|CONTESTA[ÇC][ÃA]O|DEFESA PR[ÉE]VIA", re.I)),
+    ("PETICAO", re.compile(r"PETI[ÇC][ÃA]O", re.I)),
+    ("AUTOAPREENS", re.compile(r"AUTO DE (PRIS[ÃA]O|APREENS[ÃA]O|BUSCA)", re.I)),
+    ("ALVARA", re.compile(r"ALVAR[ÁA]", re.I)),
+    ("RECURSO", re.compile(r"\bRECURSO\b", re.I)),
+]
+
+
+class SplitEvent(BaseModel):
+    """One parsed event from a combined eproc download: its number, inferred code and page text."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    event: int
+    code: str
+    pages: list[str]
+
+
+class SplitResult(BaseModel):
+    """Outcome of `split_eproc_pages`: parsed events plus what was deliberately skipped, not an error."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    events: list[SplitEvent] = Field(default_factory=list)
+    n_no_document: int = 0  # separator immediately followed by another separator or EOF: a pure docket movement
+    n_no_text: int = 0  # pages present but empty (e.g. an unconverted audio/video attachment placeholder)
+
+
+def split_eproc_pages(pages: list[str], separator: str = SEPARATOR_MARKER) -> SplitResult:
+    """Split one eproc volume's already-extracted page texts into per-event records.
+
+    Pure and PDF-library-free so it is unit-testable with plain strings. ``pages`` is the volume's text, one string
+    per PDF page, in order. A page containing ``separator`` starts a new event (its number comes from ``Evento N``
+    on that same page); the event's own pages run until the next separator or the end. An event with no pages
+    between its separator and the next is a docket movement with no attached document - not an error, just
+    uncommon enough to count rather than silently drop. The event's ``code`` comes from `_doc_type_code` on its
+    first page; no match yields ``"OUTRO"``.
+    """
+    sep_idx = [i for i, p in enumerate(pages) if separator in p]
+    result = SplitResult()
+    for n, i in enumerate(sep_idx):
+        end = sep_idx[n + 1] if n + 1 < len(sep_idx) else len(pages)
+        body = pages[i + 1 : end]
+        if not body:
+            result.n_no_document += 1
+            continue
+        if not any(p.strip() for p in body):
+            result.n_no_text += 1
+            continue
+        m = EVENT_NUM_RE.search(pages[i])
+        event_num = int(m[1]) if m else i
+        result.events.append(SplitEvent(event=event_num, code=_doc_type_code(body[0]), pages=body))
+    return result
+
+
+def _doc_type_code(first_page: str, window: int = 2000) -> str:
+    """Document-type code from the earliest-occurring pattern in the first ``window`` characters, or ``"OUTRO"``.
+
+    Earliest match wins, not list order or line position: a despacho's body text routinely says "a denúncia
+    atende aos requisitos..." well after its own "DESPACHO/DECISÃO" heading, so picking whichever pattern's first
+    hit comes first in the text favours the document's own declared type over an incidental mention of another.
+    Line position is not used (PDF text extraction does not reliably isolate a heading onto its own line).
+    """
+    head = first_page[:window]
+    best: tuple[str, int] | None = None
+    for code, rx in DOC_TYPE_PATTERNS:
+        m = rx.search(head)
+        if m and (best is None or m.start() < best[1]):
+            best = (code, m.start())
+    return best[0] if best else "OUTRO"
+
 
 # ----------------------------------------------------------------------------- locators
 LOC_RE = re.compile(r"^(?P<doc>[\w/.-]+) p\.(?P<page>\d+) l\.(?P<a>\d+)(?:-(?P<b>\d+))?$")

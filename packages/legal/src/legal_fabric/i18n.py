@@ -21,6 +21,19 @@ def _join(items: list[str]) -> str:
     return ", ".join(items)
 
 
+# ----------------------------------------------------------------------------- eproc_split
+def no_pdfs_found(lang: Lang, root: str) -> str:
+    if lang == "pt-BR":
+        return f"nenhum PDF encontrado em {root}"
+    return f"no PDF files found in {root}"
+
+
+def unclassified_documents(lang: Lang, n: int) -> str:
+    if lang == "pt-BR":
+        return f"{n} documento(s) não reconhecido(s) pelos padrões conhecidos; marcados como OUTRO (extenda DOC_TYPE_PATTERNS se necessário)"
+    return f"{n} document(s) matched none of the known patterns; tagged OUTRO (extend DOC_TYPE_PATTERNS if needed)"
+
+
 # ----------------------------------------------------------------------------- process_ingest
 def too_many_documents(lang: Lang, n_found: int, max_docs: int) -> str:
     if lang == "pt-BR":

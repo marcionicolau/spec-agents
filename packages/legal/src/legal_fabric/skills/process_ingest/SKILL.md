@@ -45,5 +45,6 @@ First step of every case analysis: it fixes the document ids, pages and line num
 - A warning about a missing text layer means a scanned PDF: run OCR first, otherwise its evidence is invisible.
 
 ## Common mistakes
-- Pointing `root` at a single PDF of the whole case: split the download per document first.
+- Pointing `root` at the raw combined download PDF(s) instead of a folder of per-document files: run
+  `eproc_split` first and point `root` at the folder it writes.
 - Ignoring `desconhecida` phases: inquiry_only and `retraction` rules then miss cases.

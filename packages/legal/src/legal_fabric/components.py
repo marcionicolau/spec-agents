@@ -39,11 +39,13 @@ from .ontology import (
     JUDICIAL_MARKERS,
     KIND_MAP,
     KIND_PHASE,
+    SEPARATOR_MARKER,
     fmt_loc,
     load_crimes,
     norm,
     parse_loc,
     slot_conflict,
+    split_eproc_pages,
     tokens,
 )
 from .schemas import Rebuttal
@@ -121,6 +123,95 @@ def _partial_ratio(quote: str, text: str) -> float:
         return SequenceMatcher(None, q, t).ratio()
     step = max(1, len(q) // 4)
     return max(SequenceMatcher(None, q, t[i : i + len(q)]).ratio() for i in range(0, len(t) - len(q) + 1, step))
+
+
+# ============================================================================ eproc_split
+class EprocSplitParams(ComponentParams):
+    root: str
+    out_dir: str
+    separator: str = Field(SEPARATOR_MARKER, description="marker text eproc prints on each generated separator page")
+    lang: Lang = Field("pt-BR", description="language of warning text")
+
+
+class EprocSplitResult(ComponentResult):
+    n_volumes: int
+    n_written: int
+    n_no_document: int
+    n_no_text: int
+    by_code: dict[str, int]
+
+
+@component("eproc_split")
+class EprocSplit(Component[EprocSplitParams, EprocSplitResult]):
+    Params = EprocSplitParams
+    Result = EprocSplitResult
+
+    def extra_checks(self, inputs: dict, params: EprocSplitParams) -> list[ErrorDetail]:
+        root = Path(params.root)
+        if not root.is_dir():
+            return [ErrorDetail(loc=("params", "root"), type="root_not_found", msg=f"{root} is not a directory")]
+        if not _allowed(root.resolve()):
+            return [
+                ErrorDetail(
+                    loc=("params", "root"),
+                    type="root_not_allowed",
+                    msg="outside the allowed roots",
+                    hint=f"set {ROOTS_ENV} (os.pathsep-separated) to the folders holding case downloads",
+                )
+            ]
+        try:
+            import pypdf  # noqa: F401
+        except ImportError:
+            return [
+                ErrorDetail(
+                    loc=("params", "root"),
+                    type="pypdf_missing",
+                    msg="pypdf is not installed",
+                    hint='install it with: pip install "spec-agents-legal[pdf]"',
+                )
+            ]
+        return []
+
+    def compute(self, inputs: dict, params: EprocSplitParams, ctx: StepContext) -> EprocSplitResult:
+        """Split one or more combined eproc PDFs (one per download "parte"/volume) into one file per event.
+
+        Each PDF's pages are run through `split_eproc_pages`: a page bearing the separator marker starts a new
+        event, whose code comes from matching known document-type headings (``DOC_TYPE_PATTERNS``) in its first
+        page, or ``OUTRO`` if none match. Writes ``EVENTO<n>_<code>.txt`` files to ``out_dir`` - the same filename
+        shape ``process_ingest`` already parses, so point its ``root`` at this ``out_dir`` next. Events with no
+        attached document (a pure docket movement) or with no extractable text are counted, not treated as errors.
+        """
+        from pypdf import PdfReader
+
+        root, out = Path(params.root).resolve(), Path(params.out_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        pdfs = sorted(p for p in root.rglob("*") if p.suffix.lower() == ".pdf" and p.is_file())
+        warns: list[str] = []
+        written = 0
+        no_document = no_text = 0
+        by_code: Counter[str] = Counter()
+        for pdf in pdfs:
+            pages = [pg.extract_text() or "" for pg in PdfReader(pdf).pages]
+            split = split_eproc_pages(pages, params.separator)
+            no_document += split.n_no_document
+            no_text += split.n_no_text
+            for ev in split.events:
+                (out / f"EVENTO{ev.event}_{ev.code}.txt").write_text("\f".join(ev.pages), encoding="utf-8")
+                written += 1
+                by_code[ev.code] += 1
+        if not pdfs:
+            warns.append(i18n.no_pdfs_found(params.lang, str(root)))
+        if by_code.get("OUTRO"):
+            warns.append(i18n.unclassified_documents(params.lang, by_code["OUTRO"]))
+        ctx.emit("out_dir", str(out))
+        return EprocSplitResult(
+            n_volumes=len(pdfs),
+            n_written=written,
+            n_no_document=no_document,
+            n_no_text=no_text,
+            by_code=dict(by_code),
+            warnings=warns,
+        )
 
 
 # ============================================================================ process_ingest

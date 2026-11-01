@@ -175,3 +175,82 @@ def test_slot_conflict_words(a, b, conflict):
     from legal_fabric.ontology import slot_conflict
 
     assert slot_conflict("clothing", a, b, 30) is conflict
+
+
+# synthetic page text mirroring the real eproc separator-page format (fictional content, not a real case)
+SYNTHETIC_VOLUME = [
+    "Capa: Parte 1",
+    "PÁGINA DE SEPARAÇÃO\n(Gerada automaticamente pelo sistema.)\nEvento 1\nDISTRIBUIDO POR DEPENDENCIA",
+    "MINISTÉRIO PÚBLICO\nDENÚNCIA\nO Ministério Público denuncia o réu fictício por furto.",
+    "PÁGINA DE SEPARAÇÃO\n(Gerada automaticamente pelo sistema.)\nEvento 2\nALTERADA A SITUACAO DA PARTE",
+    "PÁGINA DE SEPARAÇÃO\n(Gerada automaticamente pelo sistema.)\nEvento 3\nRECEBIDA A DENUNCIA",
+    "Poder Judiciário\nDESPACHO/DECISÃO\nVistos, etc. A denúncia atende aos requisitos formais.",
+    "PÁGINA DE SEPARAÇÃO\n(Gerada automaticamente pelo sistema.)\nEvento 4\nARQUIVOS NAO CONVERTIDOS",
+    "",
+]
+
+
+def test_split_eproc_pages():
+    from legal_fabric.ontology import split_eproc_pages
+
+    result = split_eproc_pages(SYNTHETIC_VOLUME)
+    assert [(e.event, e.code) for e in result.events] == [(1, "DENUNCIA"), (3, "DESPACHO")]
+    assert result.n_no_document == 1  # evento 2: a pure docket movement, no attached document
+    assert result.n_no_text == 1  # evento 4: a page with nothing extractable (e.g. a media placeholder)
+
+
+def test_eproc_split_component(monkeypatch, tmp_path):
+    pytest.importorskip("pypdf")
+    import pypdf
+
+    class _FakePage:
+        def __init__(self, text):
+            self._text = text
+
+        def extract_text(self):
+            return self._text
+
+    class _FakeReader:
+        def __init__(self, _path):
+            self.pages = [_FakePage(t) for t in SYNTHETIC_VOLUME]
+
+    monkeypatch.setattr(pypdf, "PdfReader", _FakeReader)
+    monkeypatch.setenv("LEGAL_ALLOWED_ROOTS", str(tmp_path))
+    (tmp_path / "download").mkdir()
+    (tmp_path / "download" / "PARTE_1.pdf").write_bytes(b"")  # content is irrelevant: PdfReader is faked above
+    out_dir = tmp_path / "split"
+
+    registry = build_registry([register])
+    pin = PipelineInputs.from_values({}, registry.types)
+    plan = {
+        "objective": "split a combined eproc download",
+        "steps": [
+            {
+                "id": "split",
+                "component": "eproc_split",
+                "params": {"root": str(tmp_path / "download"), "out_dir": str(out_dir)},
+            }
+        ],
+        "outputs": {},
+    }
+    report = PipelineExecutor(registry).run(parse_plan(plan, registry, pin), pin)
+    assert report.ok, [o.error for o in report.outcomes if o.error]
+    result = report.outcomes[0].result
+    assert result["n_written"] == 2
+    assert result["by_code"] == {"DENUNCIA": 1, "DESPACHO": 1}
+    assert result["n_no_document"] == 1
+    assert result["n_no_text"] == 1
+    assert sorted(p.name for p in out_dir.iterdir()) == ["EVENTO1_DENUNCIA.txt", "EVENTO3_DESPACHO.txt"]
+
+    # process_ingest reads eproc_split's output unchanged, with no code changes
+    plan2 = {
+        "objective": "ingest the split folder",
+        "steps": [{"id": "ingest", "component": "process_ingest", "params": {"root": str(out_dir), "case_id": "T2"}}],
+        "outputs": {"case": "ingest.case"},
+    }
+    report2 = PipelineExecutor(registry).run(parse_plan(plan2, registry, pin), pin)
+    assert report2.ok, [o.error for o in report2.outcomes if o.error]
+    docs = {d["doc_id"]: d for d in report2.output_values()["case"]["docs"]}
+    assert docs["ev1/DENUNCIA"]["kind"] == "denuncia"
+    assert docs["ev3/DESPACHO"]["kind"] == "despacho"
+    assert docs["ev3/DESPACHO"]["phase"] == "judicial"
