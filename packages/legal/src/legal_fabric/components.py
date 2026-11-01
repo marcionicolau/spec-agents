@@ -51,6 +51,7 @@ from .ontology import (
 from .schemas import Rebuttal
 
 ROOTS_ENV = "LEGAL_ALLOWED_ROOTS"
+_CNJ = re.compile(r"\b\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}\b")
 _FNAME = re.compile(r"(?:ev(?:ento)?[_ -]?(?P<ev>\d+))?[_ -]*(?P<code>[A-Za-z]+?)(?P<n>\d*)$", re.I)
 
 
@@ -276,7 +277,8 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
 
         File names like ``EVENTO12_DEPOIM1.pdf`` give the event and the document code; the code maps to a kind and the
         kind (or, for testimony, the text) to a phase: ``inquerito``, ``judicial`` or ``pericial``. TXT pages are split
-        on form feeds. Emits the ``case`` output.
+        on form feeds. Without ``case_id``, the CNJ number cited most often in the record is used, else the folder
+        name. Emits the ``case`` output.
         """
         root = Path(params.root).resolve()
         kmap = {**KIND_MAP, **{k.upper(): v for k, v in params.kind_map.items()}}
@@ -309,9 +311,11 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
                     "pages": pages,
                 }
             )
-        ctx.emit("case", {"case_id": params.case_id or root.name, "docs": docs})
+        cnj = Counter(n for d in docs for page in d["pages"] for line in page for n in _CNJ.findall(line))
+        case_id = params.case_id or (cnj.most_common(1)[0][0] if cnj else root.name)
+        ctx.emit("case", {"case_id": case_id, "docs": docs})
         return ProcessIngestResult(
-            case_id=params.case_id or root.name,
+            case_id=case_id,
             n_docs=len(docs),
             n_pages=sum(len(d["pages"]) for d in docs),
             kinds=dict(Counter(d["kind"] for d in docs)),
@@ -970,7 +974,9 @@ class DossierBuild(Component[DossierBuildParams, DossierBuildResult]):
         """Bundle everything the rebuttal writer and the checker need into one ``dossier`` (no document text).
 
         Holds charges, verified claims, anomalies, points, authorities per point and the page sizes of every
-        document, so ``rebuttal_check`` can resolve locators without the case. Emits ``dossier``.
+        document, so ``rebuttal_check`` can resolve locators without the case. Emits ``dossier`` and ``brief``: the
+        writer's view, holding only the points that have authorities (refutation targets first), each with its
+        locators, anomalies and authority ids, plus the ids left for ``needs_research``.
         """
         case = inputs["case"]
         auth = inputs["authorities"]
@@ -992,11 +998,47 @@ class DossierBuild(Component[DossierBuildParams, DossierBuildResult]):
             "page_sizes": {d["doc_id"]: [len(p) for p in d["pages"]] for d in case["docs"]},
         }
         ctx.emit("dossier", dossier)
+        ctx.emit("brief", self._brief(dossier))
         return DossierBuildResult(
             case_id=case["case_id"],
             n_points=len(inputs["points"]),
             n_refutable=sum(1 for k in auth if any(p["point_id"] == k for p in inputs["points"])),
         )
+
+    @staticmethod
+    def _brief(dossier: dict[str, Any]) -> dict[str, Any]:
+        anomalies = {a["id"]: a for a in dossier["anomalies"]}
+        auth = dossier["authorities"]
+
+        def order(p: dict[str, Any]) -> int:
+            if p["side"] == "acusacao" and p["strength"] == "weak":
+                return 0
+            return 1 if p["side"] == "defesa" and p["strength"] == "strong" else 2
+
+        points = [
+            {
+                "point_id": p["point_id"],
+                "side": p["side"],
+                "strength": p["strength"],
+                "charge": p.get("charge"),
+                "statement": p["statement"],
+                "evidence": p.get("evidence", []),
+                "anomalies": [
+                    {"rule": a["rule"], "locators": a.get("locators", []), "why": a["rationale"]}
+                    for a in (anomalies.get(i) for i in p.get("anomalies", []))
+                    if a
+                ],
+                "authorities": [{"id": a["id"], "ref": a["ref"], "binding": a["binding"]} for a in auth[p["point_id"]]],
+            }
+            for p in sorted(dossier["points"], key=order)
+            if auth.get(p["point_id"])
+        ]
+        return {
+            "case_id": dossier["case_id"],
+            "rules": dossier["rules"],
+            "points": points,
+            "needs_research": [p["point_id"] for p in dossier["points"] if not auth.get(p["point_id"])],
+        }
 
 
 # ============================================================================ rebuttal_check

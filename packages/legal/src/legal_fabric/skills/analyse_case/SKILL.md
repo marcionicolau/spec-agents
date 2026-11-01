@@ -1,7 +1,7 @@
 ---
 name: analyse_case
 kind: pipeline
-version: 1.1.0
+version: 1.2.0
 domain: legal
 description: Ingest a criminal case, extract and verify claims, check consistency, map points and pick authorities.
 params:
@@ -90,6 +90,7 @@ steps:
     authorities: law.authorities
 outputs:
   dossier: dossier.dossier
+  brief: dossier.brief
   rejected: verify.rejected
 ---
 # Analyse a criminal case

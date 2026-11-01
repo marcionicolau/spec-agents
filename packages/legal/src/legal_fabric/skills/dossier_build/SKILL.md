@@ -1,6 +1,6 @@
 ---
 name: dossier_build
-version: 1.1.0
+version: 1.2.0
 domain: legal
 category: packaging
 description: Bundle charges, claims, anomalies, points, authorities and page sizes into one dossier for writer and checker.
@@ -31,7 +31,10 @@ inputs:
 outputs:
   dossier:
     type: json
-    description: everything the rebuttal needs, without document text
+    description: everything the rebuttal checker needs, without document text
+  brief:
+    type: json
+    description: the writer's view - points with authorities, their locators, anomalies and authority ids
 ---
 # Dossier
 
@@ -39,6 +42,9 @@ outputs:
 Last step of the analysis: the rebuttal writer reads it and `rebuttal_check` validates against it.
 
 ## Interpreting
+- `brief` is what the rebuttal writer reads: a small local model only sees a few thousand characters of its
+  inputs, and the full dossier (charges, page sizes, every point) gets cut before the points. The brief drops what
+  the writer cannot use and lists refutation targets first; points without an authority go to needs_research.
 - page_sizes lets locators be checked without shipping the record to the writer.
 - `rules` repeats the writing rules, including the language directive from `lang`, so they travel with the data.
   It is the first key after `case_id` on purpose: a long dossier gets truncated from the end before an LLM step

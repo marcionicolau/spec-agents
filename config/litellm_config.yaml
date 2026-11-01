@@ -24,6 +24,9 @@ model_list:
       model: ollama_chat/llama3.1:8b-instruct-q5_K_M
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.2
+      # Ollama's default context (2048-4096 tokens) silently drops the head of longer prompts; legal's
+      # rebuttal_writer sends ~12k characters of brief plus the JSON schema.
+      num_ctx: 16384
 
   # Repairer / CrewAI tool-operator: small and fast.
   - model_name: local-fast
@@ -31,6 +34,7 @@ model_list:
       model: ollama_chat/llama3.1:8b-instruct-q5_K_M
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.0
+      num_ctx: 16384         # local-writer's fallback: same prompts
 
   # Extractor: pinned by legal's claim_extract. Safety-tuned instruct models quietly return
   # {"claims": []} on violent/sexual-offence records, so this points at an abliterated variant.

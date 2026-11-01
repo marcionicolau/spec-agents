@@ -125,6 +125,36 @@ def analyse(lg, case_dir):
     return rep.output_values()
 
 
+def test_brief_holds_only_arguable_points_targets_first(lg, case_dir):
+    out = analyse(lg, case_dir)
+    d, b = out["dossier"], out["brief"]
+    assert b["case_id"] == "T1" and b["rules"] == d["rules"] and "page_sizes" not in b
+    ids = [p["point_id"] for p in b["points"]]
+    assert ids and set(ids) == {k for k, v in d["authorities"].items() if v}
+    assert sorted(ids + b["needs_research"]) == sorted(p["point_id"] for p in d["points"])
+    targets = [p["side"] == "acusacao" and p["strength"] == "weak" for p in b["points"]]
+    assert targets == sorted(targets, reverse=True)
+    for p in b["points"]:
+        assert [a["id"] for a in p["authorities"]] == [a["id"] for a in d["authorities"][p["point_id"]]]
+
+
+def test_ingest_takes_the_case_number_from_the_record(lg, case_dir):
+    (case_dir / "EVENTO3_DESPADEC1.txt").write_text(
+        "Processo 5001007-27.2026.8.21.0112/RS\nVide também 5003226-47.2025.8.21.0112.\n"
+        "Autos 5001007-27.2026.8.21.0112.\n",
+        encoding="utf-8",
+    )
+    plan = {
+        "objective": "ingest",
+        "steps": [{"id": "ingest", "component": "process_ingest", "params": {"root": str(case_dir)}}],
+        "outputs": {"case": "ingest.case"},
+    }
+    pin = PipelineInputs.from_values({}, lg.types)
+    rep = PipelineExecutor(lg).run(parse_plan(plan, lg, pin), pin)
+    assert rep.ok, [o.error for o in rep.outcomes if o.error]
+    assert rep.output_values()["case"]["case_id"] == "5001007-27.2026.8.21.0112"
+
+
 def test_analysis_finds_the_expected_anomalies(lg, case_dir):
     out = analyse(lg, case_dir)
     d = out["dossier"]
@@ -194,7 +224,7 @@ def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir
                 "params": {"root": str(case_dir), "corpus_path": str(CORPUS), "case_id": "T1"},
             }
         ],
-        "outputs": {"dossier": "case.dossier", "rejected": "case.rejected"},
+        "outputs": {"dossier": "case.dossier", "brief": "case.brief", "rejected": "case.rejected"},
     }
     dossier = analyse(lg, case_dir)["dossier"]
     pid, _ = next((k, v) for k, v in dossier["authorities"].items() if any(a["id"] == "cpp-155" for a in v))
@@ -274,7 +304,7 @@ def test_case_analyst_single_step_plan_feeds_the_tree(lg, case_dir):
                 "inputs": {},
             }
         ],
-        "outputs": {"dossier": "analysis.dossier", "rejected": "analysis.rejected"},
+        "outputs": {"dossier": "analysis.dossier", "brief": "analysis.brief", "rejected": "analysis.rejected"},
     }
     delegations = {
         "rationale": "analyse, draft, check",

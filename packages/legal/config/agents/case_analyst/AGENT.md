@@ -19,7 +19,7 @@ consistency → map → authorities → dossier internally. Never list those com
             "params": {"root": "<case folder>", "corpus_path": "<corpus path>",
                        "articles": ["CP:217-A", "CP:71"], "lang": "pt-BR"},
             "inputs": {}, "rationale": "..."}],
- "outputs": {"dossier": "case.dossier", "rejected": "case.rejected"}}
+ "outputs": {"dossier": "case.dossier", "brief": "case.brief", "rejected": "case.rejected"}}
 ```
 
 Only if the request says the case folder holds combined PDF(s) (one per "parte"/volume) rather than per-document
