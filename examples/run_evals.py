@@ -4,6 +4,7 @@ python examples/run_evals.py --mode rules   # deterministic baseline (stats_rule
 python examples/run_evals.py --mode live    # the 'statistician' agent's planner via the LiteLLM proxy
 python examples/run_evals.py --domain lakehouse --mode live   # 'dag_engineer' (packages/lakehouse/config)
 python examples/run_evals.py --domain coworker --mode live    # 'context_scout' (packages/coworker/config)
+python examples/run_evals.py --domain legal --mode live       # 'case_analyst' (packages/legal/config)
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ DOMAINS = {  # name -> (register callable path, agents dir, planner agent, cases
     "statistics": ("stat_fabric.domain", "examples/research_team", "statistician", "planner_cases.yaml"),
     "lakehouse": ("lake_fabric.domain", "packages/lakehouse/config", "dag_engineer", "lakehouse_cases.yaml"),
     "coworker": ("coworker_fabric.domain", "packages/coworker/config", "context_scout", "coworker_cases.yaml"),
+    "legal": ("legal_fabric.domain", "packages/legal/config", "case_analyst", "legal_cases.yaml"),
 }
 
 

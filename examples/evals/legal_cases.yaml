@@ -1,0 +1,18 @@
+# Planner regression cases for the legal domain (live mode only; needs the LiteLLM proxy).
+#   python examples/run_evals.py --domain legal --mode live
+cases:
+  - name: full_review
+    objective: >-
+      Defesa: analise o caso em {root}/packages/legal/data, denúncia por CP:157, e levante os pontos fracos
+      da acusação. Corpus de jurisprudência em {root}/packages/legal/data/authorities.sample.jsonl.
+    inputs: none
+    expected_components:
+      [process_ingest, crime_classify, evidence_segment, claim_extract, claim_verify, consistency_check,
+       argument_map, authority_select, dossier_build]
+  - name: consistency_only
+    objective: >-
+      In the case folder {root}/packages/legal/data, only check whether the depositions contradict each
+      other. Do not research case law or build the dossier yet.
+    inputs: none
+    expected_components: [process_ingest, crime_classify, evidence_segment, claim_extract, claim_verify, consistency_check]
+    forbidden_components: [argument_map, authority_select, dossier_build]
