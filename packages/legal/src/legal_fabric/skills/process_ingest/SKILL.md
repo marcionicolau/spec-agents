@@ -38,8 +38,8 @@ outputs:
 First step of every case analysis: it fixes the document ids, pages and line numbers that all later citations use.
 
 ## Interpreting
-- doc_id is `ev<event>/<CODE><n>`, built from file names like `EVENTO12_DEPOIM1.pdf`. Locators everywhere else
-  are `<doc_id> p.<page> l.<line>`.
+- doc_id is `ev<event>/<CODE><n>`, built from file names like `EVENTO12_DEPOIM1.pdf`; it is a stable internal id,
+  not shown as-is. Locators everywhere else are `Evento <event>, <CODE><n> p.<page> l.<line>`.
 - `phases` counts documents per phase: `inquerito`, `judicial`, `pericial`; `desconhecida` means the text gave no
   clue and the phase should be set by hand, because the consistency rules depend on it.
 - A warning about a missing text layer means a scanned PDF: run OCR first, otherwise its evidence is invisible.

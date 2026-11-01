@@ -68,3 +68,16 @@ CP:121:
     - id: dolo
       label: dolo
       proof_hint: circunstâncias
+
+CP:217-A:
+  name: Estupro de vulnerável
+  elements:
+    - id: ato_libidinoso
+      label: conjunção carnal ou outro ato libidinoso
+      proof_hint: laudo pericial, exame de corpo de delito, depoimento da vítima
+    - id: vulnerabilidade
+      label: vítima menor de 14 anos ou vulnerável (CP art. 217-A, caput e §1º; Súmula 593 STJ)
+      proof_hint: certidão de nascimento, laudo médico/psicológico
+    - id: autoria
+      label: autoria
+      proof_hint: testemunhos, perícia, reconhecimento (CPP art. 226)

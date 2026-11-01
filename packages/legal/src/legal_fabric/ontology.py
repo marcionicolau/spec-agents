@@ -220,12 +220,16 @@ def _doc_type_code(first_page: str, window: int = 2000) -> str:
 
 
 # ----------------------------------------------------------------------------- locators
-LOC_RE = re.compile(r"^(?P<doc>[\w/.-]+) p\.(?P<page>\d+) l\.(?P<a>\d+)(?:-(?P<b>\d+))?$")
+# "Evento <n>, <code> p.<page> l.<line>": event is its own labelled part rather than folded into doc_id's "ev<n>/"
+# prefix, so a reader (or a small model) does not have to parse it back out of a slash-joined id. doc_id itself
+# (e.g. "ev12/DEPOIM1") is unchanged - fmt_loc/parse_loc only convert at the locator string's edge.
+LOC_RE = re.compile(r"^Evento (?P<ev>\d+), (?P<code>[\w.-]+) p\.(?P<page>\d+) l\.(?P<a>\d+)(?:-(?P<b>\d+))?$")
 
 
 def fmt_loc(doc_id: str, page: int, a: int, b: int | None = None) -> str:
-    """Canonical locator, e.g. ``ev12/DEPOIM1 p.3 l.10-14`` (pages and lines are 1-based)."""
-    return f"{doc_id} p.{page} l.{a}" + (f"-{b}" if b and b != a else "")
+    """Canonical locator, e.g. ``Evento 12, DEPOIM1 p.3 l.10-14`` (pages and lines are 1-based)."""
+    ev, _, code = doc_id.partition("/")
+    return f"Evento {ev.removeprefix('ev')}, {code} p.{page} l.{a}" + (f"-{b}" if b and b != a else "")
 
 
 def parse_loc(loc: str) -> tuple[str, int, int, int] | None:
@@ -234,7 +238,7 @@ def parse_loc(loc: str) -> tuple[str, int, int, int] | None:
     if not m:
         return None
     a = int(m["a"])
-    return m["doc"], int(m["page"]), a, int(m["b"] or a)
+    return f"ev{m['ev']}/{m['code']}", int(m["page"]), a, int(m["b"] or a)
 
 
 # ----------------------------------------------------------------------------- normalisation

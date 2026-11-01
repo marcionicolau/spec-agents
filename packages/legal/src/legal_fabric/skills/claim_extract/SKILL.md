@@ -31,7 +31,7 @@ Between `evidence_segment` and `claim_verify`; its output is never used before v
 Extract the factual statements from the case documents below. Answer a JSON object with one key, "claims", a list.
 Each claim has:
 - "id": c1, c2, ...
-- "loc": "<doc id> p.<page> l.<first>-<last>" copied from the ### header and the [p.N l.M] prefixes
+- "loc": "Evento <n>, <code> p.<page> l.<first>-<last>" copied from the ### header and the [p.N l.M] prefixes
 - "quote": the exact words of those lines (at least 8 characters, no paraphrase)
 - "speaker": who says it, as named in the document; "role": vitima, testemunha, policial, reu, perito or documento
 - "party": acusacao when it helps the accusation, defesa when it helps the defence, otherwise neutro

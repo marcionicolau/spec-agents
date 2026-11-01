@@ -48,7 +48,7 @@ DOCS = {
 CLAIMS = [
     {
         "id": "c1",
-        "loc": "ev2/DEPOIM1 p.1 l.2-3",
+        "loc": "Evento 2, DEPOIM1 p.1 l.2-3",
         "quote": "por volta das 22h foi abordada por um homem que usava uma faca",
         "speaker": "Maria Souza",
         "role": "vitima",
@@ -58,7 +58,7 @@ CLAIMS = [
     },
     {
         "id": "c2",
-        "loc": "ev3/DEPOIM2 p.1 l.2-3",
+        "loc": "Evento 3, DEPOIM2 p.1 l.2-3",
         "quote": "abordou o suspeito às 23h30 e que ele vestia camiseta azul",
         "speaker": "José Lima",
         "role": "policial",
@@ -68,7 +68,7 @@ CLAIMS = [
     },
     {
         "id": "c3",
-        "loc": "ev20/TERMOAUD1 p.1 l.2",
+        "loc": "Evento 20, TERMOAUD1 p.1 l.2",
         "quote": "o homem estava com um revólver",
         "speaker": "Maria Souza",
         "role": "vitima",
@@ -78,7 +78,7 @@ CLAIMS = [
     },
     {
         "id": "c4",
-        "loc": "ev21/INTERROG1 p.1 l.2",
+        "loc": "Evento 21, INTERROG1 p.1 l.2",
         "quote": "estava em casa com a mãe naquela noite",
         "speaker": "João da Silva",
         "role": "reu",
@@ -88,7 +88,7 @@ CLAIMS = [
     },
     {
         "id": "c5",
-        "loc": "ev3/DEPOIM2 p.1 l.1",
+        "loc": "Evento 3, DEPOIM2 p.1 l.1",
         "quote": "o réu confessou o roubo na viatura",
         "speaker": "José Lima",
         "role": "policial",
@@ -151,12 +151,12 @@ def test_rebuttal_gate(lg, case_dir):
         "target_point_id": pid,
         "weakness": "only inquiry evidence",
         "counterargument": "x" * 30,
-        "evidence": ["ev2/DEPOIM1 p.1 l.2-3"],
+        "evidence": ["Evento 2, DEPOIM1 p.1 l.2-3"],
         "authorities": ["cpp-155"],
         "confidence": "high",
         "rationale": why,
     }
-    bad = {**good, "evidence": ["ev2/DEPOIM1 p.9 l.1"], "authorities": ["stf-made-up"]}
+    bad = {**good, "evidence": ["Evento 2, DEPOIM1 p.9 l.1"], "authorities": ["stf-made-up"]}
     reb = {"case_id": "T1", "summary": "Draft rebuttal for review.", "points": [good, bad], "needs_research": []}
     pin = PipelineInputs.from_values({"rebuttal": reb, "dossier": d}, lg.types)
     plan = lg.pipeline("check_rebuttal").instantiate({})
@@ -222,7 +222,7 @@ def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir
                     "target_point_id": pid,
                     "weakness": "x" * 15,
                     "counterargument": "x" * 30,
-                    "evidence": ["ev2/DEPOIM1 p.1 l.2-3"],
+                    "evidence": ["Evento 2, DEPOIM1 p.1 l.2-3"],
                     "authorities": ["cpp-155"],
                     "confidence": "high",
                     "rationale": "y" * 210,
@@ -278,7 +278,7 @@ def test_argument_map_anomaly_matching_no_point(lg):
     claims = [
         {
             "id": "c1",
-            "loc": "ev1/X p.1 l.1",
+            "loc": "Evento 1, X p.1 l.1",
             "speaker": "A",
             "role": "testemunha",
             "party": "acusacao",

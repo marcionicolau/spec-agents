@@ -4,7 +4,7 @@ Ingest an eproc download, classify the charge, extract and verify claims, check 
 
 Two invariants hold everywhere, enforced by code rather than by prompts:
 
-* **every claim cites the record** - a canonical locator ``ev12/DEPOIM1 p.3 l.10-14`` that ``claim_verify`` and
+* **every claim cites the record** - a canonical locator ``Evento 12, DEPOIM1 p.3 l.10-14`` that ``claim_verify`` and
   ``rebuttal_check`` resolve against the real text; anything that does not resolve is dropped with a reason;
 * **every result explains itself** - anomalies, points, authorities and rebuttal points carry a ``rationale``
   paragraph saying why that path was chosen.
@@ -448,7 +448,7 @@ class EvidenceSegment(Component[EvidenceSegmentParams, EvidenceSegmentResult]):
         for doc in inputs["case"]["docs"]:
             if doc["kind"] not in params.kinds:
                 continue
-            block = [f"### {doc['doc_id']} ({doc['kind']}, fase: {doc['phase']})"]
+            block = [f"### Evento {doc['event']}, {doc['code']} ({doc['kind']}, fase: {doc['phase']})"]
             for p, lines in enumerate(doc["pages"], 1):
                 block += [f"[p.{p} l.{i}] {ln}" for i, ln in enumerate(lines, 1) if ln.strip()]
             text = "\n".join(block) + "\n"

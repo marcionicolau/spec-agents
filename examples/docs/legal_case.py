@@ -37,7 +37,7 @@ DOCS = {
 CLAIMS = [
     {
         "id": "c1",
-        "loc": "ev2/DEPOIM1 p.1 l.2",
+        "loc": "Evento 2, DEPOIM1 p.1 l.2",
         "quote": "o homem vestia camiseta vermelha",
         "speaker": "Maria Souza",
         "role": "vitima",
@@ -47,7 +47,7 @@ CLAIMS = [
     },
     {
         "id": "c2",
-        "loc": "ev3/DEPOIM2 p.1 l.2",
+        "loc": "Evento 3, DEPOIM2 p.1 l.2",
         "quote": "o homem vestia camiseta azul",
         "speaker": "José Lima",
         "role": "policial",
@@ -57,7 +57,7 @@ CLAIMS = [
     },
     {
         "id": "c3",
-        "loc": "ev2/DEPOIM1 p.1 l.1",
+        "loc": "Evento 2, DEPOIM1 p.1 l.1",
         "quote": "o réu confessou o roubo",
         "speaker": "Maria Souza",
         "role": "vitima",
