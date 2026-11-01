@@ -265,6 +265,69 @@ def test_slot_conflict_words(a, b, conflict):
     assert slot_conflict("clothing", a, b, 30) is conflict
 
 
+def test_argument_map_anomaly_matching_no_point(lg):
+    """A second anomaly that matches no accusation point (e.g. outlier_speaker, which targets no element) must
+    not KeyError once a defence point from an earlier anomaly already exists in `points` - defence points have no
+    "anomalies" key (only "anomaly", singular), and the lookup searches the whole list built so far, defence
+    points included. Direct, minimal repro: two anomalies are enough, no need to coax consistency_check into a
+    real outlier_speaker (it needs 3+ conflicting speakers) just to exercise this code path.
+    """
+    charges = [
+        {"charge_id": "CP:157", "name": "Roubo", "elements": [{"id": "subtracao", "label": "x", "proof_hint": "y"}]}
+    ]
+    claims = [
+        {
+            "id": "c1",
+            "loc": "ev1/X p.1 l.1",
+            "speaker": "A",
+            "role": "testemunha",
+            "party": "acusacao",
+            "phase": "judicial",
+            "about": "fato",
+            "facts": {},
+            "supports": ["subtracao"],
+        }
+    ]
+    anomalies = [
+        {
+            "id": "a1",
+            "rule": "missing_element",
+            "severity": "high",
+            "element": "subtracao",
+            "claims": [],
+            "locators": [],
+            "rationale": "r" * 210,
+        },
+        {
+            "id": "a2",
+            "rule": "outlier_speaker",
+            "severity": "medium",
+            "element": None,
+            "claims": [],
+            "locators": [],
+            "rationale": "r" * 210,
+        },
+    ]
+    pin = PipelineInputs.from_values({"claims": claims, "charges": charges, "anomalies": anomalies}, lg.types)
+    plan = {
+        "objective": "test argument_map with an unmatched anomaly",
+        "steps": [
+            {
+                "id": "map",
+                "component": "argument_map",
+                "inputs": {"claims": "$inputs.claims", "charges": "$inputs.charges", "anomalies": "$inputs.anomalies"},
+            }
+        ],
+        "outputs": {"points": "map.points"},
+    }
+    report = PipelineExecutor(lg).run(parse_plan(plan, lg, pin), pin)
+    assert report.ok, [o.error for o in report.outcomes if o.error]
+    points = report.output_values()["points"]
+    by_anomaly = {p["anomaly"]: p["attacks"] for p in points if p["side"] == "defesa"}
+    assert by_anomaly["a1"] == "P1"  # matched the accusation point for 'subtracao'
+    assert by_anomaly["a2"] is None  # outlier_speaker-like anomaly: no element, matches nothing - not an error
+
+
 # synthetic page text mirroring the real eproc separator-page format (fictional content, not a real case)
 SYNTHETIC_VOLUME = [
     "Capa: Parte 1",

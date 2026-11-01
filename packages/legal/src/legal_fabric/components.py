@@ -752,7 +752,10 @@ class ArgumentMap(Component[ArgumentMapParams, ArgumentMapResult]):
                 if not strong:
                     targets.append(pid)
         for a in anomalies:
-            target = next((p["point_id"] for p in points if a["id"] in p["anomalies"]), None)
+            # defence points appended earlier in this same loop have no "anomalies" key (only "anomaly", singular);
+            # .get(..., []) rather than ["anomalies"] so an anomaly matching none of the accusation points (e.g.
+            # outlier_speaker, which targets no element) does not KeyError once any defence point already exists.
+            target = next((p["point_id"] for p in points if a["id"] in p.get("anomalies", [])), None)
             points.append(
                 {
                     "point_id": f"P{len(points) + 1}",
