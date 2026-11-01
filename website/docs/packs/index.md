@@ -12,6 +12,7 @@ example that works offline.
 | statistics | `stat_fabric` | summary, linear models, ANOVA, time series, PCA, clustering | [Statistics](statistics.mdx) |
 | lakehouse | `lake_fabric` | generates validated Airflow DAGs that load sources into Trino/Iceberg bronze, silver and gold | [Lakehouse](lakehouse.mdx) |
 | coworker | `coworker_fabric` | selects code context within a token budget, reviews code, validates patches | [Coworker](coworker.mdx) |
+| legal | `legal_fabric` | verifies claims against a case record, checks testimony consistency, gates rebuttal points | [Legal](legal.mdx) |
 
 There is also **notes**, not a package but a 100% Markdown domain of `runtime: prompt` skills (see the
 [Quickstart](../quickstart.mdx)). To write your own pack, read

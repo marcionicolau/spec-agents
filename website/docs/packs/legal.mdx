@@ -1,0 +1,31 @@
+---
+id: legal
+title: Legal pack
+---
+
+import Example from "@site/src/components/Example";
+import script from "!!raw-loader!@site/../examples/docs/legal_case.py";
+
+Pairs with a lawyer on a criminal case downloaded from eproc: ingests the record, verifies every claim against the
+page and line it cites, runs symbolic consistency rules over the testimony, and drafts rebuttal points that only
+argue what a curated authority sustains. Nothing is filed; it only reads allowlisted roots (`LEGAL_ALLOWED_ROOTS`).
+
+## Install
+
+```bash
+pip install spec-agents-legal
+```
+
+## Example
+
+The `analyse_case` pipeline ingests the case, classifies the charge into elements, segments the evidence, extracts
+and verifies claims, checks consistency, maps strong and weak points, and picks authorities for a dossier.
+`claim_extract` is the only LLM step; the example below substitutes fixed claims for it and runs everything else for
+real, so it stays offline.
+
+<Example source={script} file="examples/docs/legal_case.py" />
+
+`claim_verify` drops any claim whose quote is not really at its cited locator, and `consistency_check` flags the
+victim and the officer disagreeing on the suspect's clothing as a high-severity `slot_conflict` — the kind of
+contradiction an LLM would otherwise paraphrase past. A rebuttal point is only ever drafted from this dossier, and
+`check_rebuttal` rejects one with a bad locator, an authority that was not selected, or no rationale paragraph.

@@ -15,6 +15,7 @@ const sidebars = {
         "packs/statistics",
         "packs/lakehouse",
         "packs/coworker",
+        "packs/legal",
       ],
     },
     {

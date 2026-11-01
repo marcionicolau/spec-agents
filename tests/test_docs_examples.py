@@ -15,5 +15,6 @@ def test_examples_exist():
 @pytest.mark.parametrize("script", EXAMPLES, ids=lambda p: p.stem)
 def test_example_runs(script, capsys, monkeypatch):
     monkeypatch.delenv("COWORKER_ALLOWED_ROOTS", raising=False)
+    monkeypatch.delenv("LEGAL_ALLOWED_ROOTS", raising=False)
     runpy.run_path(str(script), run_name="__main__")
     assert capsys.readouterr().out.strip()
