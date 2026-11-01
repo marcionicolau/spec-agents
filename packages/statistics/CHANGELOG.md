@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/marcionicolau/spec-agents/compare/statistics-v0.2.1...statistics-v0.2.2) (2026-11-01)
+
+
+### Bug Fixes
+
+* **statistics:** coerce inferred freq to str for pandas 3.1 stubs ([#168](https://github.com/marcionicolau/spec-agents/issues/168)) ([451417a](https://github.com/marcionicolau/spec-agents/commit/451417ae779a453a2ce813501e5085493578b350))
+
 ## [0.2.1](https://github.com/marcionicolau/spec-agents/compare/statistics-v0.2.0...statistics-v0.2.1) (2026-10-02)
 
 
