@@ -250,6 +250,68 @@ def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir
     assert "quality_controller [pipeline] ok" in tree, tree
 
 
+def test_case_analyst_single_step_plan_feeds_the_tree(lg, case_dir):
+    """case_analyst's AGENT.md tells its planner to plan one nested `analyse_case` step; that plan must still put
+    the dossier at ``case_counsel/case_analyst.dossier`` for the writer and the controller, and the planner must
+    actually receive the AGENT.md body (planner agents used to drop it, so every rule there was dead text)."""
+    dossier = analyse(lg, case_dir)["dossier"]
+    pid, _ = next((k, v) for k, v in dossier["authorities"].items() if any(a["id"] == "cpp-155" for a in v))
+    one_step = {
+        "objective": "Analyse the case",
+        "steps": [
+            {
+                "id": "analysis",
+                "component": "analyse_case",
+                "params": {"root": str(case_dir), "corpus_path": str(CORPUS), "articles": ["CP:157"]},
+                "inputs": {},
+            }
+        ],
+        "outputs": {"dossier": "analysis.dossier", "rejected": "analysis.rejected"},
+    }
+    delegations = {
+        "rationale": "analyse, draft, check",
+        "delegations": [
+            {"id": "d1", "agent": "case_analyst", "instruction": "Analise o caso.", "inputs": [], "depends_on": []},
+            {"id": "d2", "agent": "rebuttal_writer", "instruction": "Redija.", "inputs": [], "depends_on": ["d1"]},
+            {
+                "id": "d3",
+                "agent": "quality_controller",
+                "instruction": "Verifique.",
+                "inputs": ["@d1", "@d2"],
+                "depends_on": ["d1", "d2"],
+            },
+        ],
+    }
+    point = {
+        "target_point_id": pid,
+        "weakness": "x" * 15,
+        "counterargument": "x" * 30,
+        "evidence": ["Evento 2, DEPOIM1 p.1 l.2-3"],
+        "authorities": ["cpp-155"],
+        "confidence": "high",
+        "rationale": "y" * 210,
+    }
+    rebuttal = {"case_id": "T1", "summary": "Rebuttal draft for review.", "points": [point], "needs_research": []}
+    backend = ScriptedBackend(
+        [
+            json.dumps(delegations),
+            json.dumps(one_step),
+            json.dumps({"claims": CLAIMS}),
+            json.dumps(rebuttal),
+            "Draft para revisão do advogado. Nada foi protocolado.",
+        ]
+    )
+    fabric = AgentFabric(build_registry([register]), AgentsConfig.load(CONFIG), backend=backend)
+    for name, model in SCHEMAS.items():
+        fabric.register_schema(name, model)
+
+    report = fabric.run(f"Defesa: analise o caso em {case_dir}. Corpus em {CORPUS}.", {})
+    tree = report.result.tree()
+    assert report.result.status == "ok", tree
+    assert "quality_controller [pipeline] ok" in tree, tree
+    assert "Plan ONE step" in backend.calls[1]["messages"][0]["content"]
+
+
 @pytest.mark.parametrize(
     ("a", "b", "conflict"),
     [

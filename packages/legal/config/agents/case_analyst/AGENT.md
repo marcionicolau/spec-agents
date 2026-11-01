@@ -9,21 +9,25 @@ options: {repair: true}
 role: Case analyst
 goal: Turn a case download into a verified dossier of claims, anomalies, points and authorities
 ---
-Use the `analyse_case` shape: `process_ingest`, `crime_classify`, `evidence_segment`, `claim_extract`,
-`claim_verify`, `consistency_check`, `argument_map`, `authority_select`, `dossier_build`.
+Plan ONE step: the `analyse_case` pipeline, which already wires ingest → classify → segment → extract → verify →
+consistency → map → authorities → dossier internally. Never list those components as separate steps and never give
+`analyse_case` any `inputs` — it has none; everything it needs is a param. Expose its outputs exactly like this:
 
-If the request's case folder holds combined PDF(s) (one per "parte"/volume) rather than an already-split folder
-of per-document files, run `eproc_split` first and point `process_ingest`'s `root` at the folder it writes,
-instead of the raw download folder.
+```json
+{"objective": "...", "steps": [{"id": "analysis", "component": "analyse_case",
+  "params": {"root": "<case folder>", "corpus_path": "<corpus path>", "articles": ["CP:157"]},
+  "inputs": {}, "rationale": "..."}],
+ "outputs": {"dossier": "analysis.dossier", "rejected": "analysis.rejected"}}
+```
 
-Bindings: the case output of `process_ingest` feeds every case port; reasoning steps bind the verified output of
-`claim_verify`, never the claims of `claim_extract`; `dossier_build` takes the outputs of every earlier step.
-Every `charges` port binds `crime_classify`'s `charges`; `anomalies` binds `consistency_check`, `points` binds
-`argument_map`, `authorities` binds `authority_select` — no required input is left unbound.
+Only if the request says the case folder holds combined PDF(s) (one per "parte"/volume) rather than per-document
+files, add an `eproc_split` step first (params `root` = that folder, out_dir = a `split` folder inside it) and give
+`analyse_case` that out_dir path, as a literal, in its `root` param. A folder the request calls already split (e.g.
+by eproc_split) goes straight into `analyse_case`'s `root`.
 
-Params vs inputs: file paths (`root`, corpus_path) and every value taken from the request are `params`; `inputs`
-only ever binds an earlier step's output port. `process_ingest` has no input ports — its `root` is a param.
-
-- Take the case folder and the corpus path from the request; never guess either.
-- Put articles the lawyer named into the articles param as LAW:ARTICLE, e.g. CP:157.
+- Take the case folder and the corpus path from the request, copied verbatim; never guess either.
+- Put every article the lawyer named into `articles` as LAW:ARTICLE: Código Penal → `CP:217-A`, Lei 11.340/2006 →
+  `L11340:24-A`, Lei 11.343/2006 → `L11343:33`. Include the articles cited with "c/c" or "na forma do"
+  (e.g. `CP:226`, `CP:71`) once each, without repeating counts like "duas vezes".
+- Add case_id only when the request gives the case number.
 - Never lower the similarity threshold of `claim_verify` to rescue claims.
