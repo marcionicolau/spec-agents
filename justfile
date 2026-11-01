@@ -2,7 +2,7 @@
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 # packages with a pack-level test dir (the core is covered by tests/ and packages/agent-fabric/tests)
-packages := "agent-fabric statistics lakehouse coworker text-pack"
+packages := "agent-fabric statistics lakehouse coworker text-pack legal"
 
 default:
     @just --list
@@ -25,6 +25,7 @@ specs:
     uv run python -m agent_fabric.lint --strict --domains lake_fabric.domain:register --agents packages/lakehouse/config --schemas lake_fabric.schemas:SCHEMAS
     uv run python -m agent_fabric.lint --strict --domains coworker_fabric.domain:register --agents packages/coworker/config --schemas coworker_fabric.schemas:SCHEMAS
     uv run python -m agent_fabric.lint --strict --domains examples/notes/skills --agents examples/notes
+    uv run python -m agent_fabric.lint --strict --domains legal_fabric.domain:register --agents packages/legal/config --schemas legal_fabric.schemas:SCHEMAS
     uv run agent-fabric catalog --skills examples/notes/skills
     uv run agent-fabric agents examples/notes
     just skills-export
@@ -48,7 +49,7 @@ cov:
 # official skills-ref validator (agentskills CLI, pinned in the dev group); our own validator also runs inside export-skills
 skills-export:
     rm -rf build/skills
-    uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register --skills examples/notes/skills
+    uv run agent-fabric export-skills --out build/skills --domains stat_fabric.domain:register text_pack:register lake_fabric.domain:register coworker_fabric.domain:register legal_fabric.domain:register --skills examples/notes/skills
     rc=0; for d in build/skills/*/; do uv run agentskills validate "$d" || rc=1; done; [ $rc -eq 0 ]
 
 # The documentation is one GitHub Pages site made of two builds (Node 22+ and pnpm for Docusaurus, see .node-version and website/package.json):

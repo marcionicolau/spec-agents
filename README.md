@@ -34,6 +34,7 @@ A [uv](https://docs.astral.sh/uv/) monorepo under `packages/`. Each package has 
 | [`spec-agents-lakehouse`](packages/lakehouse) | `lake_fabric` | Generation and verification of Airflow DAGs (Trino/Iceberg, medallion layers) |
 | [`spec-agents-coworker`](packages/coworker) | `coworker_fabric` | Pair programming: context selection, static review, patch proposals |
 | [`spec-agents-text`](packages/text-pack) | `text_pack` | A minimal text domain; the template for new packs |
+| [`spec-agents-legal`](packages/legal) | `legal_fabric` | Criminal-case analysis: verified citations, consistency rules, gated rebuttals |
 
 Install from PyPI: `pip install spec-agents-core` plus the packs you need (`spec-agents-statistics`, `spec-agents-lakehouse`, `spec-agents-coworker`,
 `spec-agents-text`); the import names are in the table. Every [GitHub Release](https://github.com/marcionicolau/spec-agents/releases) also carries the wheel
@@ -118,6 +119,7 @@ research_lead (supervisor, router)           fallback: rules
 | --- | --- | --- | --- |
 | `lakehouse` | `packages/lakehouse` | `packages/lakehouse/config` (`lakehouse_team`, `dag_engineer`, `dag_reviewer`, `schema_designer`) | Generates Airflow DAGs that load CSV, JSON, XLSX, API or MCP-tool sources into Trino/Iceberg tables in bronze, silver and gold layers |
 | `coworker` | `packages/coworker` | `packages/coworker/config` (`pair_programmer`, `context_scout`, `code_critic`, `patch_author`) | Pair programming: picks the context within a token budget, reviews code and validates patch proposals |
+| `legal` | `packages/legal` | `packages/legal/config` (`case_counsel`, `case_analyst`, `rebuttal_writer`, `quality_controller`) | Criminal cases from eproc: verified claims cited by page and line, consistency rules, strong and weak points, rebuttals gated on curated authorities |
 | `notes` | none (Markdown only) | `examples/notes` (`note_taker`) | Code-free demo: summary, action extraction and meeting digest through `runtime: prompt` |
 
 **Lakehouse.** Pipeline `ingest_to_lakehouse`: `source_inspect` → `medallion_plan` → `airflow_dag_render` → `dag_check`. The DAG code comes from a static

@@ -7,6 +7,7 @@
 /packages/lakehouse/            @marcionicolau
 /packages/coworker/             @marcionicolau
 /packages/text-pack/            @marcionicolau
+/packages/legal/                @marcionicolau
 
 # contracts and agent trees: changes here alter model-facing behaviour (see docs/maintenance.md)
 **/SKILL.md                     @marcionicolau

@@ -3,5 +3,6 @@
   "packages/statistics": "0.2.1",
   "packages/lakehouse": "0.2.1",
   "packages/coworker": "0.3.0",
-  "packages/text-pack": "0.3.0"
+  "packages/text-pack": "0.3.0",
+  "packages/legal": "0.0.1"
 }

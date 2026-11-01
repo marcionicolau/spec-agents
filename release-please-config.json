@@ -30,6 +30,11 @@
       "release-type": "simple",
       "package-name": "text-pack",
       "component": "text-pack"
+    },
+    "packages/legal": {
+      "release-type": "simple",
+      "package-name": "legal",
+      "component": "legal"
     }
   }
 }

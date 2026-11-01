@@ -7,7 +7,7 @@ import pytest
 from agent_fabric import API_LEVEL, API_LEVEL_MIN, build_registry
 from agent_fabric.compat import declared_api
 
-PACKS = ["stat_fabric", "lake_fabric", "coworker_fabric", "text_pack"]
+PACKS = ["stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "legal_fabric"]
 
 
 @pytest.mark.parametrize("pack", PACKS)

@@ -27,5 +27,6 @@ jobs:
             deps
             docs
             text-pack
+            legal
             main
           requireScope: false

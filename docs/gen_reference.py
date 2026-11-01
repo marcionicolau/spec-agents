@@ -18,6 +18,7 @@ PYPI_NAMES = {
     "lakehouse": "spec-agents-lakehouse",
     "coworker": "spec-agents-coworker",
     "text-pack": "spec-agents-text",
+    "legal": "spec-agents-legal",
 }
 PACKAGES = {  # package directory -> (module, one-line description)
     "agent-fabric": (
@@ -28,6 +29,7 @@ PACKAGES = {  # package directory -> (module, one-line description)
     "lakehouse": ("lake_fabric", "Lakehouse domain pack: Airflow DAG generation for Trino/Iceberg."),
     "coworker": ("coworker_fabric", "Coworker domain pack: context selection, review and patch proposals."),
     "text-pack": ("text_pack", "Text domain pack and template for new packs."),
+    "legal": ("legal_fabric", "Legal domain pack: criminal-case analysis with verified citations and gated rebuttals."),
 }
 
 

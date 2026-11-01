@@ -44,13 +44,14 @@ jobs:
             lakehouse: ['packages/lakehouse/**']
             coworker: ['packages/coworker/**']
             text-pack: ['packages/text-pack/**', 'examples/**']
+            legal: ['packages/legal/**']
       - id: matrix
         env:
           CHANGED: ${{ steps.filter.outputs.changes }}
         run: |
           core=$(jq -r 'index("core") != null' <<<"$CHANGED")
           if [ "$core" = "true" ]; then
-            pkgs='["agent-fabric","statistics","lakehouse","coworker","text-pack"]'
+            pkgs='["agent-fabric","statistics","lakehouse","coworker","text-pack","legal"]'
           else
             pkgs=$(jq -c '. - ["core"]' <<<"$CHANGED")
           fi

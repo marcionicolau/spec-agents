@@ -36,6 +36,7 @@ plugins:
             - packages/lakehouse/src
             - packages/coworker/src
             - packages/text-pack/src
+            - packages/legal/src
           options:
             docstring_style: google
             filters: public
@@ -75,4 +76,5 @@ nav:
       - spec-agents-lakehouse: reference/lakehouse.md
       - spec-agents-coworker: reference/coworker.md
       - spec-agents-text: reference/text-pack.md
+      - spec-agents-legal: reference/legal.md
       - CLI: reference/cli.md

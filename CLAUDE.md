@@ -28,7 +28,7 @@ add a component, pipeline or agent, or before you change guidance text**.
    - Components & pipelines: `skills/<name>/SKILL.md`; agents: `config/agents/<name>/AGENT.md`;
      run-wide settings: `config/fabric.md`. Legacy `*.yaml` specs load into the same models.
 3. **The core (`packages/agent-fabric`) is domain-agnostic.** Domain knowledge lives in _domain packs_
-   (`packages/statistics`, `packages/lakehouse`, `packages/coworker`, `packages/text-pack`).
+   (`packages/statistics`, `packages/lakehouse`, `packages/coworker`, `packages/text-pack`, `packages/legal`).
    Never import a domain pack from the core.
 4. **Every failure is a typed `FabricError`** with a located `ErrorReport` (`category`, `loc`, `type`,
    `msg`, `hint`, `recoverable`). Validators collect _all_ errors before raising. No bare exceptions,
@@ -51,6 +51,7 @@ add a component, pipeline or agent, or before you change guidance text**.
 packages/agent-fabric/   GENERIC CORE (agent_fabric): specs, registry, pipelines, executor, llm/, agents/, memory/, cli/
 packages/statistics/     domain pack (stat_fabric)      packages/lakehouse/  (lake_fabric)
 packages/coworker/       domain pack (coworker_fabric)  packages/text-pack/  (text_pack)
+packages/legal/          domain pack (legal_fabric)
 packages/<pkg>/tests/    pack tests;  packages/<pkg>/config/  pack demo agent trees (lakehouse, coworker)
 tests/                   cross-package suite (core + statistics + text packs)
 examples/                research_team, notes (code-free domain), docs (scripts embedded in the guide site, run by tests), evals, run_demo.py, run_evals.py

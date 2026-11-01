@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-PACKAGES = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack"]
+PACKAGES = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "legal_fabric"]
 DEBT_FILE = Path(__file__).with_name("public_api_undocumented.txt")
 
 

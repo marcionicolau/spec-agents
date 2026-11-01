@@ -52,7 +52,7 @@ convention = "google"
 "docs/*" = ["D"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "examples", "tests"]
+known-first-party = ["agent_fabric", "stat_fabric", "lake_fabric", "coworker_fabric", "text_pack", "examples", "tests", "legal_fabric"]
 
 # ty is pre-1.0 (pinned in the dev group). All five packages are checked.
 [tool.ty.environment]
@@ -65,6 +65,7 @@ include = [
   "packages/lakehouse/src",
   "packages/statistics/src",
   "packages/text-pack/src",
+  "packages/legal/src",
 ]
 
 [[tool.ty.overrides]]

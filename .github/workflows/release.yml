@@ -184,7 +184,7 @@ jobs:
           INDEX: ${{ inputs.index }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ ! "$TAG" =~ ^(agent-fabric|statistics|lakehouse|coworker|text-pack)-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+          if [[ ! "$TAG" =~ ^(agent-fabric|statistics|lakehouse|coworker|text-pack|legal)-v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             echo "::error::'$TAG' is not a release tag of this repository (<package>-vX.Y.Z)"; exit 1
           fi
           pkg="${BASH_REMATCH[1]}"

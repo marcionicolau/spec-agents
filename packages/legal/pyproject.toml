@@ -1,0 +1,60 @@
+[project]
+name = "spec-agents-legal"
+dynamic = ["version"]
+description = "Legal domain pack for agent-fabric: criminal-case analysis with cited, verified arguments"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+readme = "README.md"
+authors = [{ name = "Marcio Nicolau" }]
+keywords = ["legal", "criminal-law", "agents"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Typing :: Typed",
+]
+dependencies = [
+  "spec-agents-core>=0.0.1,<1",
+]
+
+[project.optional-dependencies]
+pdf = ["pypdf>=4"]
+
+[project.entry-points."agent_fabric.domains"]
+legal = "legal_fabric.domain:register"
+
+[project.urls]
+Homepage = "https://github.com/marcionicolau/spec-agents"
+Repository = "https://github.com/marcionicolau/spec-agents"
+Issues = "https://github.com/marcionicolau/spec-agents/issues"
+Changelog = "https://github.com/marcionicolau/spec-agents/blob/main/packages/legal/CHANGELOG.md"
+Documentation = "https://github.com/marcionicolau/spec-agents/tree/main/docs"
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning>=0.14"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
+
+[tool.uv.sources]
+spec-agents-core = { workspace = true }
+
+# version = latest "legal-vX.Y.Z" git tag (other packages' tags are ignored); untagged commits get X.Y.(Z+1).devN+<sha>
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/legal_fabric"]
+
+[tool.uv-dynamic-versioning]
+vcs = "git"
+style = "pep440"
+bump = true
+pattern-prefix = "legal-"
+fallback-version = "0.0.0"

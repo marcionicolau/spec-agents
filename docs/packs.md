@@ -9,6 +9,7 @@ Domain knowledge lives in packs; the core never imports one. Each pack registers
 | `lakehouse` | `lake_fabric` | `source_inspect`, `medallion_plan`, `airflow_dag_render`, `dag_check` | `ingest_to_lakehouse`, `medallion_design` | `packages/lakehouse/config` |
 | `coworker` | `coworker_fabric` | `repo_index`, `context_select`, `context_pack`, `code_review`, `draft_edits`, `patch_propose` | `improve_code`, `propose_patch` | `packages/coworker/config` |
 | `text-pack` | `text_pack` | `text_stats`, `keywords`, `summarize_text` | `document_digest`, `document_summary` | `examples/research_team` |
+| `legal` | `legal_fabric` | `process_ingest`, `crime_classify`, `evidence_segment`, `claim_extract`, `claim_verify`, `consistency_check`, `argument_map`, `authority_select`, `dossier_build`, `rebuttal_check` | `analyse_case`, `check_rebuttal` | `packages/legal/config` |
 
 - **statistics**: formulas are built from validated column names; no model-written code runs. Also provides the `stats_rules` planner (no LLM).
 - **lakehouse**: generates Airflow DAGs that load CSV/JSON/XLSX/API/MCP sources into Trino/Iceberg bronze, silver and gold tables. Generated code is never
@@ -16,6 +17,10 @@ Domain knowledge lives in packs; the core never imports one. Each pack registers
 - **coworker**: picks code context within a token budget (measured by labelled evals), reviews it and validates patch proposals. It never writes to disk and
   only reads allowlisted roots (`COWORKER_ALLOWED_ROOTS`).
 - **text-pack**: small and dependency-free; the proof that the core is domain-agnostic and a template for new packs.
+- **legal**: works a criminal case downloaded from eproc. Every claim cites the record by document, page and line and is
+  re-checked against the text; symbolic rules find contradictions and thin evidence; counter-arguments are allowed only with an
+  authority from a curated local corpus, and every result carries a rationale paragraph. Only reads allowlisted roots
+  (`LEGAL_ALLOWED_ROOTS`); nothing is filed.
 - **notes** (`examples/notes`): not a package, a 100% Markdown domain made of `runtime: prompt` skills.
 
 Per-package API: [agent-fabric](reference/agent-fabric.md) · [statistics](reference/statistics.md) · [lakehouse](reference/lakehouse.md) ·
