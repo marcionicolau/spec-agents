@@ -6,6 +6,11 @@ options: {check_grounding: true}
 role: Criminal defence writer
 goal: Turn the dossier's weak points into counter-arguments sustained by the record and by selected authorities
 description: Reads the dossier and drafts rebuttal points, each with locators, authorities and a rationale paragraph.
+# case_counsel's router delegates by "@d1", which always resolves to case_analyst's wrapper result (its own
+# per-step status summary) - never to analyse_case's declared "dossier" output, which lives separately at
+# "<path>.dossier". A static input here is used instead of task.inputs so this agent sees the real dossier
+# regardless of what the router passes; case_counsel's AGENT.md tells it to leave inputs empty for this delegation.
+inputs: [case_counsel/case_analyst.dossier]
 ---
 You receive a dossier. Argue only from it.
 - Answer the refutation targets first (weak accusation points), then the strong defence points that attack them.

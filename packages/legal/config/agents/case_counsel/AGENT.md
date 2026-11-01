@@ -11,7 +11,9 @@ You pair with a lawyer on a criminal case whose folder and authority corpus are 
 
 - `case_analyst`: always first (id `d1`). Give it the case folder, the corpus path and any article the lawyer named.
 - `rebuttal_writer`: when the lawyer wants arguments, rebuttals or a petition outline (id `d2`,
-  `"depends_on": ["d1"]`, `"inputs": ["@d1"]`). Tell it which side the lawyer represents.
+  `"depends_on": ["d1"]`, `"inputs": []`). Leave `inputs` empty - it reads the dossier itself through its own
+  configuration, not through `@d1` (which is case_analyst's own status summary, not analyse_case's dossier output).
+  Tell it which side the lawyer represents.
 - `quality_controller`: always after the writer (`"depends_on": ["d1", "d2"]`, `"inputs": ["@d1", "@d2"]`).
 
 Rules:

@@ -1,16 +1,21 @@
 """Legal domain: ingest, verification, symbolic consistency rules, argument map, authorities and rebuttal gate."""
 
+import json
 import textwrap
 from pathlib import Path
 
 import pytest
 
 from agent_fabric import build_registry
+from agent_fabric.agents import AgentFabric, AgentsConfig
 from agent_fabric.executor import PipelineExecutor
+from agent_fabric.llm import ScriptedBackend
 from agent_fabric.pipeline import PipelineInputs, parse_plan
 from legal_fabric.domain import register
+from legal_fabric.schemas import SCHEMAS
 
 CORPUS = Path(__file__).resolve().parents[1] / "data" / "authorities.sample.jsonl"
+CONFIG = Path(__file__).resolve().parents[1] / "config"
 
 DOCS = {
     "EVENTO1_DENUNCIA1.txt": """
@@ -160,6 +165,89 @@ def test_rebuttal_gate(lg, case_dir):
     report = rep.output_values()["report"]
     assert len(report["accepted"]) == 1
     assert {r.split(":")[0] for r in report["rejected"][0]["reasons"]} == {"bad_locator", "authority_not_selected"}
+
+
+def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir):
+    """Two real wiring bugs, both in how case_counsel's router hands sub-agent results to each other, not in any
+    pipeline tested directly elsewhere - only a full agent-tree run exercises them.
+
+    1. ``@d1``/``@d2`` always resolve to the *wrapper* result of a delegation (its own per-step status summary),
+       never to one of its declared pipeline outputs - which, for a planner or pipeline agent, lives separately at
+       ``<path>.<name>``. ``rebuttal_writer`` was never actually seeing analyse_case's dossier through ``@d1``, only
+       case_analyst's step-status summary - it drafted blind, which is why it kept inventing authority ids and
+       numbers the grounding check then rejected. Fixed with a static `inputs` on rebuttal_writer's AGENT.md
+       pointing at ``case_counsel/case_analyst.dossier`` directly, bypassing ``@d1`` for this agent entirely.
+    2. quality_controller's two json inputs (dossier, rebuttal) are ambiguous by both name and type once neither
+       sub-agent's bare wrapper matches either declared name - fixed with ``options.input_map`` pointing each one
+       at the exact key that holds it (case_analyst's needs the ``.dossier`` suffix for the reason above;
+       rebuttal_writer's does not, since a plain llm agent's one artifact already is its output).
+
+    Runs the whole tree with a ScriptedBackend to catch a regression in either mapping, or in the shape
+    case_analyst's own plan or rebuttal_writer's own output must have, end to end.
+    """
+    full_plan = lg.pipeline("analyse_case").instantiate(
+        {"root": str(case_dir), "corpus_path": str(CORPUS), "case_id": "T1"}
+    )
+    dossier = analyse(lg, case_dir)["dossier"]
+    pid, _ = next((k, v) for k, v in dossier["authorities"].items() if any(a["id"] == "cpp-155" for a in v))
+
+    delegation_plan = json.dumps(
+        {
+            "rationale": "analyse, then draft, then check",
+            "delegations": [
+                {"id": "d1", "agent": "case_analyst", "instruction": "Analise o caso.", "inputs": [], "depends_on": []},
+                {
+                    "id": "d2",
+                    "agent": "rebuttal_writer",
+                    "instruction": "Redija a réplica.",
+                    "inputs": [],
+                    "depends_on": ["d1"],
+                },
+                {
+                    "id": "d3",
+                    "agent": "quality_controller",
+                    "instruction": "Verifique a réplica.",
+                    "inputs": ["@d1", "@d2"],
+                    "depends_on": ["d1", "d2"],
+                },
+            ],
+        }
+    )
+    rebuttal = json.dumps(
+        {
+            "case_id": "T1",
+            "summary": "Rebuttal draft for the lawyer to review.",
+            "points": [
+                {
+                    "target_point_id": pid,
+                    "weakness": "x" * 15,
+                    "counterargument": "x" * 30,
+                    "evidence": ["ev2/DEPOIM1 p.1 l.2-3"],
+                    "authorities": ["cpp-155"],
+                    "confidence": "high",
+                    "rationale": "y" * 210,
+                }
+            ],
+            "needs_research": [],
+        }
+    )
+    backend = ScriptedBackend(
+        [
+            delegation_plan,  # case_counsel's own plan
+            json.dumps(full_plan),  # case_analyst's plan: analyse_case, claim_extract included
+            json.dumps({"claims": CLAIMS}),  # claim_extract
+            rebuttal,  # rebuttal_writer
+            "Draft para revisão do advogado. Nada foi protocolado.",  # case_counsel's final synthesis
+        ]
+    )
+    fabric = AgentFabric(build_registry([register]), AgentsConfig.load(CONFIG), backend=backend)
+    for name, model in SCHEMAS.items():
+        fabric.register_schema(name, model)
+
+    report = fabric.run(f"Defesa: analise o caso em {case_dir}. Corpus em {CORPUS}.", {})
+    tree = report.result.tree()
+    assert report.result.status == "ok", tree
+    assert "quality_controller [pipeline] ok" in tree, tree
 
 
 @pytest.mark.parametrize(
