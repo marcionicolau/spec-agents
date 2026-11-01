@@ -66,26 +66,12 @@ agent-fabric run packages/legal/config --schemas legal_fabric.schemas:SCHEMAS \
 ```
 
 `case_analyst`'s planner decides on its own whether `eproc_split` is needed, from how the request describes the
-case folder - see its AGENT.md. To run `eproc_split` by hand instead of through the planner (useful to inspect
-`by_code`/`n_no_document` before the rest of the analysis runs), build a one-step plan directly:
+case folder - see its AGENT.md. To split by hand instead of through the planner (useful to inspect
+`by_code`/`n_no_document` before the rest of the analysis runs), call the pack's CLI - no LLM involved:
 
-```python
-from agent_fabric import build_registry
-from agent_fabric.executor import PipelineExecutor
-from agent_fabric.pipeline import PipelineInputs, parse_plan
-from legal_fabric.domain import register
-
-registry = build_registry([register])
-pin = PipelineInputs.from_values({}, registry.types)
-plan = {
-    "objective": "split the eproc download",
-    "steps": [{"id": "split", "component": "eproc_split",
-               "params": {"root": "/cases/5001234/download", "out_dir": "/cases/5001234/split"}}],
-    "outputs": {},
-}
-report = PipelineExecutor(registry).run(parse_plan(plan, registry, pin), pin)
-assert report.ok, [o.error for o in report.outcomes if o.error]
-print(report.outcomes[0].result)  # n_written, by_code, n_no_document, n_no_text
+```bash
+python -m legal_fabric.split /cases/5001234/download /cases/5001234/split
+# {"n_volumes", "n_written", "n_no_document", "n_no_text", "by_code", "warnings"}
 ```
 
 Worked example — a real download in `~/Downloads/eproc`, where eproc dropped the volume
@@ -94,9 +80,9 @@ Worked example — a real download in `~/Downloads/eproc`, where eproc dropped t
 split in place:
 
 ```bash
-LEGAL_ALLOWED_ROOTS=$HOME/Downloads/eproc python - <<'PY'
-# the plan above, with root=.../eproc and out_dir=.../eproc/split
-PY
+LEGAL_ALLOWED_ROOTS=$HOME/Downloads/eproc \
+  python -m legal_fabric.split ~/Downloads/eproc ~/Downloads/eproc/split
+# {"n_volumes": 1, "n_written": 110, "n_no_document": 146, "n_no_text": 0, "by_code": {...}}
 ```
 
 On a ~260-event case that prints `n_volumes=1, n_written=110, n_no_document=146, n_no_text=0` plus a `by_code`
@@ -106,6 +92,18 @@ documents, open a few `EVENTO*_OUTRO.txt` — they are types `DOC_TYPE_PATTERNS`
 recognise yet (e.g. MP letterhead, eproc e-mail notices); the table is meant to grow, and `process_ingest` still
 ingests them as kind `outro` meanwhile. Point `process_ingest`'s `root` — or the planner's case folder — at
 `split/` next.
+
+Full run on that split case (letter-suffixed articles are passed by hand in the request, as in the caveats below;
+`--out`/`--trace-out` keep the report and the event trace):
+
+```bash
+LEGAL_ALLOWED_ROOTS=$HOME/Downloads/eproc uv run agent-fabric run packages/legal/config \
+  "Defesa: analise o caso em $HOME/Downloads/eproc/split (download eproc já separado por evento via eproc_split). \
+   Artigos imputados: CP:217-A c/c art. 226, II, na forma do art. 71 (duas vezes); CP:213 na forma do art. 71; \
+   CP:147-A (três vezes); art. 24-A da Lei 11.340/2006. \
+   Corpus de jurisprudência em packages/legal/data/authorities.sample.jsonl" \
+  --schemas legal_fabric.schemas:SCHEMAS --out build/run/legal_case.md --trace-out build/run/legal_case.jsonl
+```
 
 ```bash
 python -m agent_fabric.lint --domains legal_fabric.domain:register --agents packages/legal/config \
