@@ -81,3 +81,34 @@ CP:217-A:
     - id: autoria
       label: autoria
       proof_hint: testemunhos, perícia, reconhecimento (CPP art. 226)
+
+CP:213:
+  name: Estupro
+  elements:
+    - id: violencia_grave_ameaca
+      label: constrangimento mediante violência ou grave ameaça
+      proof_hint: depoimento da vítima, laudo de lesões, testemunhos
+    - id: ato_libidinoso
+      label: conjunção carnal ou outro ato libidinoso praticado ou permitido
+      proof_hint: exame de corpo de delito, laudo pericial, depoimento da vítima
+    - id: autoria
+      label: autoria
+      proof_hint: reconhecimento (CPP art. 226), testemunhos, perícia
+
+# Not a crime type: art. 71 (crime continuado) raises the sentence of the charges it qualifies, so the accusation
+# must prove its requisites on top of theirs - the defence can attack continuity without attacking the crimes.
+CP:71:
+  name: Crime continuado
+  elements:
+    - id: pluralidade_condutas
+      label: duas ou mais ações ou omissões
+      proof_hint: denúncia (número de fatos), depoimentos com datas distintas
+    - id: mesma_especie
+      label: crimes da mesma espécie
+      proof_hint: capitulação de cada fato na denúncia
+    - id: condicoes_semelhantes
+      label: condições semelhantes de tempo, lugar e modo de execução
+      proof_hint: datas e locais de cada fato nos depoimentos
+    - id: unidade_designio
+      label: unidade de desígnios entre os fatos (teoria objetivo-subjetiva, STJ)
+      proof_hint: circunstâncias narradas na denúncia e nos depoimentos

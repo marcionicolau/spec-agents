@@ -14,16 +14,19 @@ consistency → map → authorities → dossier internally. Never list those com
 `analyse_case` any `inputs` — it has none; everything it needs is a param. Expose its outputs exactly like this:
 
 ```json
-{"objective": "...", "steps": [{"id": "analysis", "component": "analyse_case",
-  "params": {"root": "<case folder>", "corpus_path": "<corpus path>", "articles": ["CP:157"]},
-  "inputs": {}, "rationale": "..."}],
- "outputs": {"dossier": "analysis.dossier", "rejected": "analysis.rejected"}}
+{"objective": "<the request in one line>",
+ "steps": [{"id": "case", "component": "analyse_case",
+            "params": {"root": "<case folder>", "corpus_path": "<corpus path>",
+                       "articles": ["CP:217-A", "CP:71"], "lang": "pt-BR"},
+            "inputs": {}, "rationale": "..."}],
+ "outputs": {"dossier": "case.dossier", "rejected": "case.rejected"}}
 ```
 
 Only if the request says the case folder holds combined PDF(s) (one per "parte"/volume) rather than per-document
-files, add an `eproc_split` step first (params `root` = that folder, out_dir = a `split` folder inside it) and give
-`analyse_case` that out_dir path, as a literal, in its `root` param. A folder the request calls already split (e.g.
-by eproc_split) goes straight into `analyse_case`'s `root`.
+files, plan two steps: `eproc_split` with root = the download folder and out_dir = a `split` folder inside it, then
+`analyse_case` with `depends_on: ["split"]` and its root set to that same literal out_dir path. A folder the request
+calls already split (e.g. by eproc_split) goes straight into `analyse_case`'s root. Params are always literal values,
+never a `$steps...` reference.
 
 - Take the case folder and the corpus path from the request, copied verbatim; never guess either.
 - Put every article the lawyer named into `articles` as LAW:ARTICLE: Código Penal → `CP:217-A`, Lei 11.340/2006 →

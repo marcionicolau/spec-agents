@@ -185,9 +185,17 @@ def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir
     Runs the whole tree with a ScriptedBackend to catch a regression in either mapping, or in the shape
     case_analyst's own plan or rebuttal_writer's own output must have, end to end.
     """
-    full_plan = lg.pipeline("analyse_case").instantiate(
-        {"root": str(case_dir), "corpus_path": str(CORPUS), "case_id": "T1"}
-    )
+    full_plan = {
+        "objective": "Analise o caso.",
+        "steps": [
+            {
+                "id": "case",
+                "component": "analyse_case",
+                "params": {"root": str(case_dir), "corpus_path": str(CORPUS), "case_id": "T1"},
+            }
+        ],
+        "outputs": {"dossier": "case.dossier", "rejected": "case.rejected"},
+    }
     dossier = analyse(lg, case_dir)["dossier"]
     pid, _ = next((k, v) for k, v in dossier["authorities"].items() if any(a["id"] == "cpp-155" for a in v))
 
@@ -234,7 +242,7 @@ def test_full_tree_quality_controller_receives_dossier_and_rebuttal(lg, case_dir
     backend = ScriptedBackend(
         [
             delegation_plan,  # case_counsel's own plan
-            json.dumps(full_plan),  # case_analyst's plan: analyse_case, claim_extract included
+            json.dumps(full_plan),  # case_analyst's plan: the whole analysis as one composite analyse_case step
             json.dumps({"claims": CLAIMS}),  # claim_extract
             rebuttal,  # rebuttal_writer
             "Draft para revisão do advogado. Nada foi protocolado.",  # case_counsel's final synthesis
@@ -467,3 +475,59 @@ def test_eproc_split_component(monkeypatch, tmp_path):
     assert docs["ev1/DENUNCIA"]["kind"] == "denuncia"
     assert docs["ev3/DESPACHO"]["kind"] == "despacho"
     assert docs["ev3/DESPACHO"]["phase"] == "judicial"
+
+
+def test_case_analyst_plan_split_then_analyse_validates(lg):
+    """The composite step form of case_analyst's plan: eproc_split feeds analyse_case by ``depends_on`` order, not by
+    a ``$steps`` reference - step outputs are not addressable from ``params`` (``ref_in_param``).
+    """
+    from agent_fabric.errors import PlanValidationError
+    from agent_fabric.llm.planner import parse_scoped
+
+    pin = PipelineInputs.from_values({}, lg.types)
+    plan = {
+        "objective": "Split the download, then analyse it.",
+        "steps": [
+            {"id": "split", "component": "eproc_split", "params": {"root": "/tmp/d", "out_dir": "/tmp/d/split"}},
+            {
+                "id": "case",
+                "component": "analyse_case",
+                "depends_on": ["split"],
+                "params": {"root": "/tmp/d/split", "corpus_path": "/tmp/c.jsonl"},
+            },
+        ],
+        "outputs": {"dossier": "case.dossier"},
+    }
+    parse_scoped(plan, lg, pin, ["legal"])
+
+    bad = json.loads(json.dumps(plan))
+    bad["steps"][1]["params"]["root"] = "$steps.split.out_dir"
+    with pytest.raises(PlanValidationError) as excinfo:
+        parse_scoped(bad, lg, pin, ["legal"])
+    assert any(d.type == "ref_in_param" for d in excinfo.value.details)
+
+
+def test_crime_ontology_recognises_new_articles(lg, case_dir):
+    """CP:213 (estupro) and CP:71 (crime continuado) are in ``data/crimes.yaml`` and classify as known charges."""
+    from legal_fabric.ontology import load_crimes
+
+    crimes = load_crimes()
+    assert "CP:213" in crimes and "CP:71" in crimes
+
+    pin = PipelineInputs.from_values({}, lg.types)
+    plan = {
+        "objective": "classify charges given by hand",
+        "steps": [
+            {"id": "ingest", "component": "process_ingest", "params": {"root": str(case_dir), "case_id": "T1"}},
+            {
+                "id": "classify",
+                "component": "crime_classify",
+                "params": {"articles": ["CP:213", "CP:71"]},
+                "inputs": {"case": "ingest.case"},
+            },
+        ],
+        "outputs": {"charges": "classify.charges"},
+    }
+    report = PipelineExecutor(lg).run(parse_plan(plan, lg, pin), pin)
+    assert report.ok, [o.error for o in report.outcomes if o.error]
+    assert report.outcomes[-1].result["unknown"] == []
