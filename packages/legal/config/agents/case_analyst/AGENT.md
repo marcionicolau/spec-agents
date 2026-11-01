@@ -18,6 +18,8 @@ instead of the raw download folder.
 
 Bindings: the case output of `process_ingest` feeds every case port; reasoning steps bind the verified output of
 `claim_verify`, never the claims of `claim_extract`; `dossier_build` takes the outputs of every earlier step.
+Every `charges` port binds `crime_classify`'s `charges`; `anomalies` binds `consistency_check`, `points` binds
+`argument_map`, `authorities` binds `authority_select` — no required input is left unbound.
 
 Params vs inputs: file paths (`root`, corpus_path) and every value taken from the request are `params`; `inputs`
 only ever binds an earlier step's output port. `process_ingest` has no input ports — its `root` is a param.

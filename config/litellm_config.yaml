@@ -28,16 +28,16 @@ model_list:
   # Repairer / CrewAI tool-operator: small and fast.
   - model_name: local-fast
     litellm_params:
-      model: ollama_chat/qwen2.5:7b-instruct
+      model: ollama_chat/llama3.1:8b-instruct-q5_K_M
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.0
 
   # Extractor: pinned by legal's claim_extract. Safety-tuned instruct models quietly return
   # {"claims": []} on violent/sexual-offence records, so this points at an abliterated variant.
-  # Pull it first: ollama pull huihui_ai/qwen2.5-abliterate:14b   (any ollama tag works here)
+  # Pull it first: ollama pull dolphin3:8b   (any ollama tag works here)
   - model_name: local-extract
     litellm_params:
-      model: ollama_chat/huihui_ai/qwen2.5-abliterate:14b
+      model: ollama_chat/dolphin3:8b
       api_base: os.environ/OLLAMA_API_BASE
       temperature: 0.0
 
