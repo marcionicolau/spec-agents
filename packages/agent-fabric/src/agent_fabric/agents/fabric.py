@@ -469,14 +469,18 @@ def planner_builder(backend: str, make: Callable[[AgentFabric, AgentSpec, LLMBac
 def _make_llm_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend) -> Any:
     from ..llm.planner import LLMPlanner
 
-    return LLMPlanner(backend, f.registry, f.settings_for(spec), spec.domains or None)
+    return LLMPlanner(backend, f.registry, f.settings_for(spec), spec.domains or None, guidance=spec.instructions)
 
 
 def _make_pai_planner(f: AgentFabric, spec: AgentSpec, backend: LLMBackend) -> Any:
     from ..llm.planner import PydanticAIPlanner
 
     return PydanticAIPlanner(
-        f.registry, f.settings_for(spec), model=spec.options.get("model_object"), domains=spec.domains or None
+        f.registry,
+        f.settings_for(spec),
+        model=spec.options.get("model_object"),
+        domains=spec.domains or None,
+        guidance=spec.instructions,
     )
 
 
