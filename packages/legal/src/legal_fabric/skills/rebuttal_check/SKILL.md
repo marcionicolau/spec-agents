@@ -1,6 +1,6 @@
 ---
 name: rebuttal_check
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: verification
 description: Gate a drafted rebuttal - locators must exist, authorities must be selected, each point must explain itself.
@@ -12,6 +12,9 @@ params:
   max_rationale_chars:
     description: longest acceptable rationale paragraph
     example: 1500
+  lang:
+    description: language of warning text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   rebuttal:
     type: json

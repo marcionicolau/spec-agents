@@ -1,6 +1,6 @@
 ---
 name: claim_verify
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: verification
 description: Quality control that keeps only claims whose quote is really at the cited document, page and lines.
@@ -12,6 +12,9 @@ params:
   line_slack:
     description: lines of drift tolerated around the cited range
     example: 1
+  lang:
+    description: language of warning text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   case:
     type: case

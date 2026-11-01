@@ -1,6 +1,6 @@
 ---
 name: evidence_segment
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: preparation
 description: Render testimony, reports and pleadings as a line-numbered text bundle the claim extractor cites from.
@@ -15,6 +15,9 @@ params:
   max_chars:
     description: size cap of the bundle
     example: 60000
+  lang:
+    description: language of warning text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   case:
     type: case

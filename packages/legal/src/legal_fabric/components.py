@@ -29,6 +29,8 @@ from agent_fabric.component import Component, ComponentParams, ComponentResult, 
 from agent_fabric.errors import ErrorDetail
 from agent_fabric.registry import component
 
+from . import i18n
+from .i18n import Lang
 from .ontology import (
     _LAW_CODES,
     ARTICLE_RE,
@@ -38,6 +40,7 @@ from .ontology import (
     KIND_MAP,
     KIND_PHASE,
     fmt_loc,
+    load_crimes,
     norm,
     parse_loc,
     slot_conflict,
@@ -127,6 +130,7 @@ class ProcessIngestParams(ComponentParams):
     kind_map: dict[str, str] = Field(default_factory=dict, description="extra eproc code -> kind entries")
     phases: dict[str, Literal["inquerito", "judicial", "pericial"]] = Field(default_factory=dict)
     max_docs: int = Field(500, ge=1, le=5000)
+    lang: Lang = Field("pt-BR", description="language of warning text")
 
 
 class ProcessIngestResult(ComponentResult):
@@ -169,11 +173,11 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
         warns: list[str] = []
         files = sorted(p for p in root.rglob("*") if p.suffix.lower() in {".pdf", ".txt"} and p.is_file())
         if len(files) > params.max_docs:
-            warns.append(f"{len(files)} documents found; only the first {params.max_docs} were read")
+            warns.append(i18n.too_many_documents(params.lang, len(files), params.max_docs))
             files = files[: params.max_docs]
         docs: list[dict[str, Any]] = []
         for path in files:
-            pages = self._pages(path, warns)
+            pages = self._pages(path, warns, params.lang)
             if pages is None:
                 continue
             m = _FNAME.search(path.stem)
@@ -183,7 +187,7 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
             kind = next((v for k, v in sorted(kmap.items(), key=lambda kv: -len(kv[0])) if code.startswith(k)), "outro")
             phase = params.phases.get(doc_id) or KIND_PHASE.get(kind) or self._phase_from_text(pages)
             if phase == "desconhecida":
-                warns.append(f"{doc_id}: phase not recognised; set it in params.phases")
+                warns.append(i18n.phase_not_recognised(params.lang, doc_id))
             docs.append(
                 {
                     "doc_id": doc_id,
@@ -206,18 +210,18 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
         )
 
     @staticmethod
-    def _pages(path: Path, warns: list[str]) -> list[list[str]] | None:
+    def _pages(path: Path, warns: list[str], lang: Lang) -> list[list[str]] | None:
         if path.suffix.lower() == ".txt":
             raw = path.read_text(encoding="utf-8", errors="replace").split("\f")
         else:
             try:
                 from pypdf import PdfReader
             except ImportError:
-                warns.append(f"{path.name}: install pypdf to read PDFs (pip install pypdf); skipped")
+                warns.append(i18n.pypdf_missing(lang, path.name))
                 return None
             raw = [pg.extract_text() or "" for pg in PdfReader(path).pages]
             if not any(r.strip() for r in raw):
-                warns.append(f"{path.name}: no text layer (scanned?); run OCR first; skipped")
+                warns.append(i18n.no_text_layer(lang, path.name))
                 return None
         return [[ln.rstrip() for ln in page.splitlines()] for page in raw]
 
@@ -235,6 +239,8 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
 class CrimeClassifyParams(ComponentParams):
     source_kinds: list[str] = Field(default_factory=lambda: ["denuncia"], min_length=1)
     articles: list[str] = Field(default_factory=list, description="manual charges, e.g. ['CP:157']")
+    crimes_path: str | None = Field(None, description="crimes YAML override; the packaged ontology when unset")
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class CrimeClassifyResult(ComponentResult):
@@ -247,12 +253,32 @@ class CrimeClassify(Component[CrimeClassifyParams, CrimeClassifyResult]):
     Params = CrimeClassifyParams
     Result = CrimeClassifyResult
 
+    def extra_checks(self, inputs: dict, params: CrimeClassifyParams) -> list[ErrorDetail]:
+        if params.crimes_path is None:
+            return []
+        try:
+            load_crimes(params.crimes_path)
+        except FileNotFoundError:
+            return [
+                ErrorDetail(
+                    loc=("params", "crimes_path"),
+                    type="crimes_not_found",
+                    msg=f"{params.crimes_path} does not exist",
+                    hint="a YAML file of crime types and elements, see data/crimes.yaml for the format",
+                )
+            ]
+        except ValueError as exc:
+            return [ErrorDetail(loc=("params", "crimes_path"), type="crimes_invalid", msg=str(exc))]
+        return []
+
     def compute(self, inputs: dict, params: CrimeClassifyParams, ctx: StepContext) -> CrimeClassifyResult:
         """Find the charged articles (tipo penal) in the accusation and expand them into elements to prove.
 
         Scans documents of ``source_kinds`` for article citations of the Penal Code or Lei 11.343, keeps where each was
-        found, and looks every article up in the ontology. Emits the ``charges`` output.
+        found, and looks every article up in the ontology (the packaged ``data/crimes.yaml``, or ``crimes_path``).
+        Emits the ``charges`` output.
         """
+        crimes = load_crimes(params.crimes_path) if params.crimes_path else CRIMES
         found: dict[str, list[str]] = defaultdict(list)
         for doc in inputs["case"]["docs"]:
             if doc["kind"] not in params.source_kinds:
@@ -267,26 +293,21 @@ class CrimeClassify(Component[CrimeClassifyParams, CrimeClassifyResult]):
             found.setdefault(art, [])
         warns: list[str] = []
         if not found:
-            warns.append("no charged article found; pass params.articles or check the denuncia text layer")
+            warns.append(i18n.no_charges_found(params.lang))
         charges, unknown = [], []
         for key, locs in found.items():
-            info = CRIMES.get(key)
+            info = crimes.get(key)
             if info is None:
                 unknown.append(key)
-                warns.append(f"{key} is not in the ontology; its elements must be added to CRIMES")
+                warns.append(i18n.unknown_charge(params.lang, key))
             locs = sorted(set(locs))
-            where = f"cited at {', '.join(locs[:3])}" if locs else "given manually in params.articles"
             charges.append(
                 {
                     "charge_id": key,
                     "name": (info or {}).get("name", key),
                     "elements": (info or {}).get("elements", []),
                     "found_at": locs,
-                    "rationale": (
-                        f"{key} was taken as a charge because it is {where}. Each listed element is something the "
-                        "accusation must prove on its own, so the analysis looks for independent judicial evidence "
-                        "of every element instead of judging the charge as a whole."
-                    ),
+                    "rationale": i18n.charge_rationale(params.lang, key, locs),
                 }
             )
         ctx.emit("charges", charges)
@@ -310,6 +331,7 @@ class EvidenceSegmentParams(ComponentParams):
         ]
     )
     max_chars: int = Field(60000, ge=2000, le=400000)
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class EvidenceSegmentResult(ComponentResult):
@@ -344,7 +366,7 @@ class EvidenceSegment(Component[EvidenceSegmentParams, EvidenceSegmentResult]):
                 continue
             out.append(text)
             size, used = size + len(text), used + 1
-        warns = [f"{len(left)} documents did not fit max_chars and were left out: {left[:5]}"] if left else []
+        warns = [i18n.evidence_left_out(params.lang, len(left), left[:5])] if left else []
         bundle = "\n".join(out)
         ctx.emit("bundle", bundle)
         return EvidenceSegmentResult(n_docs=used, n_chars=len(bundle), left_out=left, warnings=warns)
@@ -368,6 +390,7 @@ class ClaimIn(BaseModel):
 class ClaimVerifyParams(ComponentParams):
     min_similarity: float = Field(0.85, ge=0.5, le=1.0)
     line_slack: int = Field(1, ge=0, le=3)
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class ClaimVerifyResult(ComponentResult):
@@ -415,7 +438,7 @@ class ClaimVerify(Component[ClaimVerifyParams, ClaimVerifyResult]):
             verified.append({**c.model_dump(), "kind": doc["kind"], "phase": doc["phase"], "match": round(score, 2)})
         warns = []
         if raw and len(rejected) / len(raw) > 0.3:
-            warns.append(f"{len(rejected)} of {len(raw)} claims failed verification: the extractor is citing loosely")
+            warns.append(i18n.claims_citing_loosely(params.lang, len(rejected), len(raw)))
         ctx.emit("verified", verified)
         ctx.emit("rejected", rejected)
         return ClaimVerifyResult(
@@ -431,6 +454,7 @@ class ConsistencyCheckParams(ComponentParams):
     time_tolerance_min: int = Field(30, ge=0, le=240)
     outlier_z: float = Field(1.5, ge=0.5, le=4.0)
     identity_slots: list[str] = Field(default_factory=lambda: ["actor", "weapon", "clothing"])
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class ConsistencyCheckResult(ComponentResult):
@@ -484,10 +508,18 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                                 "high",
                                 [x["id"], y["id"]],
                                 [x["loc"], y["loc"]],
-                                f"{x['speaker']} described '{slot}' of '{about}' as '{x['facts'][slot]}' in the "
-                                f"{x['phase']} phase ({x['loc']}) and as '{y['facts'][slot]}' in the {y['phase']} "
-                                f"phase ({y['loc']}). A change of version by the same person between phases weakens "
-                                "both statements and is the first thing to explore in cross-examination or closing.",
+                                i18n.retraction_rationale(
+                                    params.lang,
+                                    x["speaker"],
+                                    slot,
+                                    about,
+                                    x["facts"][slot],
+                                    x["phase"],
+                                    x["loc"],
+                                    y["facts"][slot],
+                                    y["phase"],
+                                    y["loc"],
+                                ),
                             )
                         elif not same:
                             sev = "high" if slot in params.identity_slots else "medium"
@@ -497,11 +529,19 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                                 sev,
                                 [x["id"], y["id"]],
                                 [x["loc"], y["loc"]],
-                                f"{x['speaker']} ({x['role']}, {x['loc']}) says '{slot}' was '{x['facts'][slot]}' "
-                                f"while {y['speaker']} ({y['role']}, {y['loc']}) says '{y['facts'][slot]}'. Both "
-                                f"cannot be true about '{about}'; the rule flags it as {sev} because "
-                                + (
-                                    "it bears on identifying the agent." if sev == "high" else "it affects credibility."
+                                i18n.slot_conflict_rationale(
+                                    params.lang,
+                                    x["speaker"],
+                                    x["role"],
+                                    x["loc"],
+                                    x["facts"][slot],
+                                    y["speaker"],
+                                    y["role"],
+                                    y["loc"],
+                                    y["facts"][slot],
+                                    slot,
+                                    about,
+                                    sev,
                                 ),
                             )
 
@@ -516,10 +556,8 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                         [],
                         [],
                         element=el["id"],
-                        rationale=(
-                            f"No verified claim in the record supports '{el['label']}' of {ch['charge_id']}. The "
-                            f"element would typically be proved by {el['proof_hint']}; without it the accusation has a "
-                            "gap that the defence can point to directly."
+                        rationale=i18n.missing_element_rationale(
+                            params.lang, el["label"], ch["charge_id"], el["proof_hint"]
                         ),
                     )
                     continue
@@ -531,11 +569,7 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                         ids,
                         locs,
                         element=el["id"],
-                        rationale=(
-                            f"'{el['label']}' is supported only by inquiry-phase material ({', '.join(locs[:3])}). "
-                            "Evidence not repeated under adversarial proceedings carries less weight, so this element "
-                            "was routed to the authority search for the rule on inquiry-only evidence."
-                        ),
+                        rationale=i18n.inquiry_only_rationale(params.lang, el["label"], locs),
                     )
                 speakers = {norm(c["speaker"]) for c in sup if c["role"] != "documento"}
                 if len(speakers) == 1 and "pericial" not in phases:
@@ -546,10 +580,8 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                         ids,
                         locs,
                         element=el["id"],
-                        rationale=(
-                            f"'{el['label']}' rests on a single speaker, {who['speaker']} ({who['role']}), at "
-                            f"{', '.join(locs[:3])}. With no corroboration from another witness or a document, the "
-                            "element depends entirely on that person's credibility."
+                        rationale=i18n.single_source_rationale(
+                            params.lang, el["label"], who["speaker"], who["role"], locs
                         ),
                     )
 
@@ -564,11 +596,7 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
                     "medium",
                     [],
                     [],
-                    rationale=(
-                        f"{s} is involved in {conflicts_by_speaker[s]} conflicts, well above the other speakers "
-                        f"(mean {mu:.1f}). A statistical outlier is not proof of falsehood, but it marks the testimony "
-                        "whose consistency deserves the closest reading."
-                    ),
+                    rationale=i18n.outlier_speaker_rationale(params.lang, s, conflicts_by_speaker[s], mu),
                 )
         ctx.emit("anomalies", out)
         return ConsistencyCheckResult(
@@ -579,6 +607,7 @@ class ConsistencyCheck(Component[ConsistencyCheckParams, ConsistencyCheckResult]
 # ============================================================================ argument_map
 class ArgumentMapParams(ComponentParams):
     min_speakers_strong: int = Field(2, ge=1, le=5)
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class ArgumentMapResult(ComponentResult):
@@ -624,15 +653,8 @@ class ArgumentMap(Component[ArgumentMapParams, ArgumentMapResult]):
                         "strength": "strong" if strong else "weak",
                         "evidence": [c["loc"] for c in sup],
                         "anomalies": [a["id"] for a in against],
-                        "rationale": (
-                            f"Marked {'strong' if strong else 'weak'} because it has judicial or expert evidence from "
-                            f"{len(speakers)} distinct speaker(s) (threshold {params.min_speakers_strong}) and "
-                            f"{len(high)} high-severity anomaly(ies): {', '.join(a['rule'] for a in high) or 'none'}. "
-                            + (
-                                "It is a refutation target for the defence."
-                                if not strong
-                                else "Attacking it needs new evidence rather than inconsistency in the record."
-                            )
+                        "rationale": i18n.accusation_point_rationale(
+                            params.lang, strong, len(speakers), params.min_speakers_strong, [a["rule"] for a in high]
                         ),
                     }
                 )
@@ -651,7 +673,9 @@ class ArgumentMap(Component[ArgumentMapParams, ArgumentMapResult]):
                     "attacks": target,
                     "strength": "strong" if a["severity"] == "high" else "weak",
                     "evidence": a["locators"],
-                    "rationale": f"Derived from anomaly {a['id']} ({a['rule']}, {a['severity']}). " + a["rationale"],
+                    "rationale": i18n.defence_point_from_anomaly_rationale(
+                        params.lang, a["id"], a["rule"], a["severity"], a["rationale"]
+                    ),
                 }
             )
         for c in (c for c in claims if c["party"] == "defesa"):
@@ -672,14 +696,8 @@ class ArgumentMap(Component[ArgumentMapParams, ArgumentMapResult]):
                     "statement": c["quote"][:160],
                     "strength": "strong" if corr else "weak",
                     "evidence": [c["loc"]] + [o["loc"] for o in corr],
-                    "rationale": (
-                        f"Defence version given by {c['speaker']} at {c['loc']}; it is "
-                        + (
-                            f"corroborated by {len(corr)} other speaker(s), so it is kept as strong."
-                            if corr
-                            else "not corroborated by anyone else, so it is kept as weak and should "
-                            "not carry the defence alone."
-                        )
+                    "rationale": i18n.defence_point_from_claim_rationale(
+                        params.lang, c["speaker"], c["loc"], len(corr)
                     ),
                 }
             )
@@ -697,6 +715,7 @@ class AuthoritySelectParams(ComponentParams):
     corpus_path: str
     top_k: int = Field(3, ge=1, le=10)
     min_score: float = Field(1.0, ge=0.0)
+    lang: Lang = Field("pt-BR", description="language of rationale and warning text")
 
 
 class AuthoritySelectResult(ComponentResult):
@@ -769,11 +788,14 @@ class AuthoritySelect(Component[AuthoritySelectParams, AuthoritySelectResult]):
                         "binding": bool(a.get("binding")),
                         "score": round(score, 2),
                         "confidence": conf,
-                        "rationale": (
-                            f"{a['ref']} matched point {p['point_id']} on "
-                            f"{', '.join(sorted(q & bags[corpus.index(a)])[:5])} (BM25 {score:.2f}); "
-                            f"confidence {conf} because it is "
-                            + ("binding." if a.get("binding") else "persuasive, not binding.")
+                        "rationale": i18n.authority_rationale(
+                            params.lang,
+                            a["ref"],
+                            p["point_id"],
+                            sorted(q & bags[corpus.index(a)]),
+                            score,
+                            conf,
+                            bool(a.get("binding")),
                         ),
                     }
                 )
@@ -782,7 +804,7 @@ class AuthoritySelect(Component[AuthoritySelectParams, AuthoritySelectResult]):
             else:
                 needs.append(p["point_id"])
         ctx.emit("authorities", picked)
-        warns = [f"{len(needs)} points have no authority and need human research: {needs[:6]}"] if needs else []
+        warns = [i18n.needs_research_warning(params.lang, needs)] if needs else []
         return AuthoritySelectResult(
             n_authorities=len({a["id"] for v in picked.values() for a in v}),
             covered_points=len(picked),
@@ -793,7 +815,7 @@ class AuthoritySelect(Component[AuthoritySelectParams, AuthoritySelectResult]):
 
 # ============================================================================ dossier_build
 class DossierBuildParams(ComponentParams):
-    pass
+    lang: Lang = Field("pt-BR", description="language the rebuttal writer is instructed to answer in")
 
 
 class DossierBuildResult(ComponentResult):
@@ -817,17 +839,20 @@ class DossierBuild(Component[DossierBuildParams, DossierBuildResult]):
         auth = inputs["authorities"]
         dossier = {
             "case_id": case["case_id"],
+            # "rules" comes early: prompt serialisation (compact()) truncates long dossiers from the tail, and a
+            # truncated-away rule (notably the language directive) is worse than one the model reads out of order.
+            "rules": [
+                "cite every statement with a locator from the evidence lists",
+                "use only authority ids listed for the point you answer",
+                "give each point one rationale paragraph saying why this line of argument was chosen",
+                i18n.writer_language_directive(params.lang),
+            ],
             "charges": inputs["charges"],
             "claims": inputs["claims"],
             "anomalies": inputs["anomalies"],
             "points": inputs["points"],
             "authorities": auth,
             "page_sizes": {d["doc_id"]: [len(p) for p in d["pages"]] for d in case["docs"]},
-            "rules": [
-                "cite every statement with a locator from the evidence lists",
-                "use only authority ids listed for the point you answer",
-                "give each point one rationale paragraph saying why this line of argument was chosen",
-            ],
         }
         ctx.emit("dossier", dossier)
         return DossierBuildResult(
@@ -841,6 +866,7 @@ class DossierBuild(Component[DossierBuildParams, DossierBuildResult]):
 class RebuttalCheckParams(ComponentParams):
     min_rationale_chars: int = Field(200, ge=50, le=2000)
     max_rationale_chars: int = Field(1500, ge=200, le=5000)
+    lang: Lang = Field("pt-BR", description="language of warning text")
 
 
 class RebuttalCheckResult(ComponentResult):
@@ -894,9 +920,7 @@ class RebuttalCheck(Component[RebuttalCheckParams, RebuttalCheckResult]):
                 why.append("rationale_not_one_paragraph")
             (rejected.append({"point": rp.model_dump(), "reasons": why}) if why else accepted.append(rp.model_dump()))
         reasons = Counter(w.split(":")[0] for r in rejected for w in r["reasons"])
-        warns = (
-            [f"{len(rejected)} rebuttal point(s) rejected; send their reasons back to the writer"] if rejected else []
-        )
+        warns = [i18n.rebuttal_rejected_warning(params.lang, len(rejected))] if rejected else []
         ctx.emit(
             "report",
             {"case_id": reb.case_id, "accepted": accepted, "rejected": rejected, "needs_research": reb.needs_research},

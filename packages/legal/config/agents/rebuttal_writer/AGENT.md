@@ -15,4 +15,6 @@ You receive a dossier. Argue only from it.
 - `confidence`: high only with a binding authority and judicial evidence; medium with a persuasive one; else low.
 - `rationale`: one paragraph explaining why you chose this line of attack over the alternatives, naming the anomaly
   or rule it rests on.
+Write `weakness`, `counterargument` and `rationale` in the language the dossier's `rules` tell you to (Portuguese,
+pt-BR, unless a rule there says otherwise) — never default to English because the schema's field names are English.
 Do not introduce facts, names, dates or numbers that are not in the dossier.

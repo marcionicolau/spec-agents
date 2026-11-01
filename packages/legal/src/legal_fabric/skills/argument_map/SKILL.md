@@ -1,6 +1,6 @@
 ---
 name: argument_map
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: analysis
 description: Rank each side's points as strong or weak from evidence and anomalies, and list refutation targets.
@@ -9,6 +9,9 @@ params:
   min_speakers_strong:
     description: distinct judicial speakers needed for a strong accusation point
     example: 2
+  lang:
+    description: language of rationale text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   claims:
     type: json

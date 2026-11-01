@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -4354,6 +4354,7 @@ requires-dist = [
 name = "spec-agents-legal"
 source = { editable = "packages/legal" }
 dependencies = [
+    { name = "pyyaml" },
     { name = "spec-agents-core" },
 ]
 
@@ -4365,6 +4366,7 @@ pdf = [
 [package.metadata]
 requires-dist = [
     { name = "pypdf", marker = "extra == 'pdf'", specifier = ">=4" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "spec-agents-core", editable = "packages/agent-fabric" },
 ]
 provides-extras = ["pdf"]

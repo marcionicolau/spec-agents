@@ -1,7 +1,7 @@
 ---
 name: analyse_case
 kind: pipeline
-version: 1.0.0
+version: 1.1.0
 domain: legal
 description: Ingest a criminal case, extract and verify claims, check consistency, map points and pick authorities.
 params:
@@ -19,6 +19,9 @@ params:
   articles:
     description: charges given by hand as LAW:ARTICLE
     default: null
+  lang:
+    description: language of rationale and warning text, "pt-BR" (default) or "en-US"
+    default: pt-BR
 inputs: {}
 steps:
 - id: ingest
@@ -26,14 +29,18 @@ steps:
   params:
     root: $params.root
     case_id: $params.case_id
+    lang: $params.lang
 - id: classify
   component: crime_classify
   params:
     articles: $params.articles
+    lang: $params.lang
   inputs:
     case: ingest.case
 - id: segment
   component: evidence_segment
+  params:
+    lang: $params.lang
   inputs:
     case: ingest.case
     charges: classify.charges
@@ -43,16 +50,22 @@ steps:
     bundle: segment.bundle
 - id: verify
   component: claim_verify
+  params:
+    lang: $params.lang
   inputs:
     case: ingest.case
     claims: extract.claims
 - id: consistency
   component: consistency_check
+  params:
+    lang: $params.lang
   inputs:
     claims: verify.verified
     charges: classify.charges
 - id: map
   component: argument_map
+  params:
+    lang: $params.lang
   inputs:
     claims: verify.verified
     charges: classify.charges
@@ -61,10 +74,13 @@ steps:
   component: authority_select
   params:
     corpus_path: $params.corpus_path
+    lang: $params.lang
   inputs:
     points: map.points
 - id: dossier
   component: dossier_build
+  params:
+    lang: $params.lang
   inputs:
     case: ingest.case
     charges: classify.charges

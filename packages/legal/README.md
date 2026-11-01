@@ -52,5 +52,8 @@ python -m agent_fabric.lint --domains legal_fabric.domain:register --agents pack
 
 - `data/authorities.sample.jsonl` holds **summaries** for tests; replace it with authorities your team has checked
   against the official text. The confidence gate is only as good as that corpus.
+- Crime types and their elements come from `src/legal_fabric/data/crimes.yaml`. Add a crime type, or point
+  `crime_classify`'s `crimes_path` param at your own copy, without touching code — see the comments at the top of
+  that file for the format.
 - Case records hold personal and sometimes sealed data (LGPD, segredo de justiça): keep the LLM local.
 - Output is a draft for the lawyer's review. Nothing is filed.

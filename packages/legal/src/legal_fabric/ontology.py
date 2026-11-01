@@ -2,7 +2,8 @@
 
 Everything here is data or pure functions: crime types (tipos penais) with their elements (elementares), document
 kinds of an eproc download, procedural phases, locators and slot normalisers used by the consistency rules.
-Extend ``CRIMES`` and ``KIND_MAP`` for your practice; nothing else needs to change.
+Extend ``KIND_MAP`` for your practice; extend crime types by editing ``data/crimes.yaml`` (or a copy pointed to by
+``crime_classify``'s ``crimes_path`` param) — a lawyer can do both without touching this file.
 """
 
 from __future__ import annotations
@@ -10,46 +11,56 @@ from __future__ import annotations
 import re
 import unicodedata
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any
 
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
 # ----------------------------------------------------------------------------- crime types
-# key = "<code>:<article>"; each element needs evidence of its own (CPP art. 155 / art. 386 VII logic).
-CRIMES: dict[str, dict[str, Any]] = {
-    "CP:155": {
-        "name": "Furto",
-        "elements": [
-            {"id": "subtracao", "label": "subtração da coisa", "proof_hint": "testemunho, imagens, apreensão"},
-            {"id": "coisa_alheia_movel", "label": "coisa alheia móvel", "proof_hint": "auto de apreensão/avaliação"},
-            {"id": "autoria", "label": "autoria", "proof_hint": "reconhecimento (CPP art. 226), testemunhos"},
-        ],
-    },
-    "CP:157": {
-        "name": "Roubo",
-        "elements": [
-            {"id": "subtracao", "label": "subtração da coisa", "proof_hint": "testemunho da vítima, apreensão"},
-            {"id": "violencia_grave_ameaca", "label": "violência ou grave ameaça", "proof_hint": "vítima, laudo"},
-            {"id": "autoria", "label": "autoria", "proof_hint": "reconhecimento (CPP art. 226), testemunhos"},
-        ],
-    },
-    "L11343:33": {
-        "name": "Tráfico de drogas",
-        "elements": [
-            {"id": "conduta_tipica", "label": "conduta típica (verbo nuclear)", "proof_hint": "auto de prisão"},
-            {"id": "materialidade_droga", "label": "substância entorpecente", "proof_hint": "laudo definitivo"},
-            {"id": "destinacao_terceiros", "label": "destinação a terceiros", "proof_hint": "art. 28 §2º"},
-            {"id": "autoria", "label": "autoria", "proof_hint": "testemunhos, apreensão"},
-        ],
-    },
-    "CP:121": {
-        "name": "Homicídio",
-        "elements": [
-            {"id": "morte", "label": "resultado morte", "proof_hint": "laudo necroscópico"},
-            {"id": "nexo_causal", "label": "nexo causal", "proof_hint": "laudo"},
-            {"id": "autoria", "label": "autoria", "proof_hint": "testemunhos, perícia"},
-            {"id": "dolo", "label": "dolo", "proof_hint": "circunstâncias"},
-        ],
-    },
-}
+DEFAULT_CRIMES_PATH = Path(__file__).resolve().parent / "data" / "crimes.yaml"
+
+
+class CrimeElement(BaseModel):
+    """One element (elementar) of a crime type, from a crimes YAML's ``elements`` list."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    label: str
+    proof_hint: str = ""
+
+
+class CrimeType(BaseModel):
+    """One crime type (tipo penal), from a crimes YAML entry keyed ``"<LAW>:<ARTICLE>"`` (e.g. ``"CP:157"``)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    elements: list[CrimeElement] = Field(min_length=1)
+
+
+def load_crimes(path: str | Path | None = None) -> dict[str, dict[str, Any]]:
+    """Crime ontology (charge key -> name and elements) from a YAML file; the packaged ``data/crimes.yaml`` when ``path`` is ``None``.
+
+    See ``data/crimes.yaml`` for the format and for the only law prefixes (``CP``, ``L11343``) `crime_classify`
+    recognises in free text; other laws still work given by hand in its ``articles`` param. Raises ``ValueError``
+    listing every malformed entry, so a lawyer's typo is reported all at once rather than crashing mid-analysis.
+    """
+    raw = yaml.safe_load(Path(path or DEFAULT_CRIMES_PATH).read_text(encoding="utf-8")) or {}
+    out: dict[str, dict[str, Any]] = {}
+    errors: list[str] = []
+    for key, value in raw.items():
+        try:
+            out[key] = CrimeType.model_validate(value).model_dump()
+        except ValidationError as exc:
+            errors.append(f"{key}: {exc}")
+    if errors:
+        raise ValueError("invalid crimes file " + str(path or DEFAULT_CRIMES_PATH) + ":\n" + "\n".join(errors))
+    return out
+
+
+CRIMES: dict[str, dict[str, Any]] = load_crimes()
 
 _LAW_CODES = (
     (re.compile(r"\bC(?:P\b|[óo]digo\s+Penal)", re.I), "CP"),

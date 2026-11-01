@@ -1,10 +1,13 @@
 ---
 name: check_rebuttal
 kind: pipeline
-version: 1.0.0
+version: 1.1.0
 domain: legal
 description: Validate a drafted rebuttal against its dossier and return accepted and rejected points.
-params: {}
+params:
+  lang:
+    description: language of warning text, "pt-BR" (default) or "en-US"
+    default: pt-BR
 inputs:
   rebuttal:
     type: json
@@ -15,6 +18,8 @@ inputs:
 steps:
 - id: check
   component: rebuttal_check
+  params:
+    lang: $params.lang
   inputs:
     rebuttal: $inputs.rebuttal
     dossier: $inputs.dossier

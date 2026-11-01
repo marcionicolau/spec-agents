@@ -1,6 +1,6 @@
 ---
 name: authority_select
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: retrieval
 description: Pick laws and precedents from a curated local corpus for each refutable point, with a confidence level.
@@ -15,6 +15,9 @@ params:
   min_score:
     description: minimum BM25 score to keep an authority
     example: 1.0
+  lang:
+    description: language of rationale and warning text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   points:
     type: json

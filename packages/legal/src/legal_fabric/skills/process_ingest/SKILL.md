@@ -1,6 +1,6 @@
 ---
 name: process_ingest
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: ingestion
 description: Read an eproc case download (one PDF or TXT per document) into a paginated, line-numbered record.
@@ -23,6 +23,9 @@ params:
   max_docs:
     description: maximum documents to read
     example: 500
+  lang:
+    description: language of warning text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs: {}
 outputs:
   case:

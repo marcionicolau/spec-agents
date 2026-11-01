@@ -1,11 +1,14 @@
 ---
 name: dossier_build
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: packaging
 description: Bundle charges, claims, anomalies, points, authorities and page sizes into one dossier for writer and checker.
 runtime: code
-params: {}
+params:
+  lang:
+    description: language the rebuttal writer is instructed to answer in, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   case:
     type: case
@@ -37,4 +40,6 @@ Last step of the analysis: the rebuttal writer reads it and `rebuttal_check` val
 
 ## Interpreting
 - page_sizes lets locators be checked without shipping the record to the writer.
-- `rules` repeats the three writing rules so they travel with the data.
+- `rules` repeats the writing rules, including the language directive from `lang`, so they travel with the data.
+  It is the first key after `case_id` on purpose: a long dossier gets truncated from the end before an LLM step
+  sees it, and a rule that silently disappeared is worse than one read slightly out of order.

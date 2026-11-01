@@ -1,0 +1,70 @@
+# Crime ontology (tipos penais) for `crime_classify`. Edit this file, or copy it and point `crime_classify`'s
+# `crimes_path` param at your copy — no code change needed to add or adjust a crime type.
+#
+# Format: one entry per charge, keyed "<LAW>:<ARTICLE>" (e.g. "CP:157" is art. 157 of the Código Penal).
+#   name:     the crime's common name, shown in reports.
+#   elements: what the accusation must independently prove (elementares). Each has:
+#     id:         short, stable identifier; other steps (argument_map, consistency_check) refer to it.
+#     label:      what it means, in plain language.
+#     proof_hint: what usually proves it, as a note for the lawyer — not read by any component.
+#
+# "CP" and "L11343" are the only law prefixes `crime_classify` currently recognises in free text (see ontology.py's
+# `_LAW_CODES`); a charge under a different law still works if given by hand in `crime_classify`'s `articles` param.
+
+CP:155:
+  name: Furto
+  elements:
+    - id: subtracao
+      label: subtração da coisa
+      proof_hint: testemunho, imagens, apreensão
+    - id: coisa_alheia_movel
+      label: coisa alheia móvel
+      proof_hint: auto de apreensão/avaliação
+    - id: autoria
+      label: autoria
+      proof_hint: reconhecimento (CPP art. 226), testemunhos
+
+CP:157:
+  name: Roubo
+  elements:
+    - id: subtracao
+      label: subtração da coisa
+      proof_hint: testemunho da vítima, apreensão
+    - id: violencia_grave_ameaca
+      label: violência ou grave ameaça
+      proof_hint: vítima, laudo
+    - id: autoria
+      label: autoria
+      proof_hint: reconhecimento (CPP art. 226), testemunhos
+
+L11343:33:
+  name: Tráfico de drogas
+  elements:
+    - id: conduta_tipica
+      label: conduta típica (verbo nuclear)
+      proof_hint: auto de prisão
+    - id: materialidade_droga
+      label: substância entorpecente
+      proof_hint: laudo definitivo
+    - id: destinacao_terceiros
+      label: destinação a terceiros
+      proof_hint: art. 28 §2º
+    - id: autoria
+      label: autoria
+      proof_hint: testemunhos, apreensão
+
+CP:121:
+  name: Homicídio
+  elements:
+    - id: morte
+      label: resultado morte
+      proof_hint: laudo necroscópico
+    - id: nexo_causal
+      label: nexo causal
+      proof_hint: laudo
+    - id: autoria
+      label: autoria
+      proof_hint: testemunhos, perícia
+    - id: dolo
+      label: dolo
+      proof_hint: circunstâncias

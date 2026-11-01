@@ -1,6 +1,6 @@
 ---
 name: consistency_check
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: analysis
 description: Symbolic rules over verified claims - contradictions, retractions, missing or inquiry-only elements.
@@ -18,6 +18,9 @@ params:
     - actor
     - weapon
     - clothing
+  lang:
+    description: language of rationale text, "pt-BR" (default) or "en-US"
+    example: pt-BR
 inputs:
   claims:
     type: json
