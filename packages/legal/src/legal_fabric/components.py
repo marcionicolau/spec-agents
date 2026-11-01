@@ -431,6 +431,22 @@ class EvidenceSegmentResult(ComponentResult):
     left_out: list[str]
 
 
+# Order the extractor reads documents in: the accusation's narrative and the testimony pack into max_chars
+# first, so a docket full of procedural filings never squeezes them out of the bundle.
+_EVIDENCE_PRIORITY = {
+    "denuncia": 0,
+    "depoimento": 1,
+    "interrogatorio": 2,
+    "audiencia": 3,
+    "reconhecimento": 4,
+    "laudo": 5,
+    "apreensao": 6,
+    "boletim": 7,
+    "defesa": 8,
+    "alegacoes": 9,
+}
+
+
 @component("evidence_segment")
 class EvidenceSegment(Component[EvidenceSegmentParams, EvidenceSegmentResult]):
     Params = EvidenceSegmentParams
@@ -440,14 +456,17 @@ class EvidenceSegment(Component[EvidenceSegmentParams, EvidenceSegmentResult]):
         """Render the evidence documents as a line-numbered bundle the extractor can cite from.
 
         Every line is prefixed with ``[p.N l.M]`` under a ``### <doc_id>`` header, and the element ids of the charges
-        are listed first so claims can say which element they support. Emits the ``bundle`` output.
+        are listed first so claims can say which element they support. Documents pack into ``max_chars`` by
+        evidence priority (``_EVIDENCE_PRIORITY``): accusation and testimony first, filings last. Emits ``bundle``.
         """
         elements = sorted({e["id"] for c in inputs["charges"] for e in c["elements"]})
         out = ["ELEMENTOS: " + ", ".join(elements), ""]
         size, used, left = sum(map(len, out)), 0, []
-        for doc in inputs["case"]["docs"]:
-            if doc["kind"] not in params.kinds:
-                continue
+        docs = sorted(
+            (d for d in inputs["case"]["docs"] if d["kind"] in params.kinds),
+            key=lambda d: (_EVIDENCE_PRIORITY.get(d["kind"], 10), d["event"]),
+        )
+        for doc in docs:
             block = [f"### Evento {doc['event']}, {doc['code']} ({doc['kind']}, fase: {doc['phase']})"]
             for p, lines in enumerate(doc["pages"], 1):
                 block += [f"[p.{p} l.{i}] {ln}" for i, ln in enumerate(lines, 1) if ln.strip()]
@@ -503,9 +522,12 @@ class ClaimVerify(Component[ClaimVerifyParams, ClaimVerifyResult]):
         ``verified`` and ``rejected`` (each rejection with its reason).
         """
         raw = inputs["claims"]
-        raw = raw.get("claims", []) if isinstance(raw, dict) else raw
+        raw = raw.get("claims") if isinstance(raw, dict) else raw
         docs = _doc_index(inputs["case"])
         verified, rejected = [], []
+        if not isinstance(raw, list):
+            rejected.append({"claim": raw, "reason": "bad_payload", "detail": "claims is not a list"})
+            raw = []
         for item in raw:
             try:
                 c = ClaimIn.model_validate(item)
@@ -528,7 +550,9 @@ class ClaimVerify(Component[ClaimVerifyParams, ClaimVerifyResult]):
             doc = docs[doc_id]
             verified.append({**c.model_dump(), "kind": doc["kind"], "phase": doc["phase"], "match": round(score, 2)})
         warns = []
-        if raw and len(rejected) / len(raw) > 0.3:
+        if not verified:
+            warns.append(i18n.no_verified_claims(params.lang))
+        elif len(rejected) / len(raw) > 0.3:
             warns.append(i18n.claims_citing_loosely(params.lang, len(rejected), len(raw)))
         ctx.emit("verified", verified)
         ctx.emit("rejected", rejected)

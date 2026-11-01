@@ -104,6 +104,12 @@ def claims_citing_loosely(lang: Lang, n_rejected: int, n_total: int) -> str:
     return f"{n_rejected} of {n_total} claims failed verification: the extractor is citing loosely"
 
 
+def no_verified_claims(lang: Lang) -> str:
+    if lang == "pt-BR":
+        return "nenhuma alegação verificada: o extrator não produziu alegações em formato válido"
+    return "no verified claims: the extractor produced no claims in the expected format"
+
+
 # ----------------------------------------------------------------------------- consistency_check
 def retraction_rationale(
     lang: Lang,

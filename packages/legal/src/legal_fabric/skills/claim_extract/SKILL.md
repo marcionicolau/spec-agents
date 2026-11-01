@@ -1,11 +1,12 @@
 ---
 name: claim_extract
-version: 1.0.0
+version: 1.1.0
 domain: legal
 category: extraction
 description: LLM extraction of factual claims from the evidence bundle, each with speaker, facts, elements and locator.
 runtime: prompt
 prompt:
+  model: local-planner
   temperature: 0.0
   grounding: true
 inputs:
@@ -40,5 +41,7 @@ Each claim has:
 - "supports": ids from the ELEMENTOS line that this claim helps to prove; empty when none
 
 Do not invent speakers, slots, numbers or locators. If a document says nothing factual, skip it.
+Keep "claims" a JSON list: when the record yields few statements, emit a shorter list — never prose,
+commentary or a nested object in its place.
 
 {inputs.bundle}
