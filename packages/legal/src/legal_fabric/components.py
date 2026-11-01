@@ -211,7 +211,7 @@ class ProcessIngest(Component[ProcessIngestParams, ProcessIngestResult]):
             raw = path.read_text(encoding="utf-8", errors="replace").split("\f")
         else:
             try:
-                from pypdf import PdfReader  # ty: ignore[unresolved-import]  # optional `pdf` extra, guarded below
+                from pypdf import PdfReader
             except ImportError:
                 warns.append(f"{path.name}: install pypdf to read PDFs (pip install pypdf); skipped")
                 return None
