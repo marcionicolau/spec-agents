@@ -124,6 +124,40 @@ evals mode="rules":
 litellm port="4000" config="config/litellm_config.yaml":
     OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://localhost:11434}" LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY:-sk-local-dev}" uv run --all-extras litellm --config {{config}} --port {{port}}
 
+# same gateway, detached (pid in build/litellm.pid, logs in build/litellm.log) so this terminal stays free; waits for the
+# port to accept connections (not /health: it 500s on some LiteLLM builds over a missing optional 'prisma' DB import
+# even with no database configured, regardless of whether the gateway can actually serve completions)
+litellm-start port="4000" config="config/litellm_config.yaml":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f build/litellm.pid ] && kill -0 "$(cat build/litellm.pid)" 2>/dev/null; then
+        echo "already running (pid $(cat build/litellm.pid)); run 'just litellm-stop' first" >&2
+        exit 1
+    fi
+    mkdir -p build
+    OLLAMA_API_BASE="${OLLAMA_API_BASE:-http://localhost:11434}" LITELLM_MASTER_KEY="${LITELLM_MASTER_KEY:-sk-local-dev}" \
+        uv run --all-extras litellm --config {{config}} --port {{port}} >build/litellm.log 2>&1 &
+    echo $! >build/litellm.pid
+    for _ in $(seq 1 60); do
+        (exec 3<>"/dev/tcp/localhost/{{port}}") 2>/dev/null && { echo "LiteLLM up on :{{port}} (pid $(cat build/litellm.pid))"; exit 0; }
+        kill -0 "$(cat build/litellm.pid)" 2>/dev/null || { echo "LiteLLM exited early; see build/litellm.log" >&2; exit 1; }
+        sleep 1
+    done
+    echo "LiteLLM did not accept connections within 60s; see build/litellm.log" >&2
+    exit 1
+
+# stop the gateway started by `just litellm-start`
+litellm-stop:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [ -f build/litellm.pid ]; then
+        kill "$(cat build/litellm.pid)" 2>/dev/null || true
+        rm -f build/litellm.pid
+        echo "stopped"
+    else
+        echo "no build/litellm.pid; nothing to stop" >&2
+    fi
+
 # local guard against direct pushes to main (this repo has no server-side branch protection)
 hooks:
     git config core.hooksPath tools/hooks
