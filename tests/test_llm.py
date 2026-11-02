@@ -56,6 +56,13 @@ def test_planner_self_corrects(registry, pin, good_plan):
     assert "keywords" not in backend.calls[0]["messages"][1]["content"]  # catalogue scoped to domain
 
 
+def test_planner_sees_agent_guidance(registry, pin, good_plan):
+    backend = ScriptedBackend([json.dumps(good_plan)])
+    LLMPlanner(backend, registry, S, domains=["statistics"], guidance="Always start with `summary`.").plan("yield", pin)
+    system = backend.calls[0]["messages"][0]["content"]
+    assert "Instructions for this planner" in system and "Always start with `summary`." in system
+
+
 def test_planner_domain_scope_enforced(registry, pin):
     plan = {
         "objective": "out of scope",

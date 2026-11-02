@@ -123,19 +123,25 @@ class DSPyPlanner:
     name = "dspy"
 
     def __init__(
-        self, registry: Any, program: Any = None, domains: Iterable[str] | None = None, max_attempts: int = 3
+        self,
+        registry: Any,
+        program: Any = None,
+        domains: Iterable[str] | None = None,
+        max_attempts: int = 3,
+        guidance: str = "",
     ) -> None:
         _require()
         self.program = program or DSPyPlanProgram(registry, domains, max_attempts)
+        self.guidance = guidance.strip()
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
         """Plan with the DSPy program; the proposal is validated by the same validators as the other planners.
 
         Raises a non-recoverable `PlanValidationError` with the last rejection when the program produced no valid plan.
         """
-        pred = self.program(
-            objective=objective + (f"\nPrevious runs:\n{memory_context}" if memory_context else ""), inputs=inputs
-        )
+        guidance = f"\nInstructions for this planner:\n{self.guidance}" if self.guidance else ""
+        memory = f"\nPrevious runs:\n{memory_context}" if memory_context else ""
+        pred = self.program(objective=objective + guidance + memory, inputs=inputs)
         if not pred.valid:
             raise PlanValidationError(
                 "DSPy planner could not produce a valid plan",
@@ -154,7 +160,7 @@ def _register() -> None:
         program = DSPyPlanProgram(f.registry, spec.domains or None, f.settings_for(spec).max_correction_attempts)
         if spec.options.get("compiled_path"):
             program.load(spec.options["compiled_path"])
-        return DSPyPlanner(f.registry, program=program)
+        return DSPyPlanner(f.registry, program=program, guidance=spec.instructions)
 
     planner_builder("dspy", make)
 

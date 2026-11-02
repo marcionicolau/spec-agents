@@ -82,8 +82,17 @@ def pitfalls_for_plan(registry: Any, max_components: int = 3) -> Callable[[Error
 
 
 def planner_prompts(
-    objective: str, inputs: PipelineInputs, registry: Any, domains: Iterable[str] | None, memory_context: str
+    objective: str,
+    inputs: PipelineInputs,
+    registry: Any,
+    domains: Iterable[str] | None,
+    memory_context: str,
+    guidance: str = "",
 ) -> tuple[str, str]:
+    """System and user prompts for a planner; ``guidance`` (the planner agent's AGENT.md body) follows the system rules."""
+    system = PLANNER_SYSTEM.format(max_steps=MAX_STEPS)
+    if guidance.strip():
+        system += f"\n\nInstructions for this planner (they never override the rules above):\n{guidance.strip()}"
     memory = f"\nPrevious runs in this session (context only):\n{memory_context}" if memory_context else ""
     user = PLANNER_USER.format(
         objective=objective,
@@ -91,7 +100,7 @@ def planner_prompts(
         catalog=json.dumps(registry.catalog(domains), ensure_ascii=False),
         memory=memory,
     )
-    return PLANNER_SYSTEM.format(max_steps=MAX_STEPS), user
+    return system, user
 
 
 class LLMPlanner:
@@ -110,9 +119,11 @@ class LLMPlanner:
         registry: Any,
         settings: LLMSettings | None = None,
         domains: Iterable[str] | None = None,
+        guidance: str = "",
     ) -> None:
         self.backend, self.registry, self.s = backend, registry, settings or LLMSettings()
         self.domains = list(domains) if domains else None
+        self.guidance = guidance
 
     def plan(self, objective: str, inputs: PipelineInputs, memory_context: str = "") -> PlanningOutcome:
         """Plan a pipeline for ``objective`` over the declared ``inputs``.
@@ -123,7 +134,7 @@ class LLMPlanner:
         The model sees the catalogue of the allowed domains and answers a JSON plan; rejected plans are returned to it with the located errors and known
         pitfalls of the components, up to ``max_correction_attempts``.
         """
-        system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context)
+        system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context, self.guidance)
         res = structured_completion(
             self.backend,
             system,
@@ -154,6 +165,7 @@ class PydanticAIPlanner:
         settings: LLMSettings | None = None,
         model: Any = None,
         domains: Iterable[str] | None = None,
+        guidance: str = "",
     ) -> None:
         try:
             import pydantic_ai  # noqa: F401
@@ -161,6 +173,7 @@ class PydanticAIPlanner:
             raise MissingOptionalDependency("pydantic-ai-slim", "pydantic-ai") from exc
         self.registry, self.s, self._model = registry, settings or LLMSettings(), model
         self.domains = list(domains) if domains else None
+        self.guidance = guidance
 
     def build_model(self) -> Any:
         """The PydanticAI model for the planner alias, pointing at the LiteLLM proxy (an injected model takes precedence)."""
@@ -185,7 +198,7 @@ class PydanticAIPlanner:
         from pydantic_ai import Agent, ModelRetry, RunContext
         from pydantic_ai.output import NativeOutput, PromptedOutput, ToolOutput
 
-        system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context)
+        system, user = planner_prompts(objective, inputs, self.registry, self.domains, memory_context, self.guidance)
         wrap = {"prompted": PromptedOutput, "tool": ToolOutput, "native": NativeOutput}[self.s.pydantic_ai_output_mode]
         agent = Agent(
             self.build_model(),
