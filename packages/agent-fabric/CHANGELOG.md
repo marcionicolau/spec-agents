@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.4](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.3...agent-fabric-v0.9.4) (2026-11-02)
+
+
+### Bug Fixes
+
+* **agent-fabric:** pass a planner agent's AGENT.md body to its planner ([#172](https://github.com/marcionicolau/spec-agents/issues/172)) ([133df38](https://github.com/marcionicolau/spec-agents/commit/133df382e00ef1f160fab4eaf5565dd481c43387))
+* **core:** pass a planner agent's AGENT.md body to its planner ([133df38](https://github.com/marcionicolau/spec-agents/commit/133df382e00ef1f160fab4eaf5565dd481c43387))
+
 ## [0.9.3](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.2...agent-fabric-v0.9.3) (2026-10-08)
 
 
