@@ -48,11 +48,13 @@ def build_registry(domains: Iterable[Callable | str] = (), discover: bool = Fals
     return reg
 
 
+from .cancel import CancelToken  # noqa: E402
 from .compat import API_LEVEL, API_LEVEL_MIN, requires_api  # noqa: E402
 
 __all__ = [
     "API_LEVEL",
     "API_LEVEL_MIN",
+    "CancelToken",
     "__version__",
     "build_registry",
     "domain_loader",

@@ -21,6 +21,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from ..cancel import CancelToken
 from ..errors import AgentConfigError, ErrorDetail, SpecError, suggest
 from ..llm.backends import LLMBackend, LLMSettings
 from ..memory.base import InMemoryMemory, MemoryPort
@@ -387,11 +388,13 @@ class AgentFabric:
         on_event: Any = None,
         on_step: Any = None,
         on_delta: Any = None,
+        cancel: CancelToken | None = None,
     ) -> AgentRunReport:
         """Run the agent tree on an instruction and return an `AgentRunReport`.
 
         ``inputs`` seed the blackboard by name. The root is ``root`` or the config's root agent (an `AgentConfigError` when it cannot be determined).
         The run gets its own budget and trace; ``on_event`` is called for every trace event and ``on_step`` for every pipeline step outcome and ``on_delta(path, text)`` for streamed LLM answer text (for live views).
+        ``cancel`` is an optional `CancelToken`: once set (from any thread) the run stops at its next checkpoint and ends ``failed`` with a ``cancelled`` error (`AgentRunReport.cancelled`).
         ``session_id`` selects the memory session. Failures of agents are reported in the result, not raised.
         """
         roots = [root] if root else self.config.roots()
@@ -417,6 +420,7 @@ class AgentFabric:
             on_event=on_event,
             on_step=on_step,
             on_delta=on_delta,
+            cancel=cancel,
         )
         result = agent.run(AgentTask(instruction=instruction), ctx)
         report = AgentRunReport(

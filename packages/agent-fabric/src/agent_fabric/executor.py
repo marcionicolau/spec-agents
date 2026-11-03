@@ -104,7 +104,9 @@ class PipelineExecutor:
         llm: Any = None,
         llm_settings: Any = None,
         on_step: Any = None,
+        cancel: Any = None,
     ) -> None:
+        self.cancel = cancel  # optional CancelToken; checked before every step (raises Cancelled)
         self.registry, self.fail_policy, self.repairer, self.max_repairs = registry, fail_policy, repairer, max_repairs
         self.llm, self.llm_settings = llm, llm_settings  # for 'runtime: prompt' steps (agents pass a metered backend)
         self.on_step = on_step  # optional callback(StepOutcome) after each step - UIs
@@ -115,7 +117,7 @@ class PipelineExecutor:
         Steps run in topological order. A step whose dependencies failed or were skipped is skipped with a ``DependencyError``; with
         ``fail_policy="fail_fast"`` every step after the first failure is skipped. A recoverable parameter or data failure is passed to the
         repairer (when one is configured) up to ``max_repairs`` times. ``inputs`` may be raw values (their artifact types are inferred) or ready
-        `PipelineInputs`. ``depth`` is the nesting level when running as a step of another pipeline.
+        `PipelineInputs`. ``depth`` is the nesting level when running as a step of another pipeline. A set ``cancel`` token raises `Cancelled` before the next step.
         """
         pin = inputs if isinstance(inputs, PipelineInputs) else PipelineInputs.from_values(inputs, self.registry.types)
         store = ArtifactStore({f"$inputs.{k}": v for k, v in pin.values.items()})
@@ -123,6 +125,8 @@ class PipelineExecutor:
         catalog = {c["name"]: c for c in self.registry.catalog()}
         halted = False
         for step in plan.topological_order():
+            if self.cancel is not None:
+                self.cancel.raise_if_cancelled(f"step '{step.id}'")
             deps = plan.all_deps(step)
             bad = sorted(d for d in deps if outcomes[d].status in (StepStatus.FAILED, StepStatus.SKIPPED))
             if halted or bad:

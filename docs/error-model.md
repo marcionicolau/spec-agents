@@ -10,6 +10,7 @@
 | `dependency`      | `DependencyError`                               | no             | skip dependents, fallback backend   |
 | `agent`           | `AgentConfigError` / `DelegationError`          | no / yes       | fix config / router self-correction |
 | `budget`          | `BudgetExceeded`                                | no             | stop delegating; synthesis skipped  |
+| `cancelled`       | `Cancelled`                                     | no             | run stops; no fallback or repair    |
 
 Rules: set `loc` (path into plan/params/config), stable snake_case `type`, factual `msg`, actionable `hint`
 (`suggest()` for names). Don't create cascades: a port with a bad reference counts as bound.

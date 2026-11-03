@@ -17,6 +17,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
+from ..cancel import CancelToken
 from ..errors import BudgetExceeded, DependencyError, ErrorDetail, ErrorReport, suggest
 from ..llm.backends import LLMBackend, Message, SyncToAsyncBackend
 from ..memory.base import MemoryPort
@@ -151,6 +152,7 @@ class RunContext:
     on_event: Any = None  # optional listener(TraceEvent) - UIs render a live view from it
     on_step: Any = None  # optional listener(StepOutcome) - fired by pipeline steps inside agents
     on_delta: Any = None  # optional listener(path, text) - streamed answer text of LLM calls, for live views
+    cancel: CancelToken | None = None  # optional token; checked at every agent run, LLM call and pipeline step
     lock: threading.RLock = field(default_factory=threading.RLock, repr=False)  # guards trace/blackboard/counters
 
     def event(self, path: str, event: EventKind, detail: str = "") -> None:
@@ -222,12 +224,18 @@ class MeteredBackend:
             parts: list[str] = []
             for delta in stream(messages, model=model, json_mode=json_mode, temperature=temperature):
                 parts.append(delta)
+                self._check_cancel()
                 with self.ctx.lock:
                     self.ctx.on_delta(self.path, delta)
             return "".join(parts)
         return self.inner.complete(messages, model=model, json_mode=json_mode, temperature=temperature)
 
+    def _check_cancel(self) -> None:
+        if self.ctx.cancel is not None:
+            self.ctx.cancel.raise_if_cancelled(self.path)
+
     def _charge(self, model: str | None) -> None:
+        self._check_cancel()
         self.ctx.budget.charge_llm(self.path)
         with self.ctx.lock:
             self.ctx.llm_calls_by_path[self.path] = self.ctx.llm_calls_by_path.get(self.path, 0) + 1
@@ -282,6 +290,11 @@ class AgentRunReport(BaseModel):
     def blackboard(self) -> dict[str, Any]:
         """The blackboard at the end of the run: user inputs plus agent outputs (``<path>``) and artifacts (``<path>.<name>``)."""
         return self._blackboard
+
+    @property
+    def cancelled(self) -> bool:
+        """Whether the run was stopped by its `CancelToken` (some agent in the tree ended with a ``cancelled`` error)."""
+        return any(r.error is not None and r.error.category.value == "cancelled" for r in self.result.walk())
 
     @property
     def ok(self) -> bool:
