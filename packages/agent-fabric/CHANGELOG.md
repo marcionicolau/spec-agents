@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.4...agent-fabric-v0.10.0) (2026-11-03)
+
+
+### Features
+
+* **agent-fabric:** add CancelToken for cooperative run cancellation ([#174](https://github.com/marcionicolau/spec-agents/issues/174)) ([15891bd](https://github.com/marcionicolau/spec-agents/commit/15891bd48a85f2bbd204baff26e5b8e3f9f69feb))
+
 ## [0.9.4](https://github.com/marcionicolau/spec-agents/compare/agent-fabric-v0.9.3...agent-fabric-v0.9.4) (2026-11-02)
 
 
