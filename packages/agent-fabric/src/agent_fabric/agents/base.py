@@ -6,7 +6,7 @@ import time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from ..errors import BudgetExceeded, FabricError
+from ..errors import BudgetExceeded, Cancelled, FabricError
 from ..llm.backends import LLMSettings
 from ..llm.prompts import AGENT_SYSTEM, compact
 from ..memory.base import RunSummary, memory_context, namespaced
@@ -32,7 +32,7 @@ class BaseAgent(ABC):
         """Run the agent on a task: the template method every agent goes through.
 
         Records the start and end events, charges the run budget (``max_depth`` and ``max_agent_runs``) and calls the kind-specific ``_run``. A
-        `BudgetExceeded` or other `FabricError` becomes a ``failed`` result carrying the located error; when a ``fallback`` backend is configured it is
+        `BudgetExceeded`, `Cancelled` (a set `CancelToken`, checked before each agent run) or other `FabricError` becomes a ``failed`` result carrying the located error; when a ``fallback`` backend is configured it is
         tried first and the fallback is noted in ``notes``. Records LLM calls and duration, and, when memory is configured, the instruction, the answer and a
         `RunSummary` under ``<session>/<path>``. Does not raise `FabricError`s: they end up in the result.
         """
@@ -40,9 +40,11 @@ class BaseAgent(ABC):
         t0 = time.perf_counter()
         ctx.event(path, "start", task.instruction)
         try:
+            if ctx.cancel is not None:
+                ctx.cancel.raise_if_cancelled(path)
             ctx.budget.charge_run(path, depth)
             res = self._run(task, ctx, path, depth)
-        except BudgetExceeded as exc:
+        except (BudgetExceeded, Cancelled) as exc:  # stop, never fall back
             res = self.result(path, "failed", error=exc.report, summary=exc.message)
         except FabricError as exc:
             ctx.event(path, "error", f"{exc.category.value}: {exc.message}")

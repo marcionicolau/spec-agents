@@ -442,3 +442,69 @@ def test_fabric_run_streams_llm_text_to_on_delta(registry):
     deltas: list[tuple[str, str]] = []
     rep = fabric.run("go", on_delta=lambda p, t: deltas.append((p, t)))
     assert rep.ok and {p for p, _ in deltas} == {"lead"} and "".join(t for _, t in deltas) == plan
+
+
+# ------------------------------------------------------------------ cancellation
+
+
+def test_cancel_token_set_before_the_run_stops_it_without_llm_calls(registry):
+    from agent_fabric import CancelToken
+
+    token = CancelToken()
+    token.cancel("user asked")
+    fabric, backend = make(registry, _parallel_cfg(1), [json.dumps(PLAN)])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    rep = fabric.run("go", cancel=token)
+    assert rep.cancelled and not rep.ok
+    assert rep.result.error.category.value == "cancelled" and not rep.result.error.recoverable
+    assert "user asked" in rep.result.error.message
+    assert rep.usage["llm_calls"] == 0 and backend.calls == []
+
+
+def test_cancel_during_a_delegation_stops_the_remaining_ones(registry):
+    from agent_fabric import CancelToken
+
+    token = CancelToken()
+    fabric, _ = make(registry, _parallel_cfg(1), [json.dumps(PLAN)])
+    ran: list[str] = []
+
+    def work(task, inputs):
+        ran.append("w")
+        token.cancel("enough")  # e.g. a worker thread receives an abort while the first delegation runs
+        return {"summary": "done"}
+
+    fabric.register_function("work", work)
+    rep = fabric.run("go", cancel=token)
+    assert ran == ["w"]
+    # b is cancelled when it starts; c depends on b, so it is skipped
+    assert [c.status for c in rep.result.children] == ["ok", "failed", "skipped"]
+    assert rep.result.children[1].error.category.value == "cancelled"
+    assert rep.result.status == "partial" and rep.cancelled and token.reason == "enough"
+
+
+def test_cancel_during_streaming_stops_the_llm_call(registry):
+    from agent_fabric import CancelToken
+
+    token = CancelToken()
+    fabric, _ = make(registry, _parallel_cfg(1), [json.dumps(PLAN)])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    deltas: list[str] = []
+
+    def on_delta(path, text):
+        deltas.append(text)
+        token.cancel()
+
+    rep = fabric.run("go", on_delta=on_delta, cancel=token)
+    assert len(deltas) == 1 and rep.cancelled
+    assert rep.result.error.details[0].type == "cancelled"
+
+
+def test_cancelled_run_is_not_retried_by_the_fallback(registry):
+    from agent_fabric import CancelToken
+
+    token = CancelToken()
+    token.cancel()
+    fabric, _ = make(registry, _parallel_cfg(1), [json.dumps(PLAN)])
+    fabric.register_function("work", lambda task, inputs: {"summary": "done"})
+    rep = fabric.run("go", cancel=token)
+    assert not any(e.event == "fallback" for e in rep.trace) and rep.result.notes == []

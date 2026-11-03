@@ -59,6 +59,12 @@ LLM call as it is generated, when the backend can `stream()` (`LiteLLMProxyBacke
 don't stream. The returned text, the budget and the trace are identical with or without a listener. Async callers can use
 `acomplete`/`astream` on the backends (`AsyncLLMBackend`, `StreamingLLMBackend`; `SyncToAsyncBackend` adapts any sync one).
 
+**Cancellation**: `fabric.run(..., cancel=token)` takes an `agent_fabric.CancelToken`. Call `token.cancel(reason)` from any
+thread (a worker's abort handler, a timeout, a signal) and the run stops at its next checkpoint: before every agent run, LLM call,
+streamed delta and pipeline step. Work already in flight (a blocking HTTP call) finishes first. Affected agents end `failed`
+with a non-recoverable `cancelled` error (`Cancelled`, never retried and never sent to a `fallback` backend), dependents are
+skipped, and `report.cancelled` is `True`. The report, trace and blackboard of the work done so far are still returned.
+
 **Trace export**: the `on_event` stream can be persisted two ways. `agent_fabric.trace.JsonlTraceSink` (or
 `write_jsonl(report.trace, path)` after the run) writes every event as one JSON line with stable field names —
 `seq` (total order), `at` (seconds since run start), `path` (agent path), `event` (`start`/`end`/`llm_call`/

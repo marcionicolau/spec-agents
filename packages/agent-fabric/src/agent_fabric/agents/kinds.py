@@ -188,6 +188,7 @@ class _PipelineRunner(BaseAgent):
             llm=self.llm(ctx, path),
             llm_settings=self.settings,
             on_step=ctx.on_step,
+            cancel=ctx.cancel,
         ).run(plan, pin)
         interps = self.interpret(report, plan.objective, ctx, path)
         artifacts = [ctx.put(f"{path}.{name}", value) for name, value in report.output_values().items()]
@@ -232,7 +233,7 @@ class _PipelineRunner(BaseAgent):
                 try:
                     it = llm.interpret(o, objective, self.fabric.registry)
                 except FabricError as exc:
-                    if exc.category.value == "budget":
+                    if exc.category.value in ("budget", "cancelled"):
                         raise
                     ctx.event(path, "fallback", f"rule interpretation for {o.step_id}")
             it = it or rules.interpret(o, objective, self.fabric.registry)

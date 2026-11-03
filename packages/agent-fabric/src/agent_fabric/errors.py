@@ -26,6 +26,7 @@ class ErrorCategory(StrEnum):
     DEPENDENCY = "dependency"  # upstream step failed or optional package missing
     AGENT = "agent"  # agent tree config or delegation is invalid
     BUDGET = "budget"  # depth / LLM-call / delegation budget exhausted
+    CANCELLED = "cancelled"  # the caller cancelled the run (CancelToken)
 
 
 class ErrorDetail(BaseModel):
@@ -165,6 +166,12 @@ class BudgetExceeded(FabricError):
     category = ErrorCategory.BUDGET
 
 
+class Cancelled(FabricError):
+    """The caller cancelled the run through its `CancelToken`; never retried or repaired."""
+
+    category = ErrorCategory.CANCELLED
+
+
 class MissingOptionalDependency(DependencyError):
     def __init__(self, package: str, extra: str) -> None:
         super().__init__(
@@ -225,6 +232,7 @@ def suggest(name: str, candidates: Iterable[str]) -> str | None:
 __all__ = [
     "AgentConfigError",
     "BudgetExceeded",
+    "Cancelled",
     "ComponentExecutionError",
     "DataValidationError",
     "DelegationError",
